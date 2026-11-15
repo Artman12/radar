@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fg_channel_desc">Persistent status notification while AirAlerts monitors official feeds</string>
+    <string name="fg_channel_name">Background Alert Monitoring</string>
+    <string name="fg_status_active_alert">AIR ALERT • %1$s</string>
+    <string name="fg_status_active_clear">Monitoring active • %1$s: No alert</string>
+    <string name="fg_status_monitoring">Monitoring active</string>
+    <string name="fg_status_no_network">Offline • Waiting for connection</string>
+</resources>

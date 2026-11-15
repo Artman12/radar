@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-15T23:42:14.863Z" hostname="ARTMAN-PC" time="0.011">
+  <properties/>
+  <testcase name="fullSilenceSetsSilentFlagDuringQuietHours" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.009"/>
+  <testcase name="mutedPointNeverEmitsNotifications" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.0"/>
+  <testcase name="activeToInactiveEmitsAllClearNormally" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.001"/>
+  <testcase name="repeatedSameAlertIsDeduplicated" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.0"/>
+  <testcase name="inactiveToActiveEmitsAlertStarted" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.0"/>
+  <testcase name="filterAllClearSuppressesClearDuringQuietHours" classname="com.onemanarmy.airalerts.domain.logic.AlertDeduplicatorTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

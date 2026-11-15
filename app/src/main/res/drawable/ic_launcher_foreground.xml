@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Soft drop shadow under shield -->
+    <path
+        android:fillColor="#55000000"
+        android:pathData="M54,27.5 L76,34.5 L76,53.5 C76,68.2 66.4,78.5 54,84.5 C41.6,78.5 32,68.2 32,53.5 L32,34.5 Z" />
+
+    <!-- Protective shield body -->
+    <path
+        android:pathData="M54,26 L75.5,33 L75.5,52 C75.5,66.6 66.1,76.8 54,82.5 C41.9,76.8 32.5,66.6 32.5,52 L32.5,33 Z"
+        android:strokeWidth="2.4"
+        android:strokeColor="#5BB2FF"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="54"
+                android:endY="82.5"
+                android:startX="54"
+                android:startY="26"
+                android:type="linear">
+                <item
+                    android:color="#FF182A42"
+                    android:offset="0.0" />
+                <item
+                    android:color="#FF0D1724"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Subtle radar sweep highlight inside shield -->
+    <path
+        android:fillColor="#245BB2FF"
+        android:pathData="M54,58 L41,42 A19,19 0 0,1 67,42 Z" />
+
+    <!-- Outer upward radar arc -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M40.5,46.5 A17.5,17.5 0 0,1 67.5,46.5"
+        android:strokeWidth="2.8"
+        android:strokeColor="#5BB2FF"
+        android:strokeLineCap="round" />
+
+    <!-- Inner upward radar arc -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M45,51.2 A11.5,11.5 0 0,1 63,51.2"
+        android:strokeWidth="2.8"
+        android:strokeColor="#93C5FD"
+        android:strokeLineCap="round" />
+
+    <!-- Alert beacon pulse halo -->
+    <path
+        android:fillColor="#44EF4444"
+        android:pathData="M54,50 A8.5,8.5 0 1,1 53.99,50 Z" />
+
+    <!-- Alert beacon red core -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M54,53 A5.5,5.5 0 1,1 53.99,53 Z"
+        android:strokeWidth="1.2"
+        android:strokeColor="#FCA5A5" />
+
+    <!-- High-contrast inner core dot -->
+    <path
+        android:fillColor="#FFFBEB"
+        android:pathData="M54,56.3 A2.2,2.2 0 1,1 53.99,56.3 Z" />
+</vector>

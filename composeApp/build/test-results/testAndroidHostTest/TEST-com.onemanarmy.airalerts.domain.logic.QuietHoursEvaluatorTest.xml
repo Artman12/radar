@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluatorTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-15T23:42:14.881Z" hostname="ARTMAN-PC" time="0.023">
+  <properties/>
+  <testcase name="overnightScheduleMatchesBeforeAndAfterMidnight" classname="com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluatorTest" time="0.022"/>
+  <testcase name="disabledQuietHoursAlwaysReturnsFalse" classname="com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluatorTest" time="0.0"/>
+  <testcase name="overnightScheduleRespectsPreviousDayAfterMidnight" classname="com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluatorTest" time="0.0"/>
+  <testcase name="sameDayScheduleWorksCorrectly" classname="com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluatorTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

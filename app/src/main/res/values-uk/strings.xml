@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">AirAlerts</string>
+    <string name="fg_channel_name">Служба моніторингу тривог</string>
+    <string name="fg_channel_desc">Постійний фоновий моніторинг повітряних тривог</string>
+    <string name="alert_channel_name">Повітряні тривоги</string>
+    <string name="alert_channel_desc">Термінові сповіщення про тривогу та відбій</string>
+    <string name="fg_status_active_clear">Моніторинг активний • %1$s: Тривоги немає</string>
+    <string name="fg_status_active_alert">ПОВІТРЯНА ТРИВОГА • %1$s</string>
+    <string name="fg_status_monitoring">Моніторинг активний</string>
+    <string name="fg_status_no_network">Офлайн • Очікування мережі</string>
+    <string name="notif_alert_started_title">Повітряна тривога: %1$s</string>
+    <string name="notif_alert_started_body">%1$s: %2$s</string>
+    <string name="notif_all_clear_title">Відбій тривоги: %1$s</string>
+    <string name="notif_all_clear_body">Тривога завершилась: %1$s</string>
+</resources>

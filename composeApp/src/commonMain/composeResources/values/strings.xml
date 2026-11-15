@@ -1,0 +1,199 @@
+<resources>
+    <string name="app_name">AirAlerts</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_map">Map</string>
+    <string name="tab_points">My Points</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_step_indicator">Step %1$d of 4</string>
+    <string name="onboarding_welcome_title">Autonomous Air Alert Monitor</string>
+    <string name="onboarding_welcome_desc">AirAlerts works directly from your device without third-party servers. It combines official UkraineAlarm alerts with open-source radar data.</string>
+    <string name="onboarding_disclaimer_card_title">Important Notice</string>
+    <string name="onboarding_disclaimer_card_body">Aerial target positions on the radar map are approximate and based on open OSINT monitoring feeds. Always rely on official alerts and seek shelter immediately during a siren.</string>
+    <string name="onboarding_btn_start">Start Setup</string>
+
+    <string name="onboarding_permissions_title">Essential Permissions</string>
+    <string name="onboarding_permissions_desc">To deliver timely alerts even when the screen is off, allow notifications and unrestricted background execution.</string>
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_desc">Required to alert you about air raids and all-clears.</string>
+    <string name="perm_battery_title">Unrestricted Battery Usage</string>
+    <string name="perm_battery_desc">Prevents Android from pausing background alert monitoring.</string>
+    <string name="status_granted">Granted</string>
+    <string name="status_not_granted">Not granted</string>
+    <string name="btn_grant">Grant</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_configure_later">Configure Later</string>
+    <string name="btn_back">Back</string>
+
+    <string name="onboarding_location_title">Choose First Location</string>
+    <string name="onboarding_location_desc">Select how you want to monitor alerts. You can always add more points later.</string>
+    <string name="onboarding_option_gps_title">My Current Location</string>
+    <string name="onboarding_option_gps_desc">Automatically detects your region via GPS. Background location permission is recommended if you travel.</string>
+    <string name="onboarding_option_map_title">Pick a Point on Map</string>
+    <string name="onboarding_option_map_desc">Place a marker manually (e.g., Home) without granting GPS access.</string>
+    <string name="onboarding_location_selected">Selected: %1$s</string>
+    <string name="onboarding_pick_point_confirm">Confirm Point</string>
+    <string name="default_home_name">Home</string>
+
+    <string name="onboarding_comfort_title">Comfort &amp; Vibration</string>
+    <string name="onboarding_comfort_desc">Customize Night Mode and gentle tactile feedback so alerts stay noticeable without harsh buzzing.</string>
+    <string name="onboarding_night_toggle">Enable Night Mode (23:00 – 07:00)</string>
+    <string name="onboarding_vibration_label">Vibration Preset</string>
+    <string name="btn_test">Test</string>
+    <string name="btn_finish">Finish</string>
+
+    <!-- Map Tab -->
+    <string name="status_no_alert">%1$s — No alert</string>
+    <string name="status_alert_active">Air Alert • %1$s</string>
+    <string name="status_yellow_warning">Elevated Threat • %1$s</string>
+    <string name="status_no_points_title">No tracked locations</string>
+    <string name="status_no_points_subtitle">Tap + to add a point or enable GPS tracking</string>
+    <string name="status_point_subtitle">%1$s (%2$s)</string>
+    <string name="map_toggle_radar_on">Hide air threats</string>
+    <string name="map_toggle_radar_off">Show air threats</string>
+    <string name="map_center_gps">Center on my location</string>
+    <string name="map_add_point">Add point</string>
+    <string name="map_disclaimer_prefix">Target positions are approximate • Source: </string>
+    <string name="map_disclaimer_link">NEPTUN</string>
+    <string name="map_nearby_threat_banner">Threat within %1$d km of %2$s (%3$d km away)</string>
+    <string name="map_crosshair_hint">Move the map to place the crosshair</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="legend_clear">Clear</string>
+    <string name="legend_elevated">Elevated</string>
+    <string name="legend_high">Alert</string>
+    <string name="legend_critical">Target</string>
+    <string name="region_threat_clear">No active alert</string>
+    <string name="region_threat_elevated">Elevated threat / Radar target nearby</string>
+    <string name="region_threat_high">Active air alert</string>
+    <string name="region_threat_critical">Critical: Air alert + Radar target nearby</string>
+    <string name="region_nearby_targets_count">%1$d radar target(s) nearby</string>
+
+    <!-- My Points Tab -->
+    <string name="points_gps_title">My Geolocation</string>
+    <string name="points_gps_subtitle_enabled">Region: %1$s</string>
+    <string name="points_gps_subtitle_detecting">Detecting location…</string>
+    <string name="points_gps_subtitle_disabled">Automatic GPS tracking is off</string>
+    <string name="points_saved_header">Saved Locations</string>
+    <string name="points_empty_hint">No saved points yet. Add Home, Work, or Family locations to monitor them simultaneously.</string>
+    <string name="points_notify_switch">Notify for this point</string>
+    <string name="points_action_rename">Rename</string>
+    <string name="points_action_reposition">Move on map</string>
+    <string name="points_action_delete">Delete</string>
+    <string name="points_add_button">Add Location</string>
+    <string name="points_status_clear">Clear</string>
+    <string name="points_status_alert">Alert</string>
+
+    <!-- Add / Edit Location BottomSheet -->
+    <string name="sheet_add_location_title">Add Location</string>
+    <string name="sheet_rename_location_title">Rename Location</string>
+    <string name="field_location_name">Location name (e.g., Home)</string>
+    <string name="field_search_address">Search city or address in Ukraine</string>
+    <string name="btn_search">Search</string>
+    <string name="btn_pick_on_map">Pick on Map</string>
+    <string name="search_no_results">No locations found</string>
+    <string name="selected_region_label">Matched region: %1$s</string>
+
+    <!-- Point Details BottomSheet -->
+    <string name="point_details_region">Region / Community</string>
+    <string name="point_details_status">Current Status</string>
+    <string name="point_details_duration">Active Duration</string>
+    <string name="point_details_last_check">Last Checked</string>
+    <string name="point_details_alert_types">Active Threats</string>
+    <string name="point_details_no_active">No active official alerts</string>
+
+    <!-- Threat Details BottomSheet -->
+    <string name="threat_details_type">Target Type</string>
+    <string name="threat_details_heading">Heading / Course</string>
+    <string name="threat_details_heading_unknown">Unknown</string>
+    <string name="threat_details_speed">Speed</string>
+    <string name="threat_details_distance">Distance to %1$s</string>
+    <string name="threat_details_distance_value">~%1$d km</string>
+    <string name="threat_details_uncertainty">Position uncertainty: ±%1$d km</string>
+    <string name="threat_details_approx_note">OSINT radar data is approximate and updated only while the Map tab is open.</string>
+
+    <!-- Threat Types -->
+    <string name="threat_type_uav">Attack UAV (Shahed)</string>
+    <string name="threat_type_fpv">FPV Drone</string>
+    <string name="threat_type_recon">Reconnaissance UAV</string>
+    <string name="threat_type_cruise_missile">Cruise Missile</string>
+    <string name="threat_type_ballistic">Ballistic Missile</string>
+    <string name="threat_type_kab">Guided Aerial Bomb (KAB)</string>
+    <string name="threat_type_aviation">Tactical Aviation</string>
+    <string name="threat_type_unknown">Aerial Target</string>
+
+    <!-- Alert Types -->
+    <string name="alert_type_air">Air Raid Alert</string>
+    <string name="alert_type_artillery">Artillery Threat</string>
+    <string name="alert_type_urban_fights">Urban Combat</string>
+    <string name="alert_type_chemical">Chemical Threat</string>
+    <string name="alert_type_nuclear">Radiation Threat</string>
+    <string name="alert_type_unknown">Alert</string>
+
+    <!-- Settings Tab -->
+    <string name="settings_notifications_section">Notifications &amp; Delicate Vibration</string>
+    <string name="settings_vibration_preset">Vibration Preset</string>
+    <string name="vibration_none">No vibration</string>
+    <string name="vibration_ultra_soft">Ultra-soft pulse (90 ms)</string>
+    <string name="vibration_delicate_double">Delicate double tap</string>
+    <string name="vibration_standard">Standard vibration</string>
+    <string name="settings_sound_preset">Notification Sound</string>
+    <string name="sound_default">System Default</string>
+    <string name="sound_soft_chime">Soft Notification</string>
+    <string name="sound_silent">Silent (No sound)</string>
+    <string name="btn_test_notification">Test Notification</string>
+    <string name="test_notification_title">AirAlerts — Test</string>
+    <string name="test_notification_body">Notification channel and vibration preset are active.</string>
+
+    <string name="settings_night_mode_section">Night Mode (Quiet Hours)</string>
+    <string name="settings_night_mode_enable">Enable Quiet Hours</string>
+    <string name="settings_night_interval">Schedule Interval</string>
+    <string name="settings_night_start">Start</string>
+    <string name="settings_night_end">End</string>
+    <string name="settings_night_days">Active Days</string>
+    <string name="settings_night_behavior">Behavior During Quiet Hours</string>
+    <string name="night_behavior_full_silence">Complete silence (no sound, vibration, or wake)</string>
+    <string name="night_behavior_soft_pulse">Ultra-soft pulse only (no sound)</string>
+    <string name="night_behavior_filter_all_clear">Filter all-clears (notify only on new alerts)</string>
+
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+
+    <string name="settings_radar_section">Radar &amp; Proximity</string>
+    <string name="settings_warning_radius">Warning radius: %1$d km</string>
+    <string name="settings_radar_nearby_alerts">Highlight threats inside warning radius</string>
+
+    <string name="settings_diagnostics_section">Background Diagnostics</string>
+    <string name="diag_service_title">Foreground Monitoring Service</string>
+    <string name="diag_service_running">Active</string>
+    <string name="diag_service_stopped">Stopped</string>
+    <string name="diag_service_start">Start</string>
+    <string name="diag_battery_title">Battery Optimization Exemption</string>
+    <string name="diag_battery_ok">Unrestricted</string>
+    <string name="diag_battery_restricted">Restricted</string>
+    <string name="diag_fix">Fix</string>
+    <string name="diag_notifications_title">Notifications Permission</string>
+    <string name="diag_location_title">Location Permission</string>
+    <string name="diag_bg_location_title">Background Location Permission</string>
+
+    <string name="settings_about_section">Data Sources &amp; Attribution</string>
+    <string name="about_ukraine_alarm">Alerts: NEPTUN API (or UkraineAlarm API v3 with key)</string>
+    <string name="about_neptun">Aerial Threats Layer: NEPTUN OSINT Radar</string>
+    <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
+
+    <!-- Background Notification Strings -->
+    <string name="notif_alert_started_title">Air Alert: %1$s</string>
+    <string name="notif_alert_started_body">%1$s active in %2$s</string>
+    <string name="notif_all_clear_title">All Clear: %1$s</string>
+    <string name="notif_all_clear_body">Air alert ended in %1$s</string>
+    <string name="notif_nearby_threat_title">Threat Near %1$s</string>
+    <string name="notif_nearby_threat_body">%1$s detected ~%2$d km away</string>
+    <string name="just_now">Just now</string>
+</resources>

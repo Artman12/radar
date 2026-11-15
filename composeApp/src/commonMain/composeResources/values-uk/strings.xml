@@ -1,0 +1,199 @@
+<resources>
+    <string name="app_name">AirAlerts</string>
+
+    <!-- Navigation Tabs -->
+    <string name="tab_map">Карта</string>
+    <string name="tab_points">Мої точки</string>
+    <string name="tab_settings">Налаштування</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_step_indicator">Крок %1$d з 4</string>
+    <string name="onboarding_welcome_title">Автономний моніторинг тривог</string>
+    <string name="onboarding_welcome_desc">AirAlerts працює безпосередньо з вашого пристрою без проміжних серверів, поєднуючи офіційні сповіщення UkraineAlarm та відкритий радар цілей.</string>
+    <string name="onboarding_disclaimer_card_title">Важливе попередження</string>
+    <string name="onboarding_disclaimer_card_body">Положення повітряних цілей на карті є орієнтовним і базується на відкритих OSINT-джерелах. Завжди орієнтуйтеся на офіційні тривоги та прямуйте в укриття.</string>
+    <string name="onboarding_btn_start">Почати налаштування</string>
+
+    <string name="onboarding_permissions_title">Критичні дозволи</string>
+    <string name="onboarding_permissions_desc">Для своєчасних сповіщень навіть із вимкненим екраном надайте дозвіл на сповіщення та фонову роботу без обмежень.</string>
+    <string name="perm_notifications_title">Сповіщення</string>
+    <string name="perm_notifications_desc">Необхідно для повідомлень про тривогу та відбій.</string>
+    <string name="perm_battery_title">Робота у фоні без обмежень</string>
+    <string name="perm_battery_desc">Запобігає зупинці фонового моніторингу системою Android.</string>
+    <string name="status_granted">Надано</string>
+    <string name="status_not_granted">Не надано</string>
+    <string name="btn_grant">Надати</string>
+    <string name="btn_next">Далі</string>
+    <string name="btn_configure_later">Налаштувати пізніше</string>
+    <string name="btn_back">Назад</string>
+
+    <string name="onboarding_location_title">Вибір першої локації</string>
+    <string name="onboarding_location_desc">Оберіть спосіб відстеження тривог. Ви зможете додати більше точок пізніше.</string>
+    <string name="onboarding_option_gps_title">Моя геолокація</string>
+    <string name="onboarding_option_gps_desc">Автоматично визначає ваш регіон за GPS. Дозвіл у фоні потрібен для відстеження під час руху.</string>
+    <string name="onboarding_option_map_title">Вибрати точку на карті</string>
+    <string name="onboarding_option_map_desc">Встановіть маркер вручну (наприклад, «Дім») без надання доступу до GPS.</string>
+    <string name="onboarding_location_selected">Обрано: %1$s</string>
+    <string name="onboarding_pick_point_confirm">Підтвердити точку</string>
+    <string name="default_home_name">Дім</string>
+
+    <string name="onboarding_comfort_title">Комфорт та вібрація</string>
+    <string name="onboarding_comfort_desc">Налаштуйте «Нічний режим» і делікатну вібрацію, щоб сповіщення були помітними, але не різкими.</string>
+    <string name="onboarding_night_toggle">Увімкнути нічний режим (23:00 – 07:00)</string>
+    <string name="onboarding_vibration_label">Пресет вібрації</string>
+    <string name="btn_test">Перевірити</string>
+    <string name="btn_finish">Завершити</string>
+
+    <!-- Map Tab -->
+    <string name="status_no_alert">%1$s — Тривоги немає</string>
+    <string name="status_alert_active">Повітряна тривога • %1$s</string>
+    <string name="status_yellow_warning">Підвищена загроза • %1$s</string>
+    <string name="status_no_points_title">Немає відстежуваних локацій</string>
+    <string name="status_no_points_subtitle">Натисніть +, щоб додати точку або увімкніть GPS</string>
+    <string name="status_point_subtitle">%1$s (%2$s)</string>
+    <string name="map_toggle_radar_on">Приховати повітряні цілі</string>
+    <string name="map_toggle_radar_off">Показати повітряні цілі</string>
+    <string name="map_center_gps">Центрувати на моїй геопозиції</string>
+    <string name="map_add_point">Додати точку</string>
+    <string name="map_disclaimer_prefix">Положення цілей є орієнтовним • Джерело: </string>
+    <string name="map_disclaimer_link">NEPTUN</string>
+    <string name="map_nearby_threat_banner">Ціль у межах %1$d км від %2$s (~%3$d км)</string>
+    <string name="map_crosshair_hint">Переміщуйте карту для вибору точки</string>
+    <string name="btn_cancel">Скасувати</string>
+    <string name="btn_save">Зберегти</string>
+    <string name="legend_clear">Тихо</string>
+    <string name="legend_elevated">Загроза</string>
+    <string name="legend_high">Тривога</string>
+    <string name="legend_critical">Ціль</string>
+    <string name="region_threat_clear">Активної тривоги немає</string>
+    <string name="region_threat_elevated">Підвищена загроза / Ціль поруч</string>
+    <string name="region_threat_high">Повітряна тривога</string>
+    <string name="region_threat_critical">Критично: Тривога + Ціль поруч</string>
+    <string name="region_nearby_targets_count">%1$d ціль(ей) поблизу</string>
+
+    <!-- My Points Tab -->
+    <string name="points_gps_title">Моя геолокація</string>
+    <string name="points_gps_subtitle_enabled">Регіон: %1$s</string>
+    <string name="points_gps_subtitle_detecting">Визначення геопозиції…</string>
+    <string name="points_gps_subtitle_disabled">Автоматичне відстеження GPS вимкнено</string>
+    <string name="points_saved_header">Збережені локації</string>
+    <string name="points_empty_hint">Збережених точок ще немає. Додайте «Дім», «Робота» або «Батьки» для одночасного моніторингу.</string>
+    <string name="points_notify_switch">Сповіщати для цієї точки</string>
+    <string name="points_action_rename">Перейменувати</string>
+    <string name="points_action_reposition">Змінити на карті</string>
+    <string name="points_action_delete">Видалити</string>
+    <string name="points_add_button">Додати локацію</string>
+    <string name="points_status_clear">Тихо</string>
+    <string name="points_status_alert">Тривога</string>
+
+    <!-- Add / Edit Location BottomSheet -->
+    <string name="sheet_add_location_title">Додати локацію</string>
+    <string name="sheet_rename_location_title">Перейменувати локацію</string>
+    <string name="field_location_name">Назва точки (напр., Дім)</string>
+    <string name="field_search_address">Пошук міста або адреси в Україні</string>
+    <string name="btn_search">Пошук</string>
+    <string name="btn_pick_on_map">Вибрати на карті</string>
+    <string name="search_no_results">Локацій не знайдено</string>
+    <string name="selected_region_label">Прив’язаний регіон: %1$s</string>
+
+    <!-- Point Details BottomSheet -->
+    <string name="point_details_region">Регіон / Громада</string>
+    <string name="point_details_status">Поточний статус</string>
+    <string name="point_details_duration">Тривалість тривоги</string>
+    <string name="point_details_last_check">Остання перевірка</string>
+    <string name="point_details_alert_types">Активні загрози</string>
+    <string name="point_details_no_active">Активних офіційних тривог немає</string>
+
+    <!-- Threat Details BottomSheet -->
+    <string name="threat_details_type">Тип цілі</string>
+    <string name="threat_details_heading">Курс руху</string>
+    <string name="threat_details_heading_unknown">Невідомо</string>
+    <string name="threat_details_speed">Швидкість</string>
+    <string name="threat_details_distance">Відстань до «%1$s»</string>
+    <string name="threat_details_distance_value">~%1$d км</string>
+    <string name="threat_details_uncertainty">Похибка позиції: ±%1$d км</string>
+    <string name="threat_details_approx_note">Дані радара OSINT є орієнтовними та оновлюються лише при відкритій вкладці «Карта».</string>
+
+    <!-- Threat Types -->
+    <string name="threat_type_uav">Ударний БпЛА (Shahed)</string>
+    <string name="threat_type_fpv">FPV-дрон</string>
+    <string name="threat_type_recon">Розвідувальний БпЛА</string>
+    <string name="threat_type_cruise_missile">Крилата ракета</string>
+    <string name="threat_type_ballistic">Балістична ракета</string>
+    <string name="threat_type_kab">Керована авіабомба (КАБ)</string>
+    <string name="threat_type_aviation">Тактична авіація</string>
+    <string name="threat_type_unknown">Повітряна ціль</string>
+
+    <!-- Alert Types -->
+    <string name="alert_type_air">Повітряна тривога</string>
+    <string name="alert_type_artillery">Загроза артобстрілу</string>
+    <string name="alert_type_urban_fights">Вуличні бої</string>
+    <string name="alert_type_chemical">Хімічна небезпека</string>
+    <string name="alert_type_nuclear">Радіаційна небезпека</string>
+    <string name="alert_type_unknown">Тривога</string>
+
+    <!-- Settings Tab -->
+    <string name="settings_notifications_section">Сповіщення та делікатна вібрація</string>
+    <string name="settings_vibration_preset">Пресет вібрації</string>
+    <string name="vibration_none">Без вібрації</string>
+    <string name="vibration_ultra_soft">Ультра-м’який імпульс (90 мс)</string>
+    <string name="vibration_delicate_double">Делікатний подвійний стукіт</string>
+    <string name="vibration_standard">Стандартна вібрація</string>
+    <string name="settings_sound_preset">Звук сповіщення</string>
+    <string name="sound_default">Системний звук</string>
+    <string name="sound_soft_chime">М’який сигнал</string>
+    <string name="sound_silent">Без звуку</string>
+    <string name="btn_test_notification">Тест сповіщення</string>
+    <string name="test_notification_title">AirAlerts — Тест</string>
+    <string name="test_notification_body">Канал сповіщень та пресет вібрації активовано.</string>
+
+    <string name="settings_night_mode_section">Нічний режим («Тихі години»)</string>
+    <string name="settings_night_mode_enable">Увімкнути тихі години</string>
+    <string name="settings_night_interval">Часовий інтервал</string>
+    <string name="settings_night_start">Початок</string>
+    <string name="settings_night_end">Кінець</string>
+    <string name="settings_night_days">Дні тижня</string>
+    <string name="settings_night_behavior">Поведінка вночі</string>
+    <string name="night_behavior_full_silence">Повна тиша (без звуку, вібрації та екрана)</string>
+    <string name="night_behavior_soft_pulse">Тільки ультра-м’який імпульс (без звуку)</string>
+    <string name="night_behavior_filter_all_clear">Фільтр відбоїв (не турбувати при відбої вночі)</string>
+
+    <string name="day_mon">Пн</string>
+    <string name="day_tue">Вт</string>
+    <string name="day_wed">Ср</string>
+    <string name="day_thu">Чт</string>
+    <string name="day_fri">Пт</string>
+    <string name="day_sat">Сб</string>
+    <string name="day_sun">Нд</string>
+
+    <string name="settings_radar_section">Радар та дистанція</string>
+    <string name="settings_warning_radius">Радіус попередження: %1$d км</string>
+    <string name="settings_radar_nearby_alerts">Підсвічувати цілі в радіусі попередження</string>
+
+    <string name="settings_diagnostics_section">Діагностика фонової роботи</string>
+    <string name="diag_service_title">Фонова служба моніторингу</string>
+    <string name="diag_service_running">Активна</string>
+    <string name="diag_service_stopped">Зупинена</string>
+    <string name="diag_service_start">Запустити</string>
+    <string name="diag_battery_title">Виключення з оптимізації батареї</string>
+    <string name="diag_battery_ok">Без обмежень</string>
+    <string name="diag_battery_restricted">Обмежено</string>
+    <string name="diag_fix">Виправити</string>
+    <string name="diag_notifications_title">Дозвіл на сповіщення</string>
+    <string name="diag_location_title">Дозвіл на геолокацію</string>
+    <string name="diag_bg_location_title">Фоновий доступ до геолокації</string>
+
+    <string name="settings_about_section">Джерела даних та атрибуція</string>
+    <string name="about_ukraine_alarm">Тривоги: NEPTUN API (або UkraineAlarm API v3 з ключем)</string>
+    <string name="about_neptun">Шар повітряних цілей: Радар OSINT NEPTUN</string>
+    <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>
+
+    <!-- Background Notification Strings -->
+    <string name="notif_alert_started_title">Повітряна тривога: %1$s</string>
+    <string name="notif_alert_started_body">%1$s в %2$s</string>
+    <string name="notif_all_clear_title">Відбій тривоги: %1$s</string>
+    <string name="notif_all_clear_body">Тривога завершилась у %1$s</string>
+    <string name="notif_nearby_threat_title">Ціль поблизу %1$s</string>
+    <string name="notif_nearby_threat_body">%1$s на відстані ~%2$d км</string>
+    <string name="just_now">Щойно</string>
+</resources>

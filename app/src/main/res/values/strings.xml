@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">AirAlerts</string>
+    <string name="fg_channel_name">Alert Monitoring Service</string>
+    <string name="fg_channel_desc">Persistent background monitoring for air raid alerts</string>
+    <string name="alert_channel_name">Air Raid Alerts</string>
+    <string name="alert_channel_desc">Urgent notifications for air raid alerts and all-clears</string>
+    <string name="fg_status_active_clear">Monitoring active • %1$s: No alert</string>
+    <string name="fg_status_active_alert">AIR ALERT • %1$s</string>
+    <string name="fg_status_monitoring">Monitoring active</string>
+    <string name="fg_status_no_network">Offline • Waiting for connection</string>
+    <string name="notif_alert_started_title">Air Alert: %1$s</string>
+    <string name="notif_alert_started_body">%1$s in %2$s</string>
+    <string name="notif_all_clear_title">All Clear: %1$s</string>
+    <string name="notif_all_clear_body">Alert ended in %1$s</string>
+</resources>

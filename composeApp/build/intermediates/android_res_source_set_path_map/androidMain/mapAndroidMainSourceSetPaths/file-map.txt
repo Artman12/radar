@@ -1,0 +1,5 @@
+com.onemanarmy.airalerts.shared.composeApp-androidMain-0 D:\Projects\airalerts\composeApp\build\generated\updated_navigation_xml\androidMain\res
+com.onemanarmy.airalerts.shared.composeApp-packageAndroidMainResources-1 D:\Projects\airalerts\composeApp\build\intermediates\incremental\androidMain\packageAndroidMainResources\merged.dir
+com.onemanarmy.airalerts.shared.composeApp-packageAndroidMainResources-2 D:\Projects\airalerts\composeApp\build\intermediates\incremental\androidMain\packageAndroidMainResources\stripped.dir
+com.onemanarmy.airalerts.shared.composeApp-packageAndroidMainResources-3 D:\Projects\airalerts\composeApp\build\intermediates\packaged_res\androidMain\packageAndroidMainResources\res
+gradleHome-0 C:\Users\artma\.gradle
