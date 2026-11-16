@@ -6,92 +6,109 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Soft drop shadow under siren unit -->
-    <path
-        android:fillColor="#66000000"
-        android:pathData="M37,66.5 L71,66.5 L75,75 C75.6,76.8 74.3,78.5 72.5,78.5 L35.5,78.5 C33.7,78.5 32.4,76.8 33,75 Z" />
-
-    <!-- Five straight flashing siren rays (amber-gold) radiating around the dome -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M27,54 L35,54"
-        android:strokeWidth="3.6"
-        android:strokeColor="#FBBF24"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M33.5,34.5 L39.2,40.2"
-        android:strokeWidth="3.6"
-        android:strokeColor="#FBBF24"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M54,25 L54,33"
-        android:strokeWidth="3.6"
-        android:strokeColor="#FDE047"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M74.5,34.5 L68.8,40.2"
-        android:strokeWidth="3.6"
-        android:strokeColor="#FBBF24"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M81,54 L73,54"
-        android:strokeWidth="3.6"
-        android:strokeColor="#FBBF24"
-        android:strokeLineCap="round" />
-
-    <!-- Vivid crimson-red siren dome with crisp white rim -->
-    <path
-        android:pathData="M41,65 L41,51 A13,13 0 0,1 67,51 L67,65 Z"
-        android:strokeWidth="2.4"
-        android:strokeColor="#F8FAFC"
-        android:strokeLineJoin="round">
+    <!-- High-contrast radar sweep sector (-55 deg to +15 deg) -->
+    <path android:pathData="M54,54 L71.21,29.43 A30,30 0 0,1 82.98,61.76 Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:endX="54"
-                android:endY="65"
-                android:startX="54"
-                android:startY="38"
+                android:endX="68"
+                android:endY="60"
+                android:startX="73"
+                android:startY="30"
                 android:type="linear">
                 <item
-                    android:color="#FFFF5252"
+                    android:color="#8C3B9BFF"
                     android:offset="0.0" />
                 <item
-                    android:color="#FFDC2626"
+                    android:color="#243B9BFF"
                     android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Bright specular highlight on left side of dome -->
+    <!-- Crisp leading edge of radar sweep -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M45,51 A9,9 0 0,1 51,42.5"
-        android:strokeWidth="1.8"
-        android:strokeColor="#99FFFFFF"
+        android:pathData="M54,54 L71.21,29.43"
+        android:strokeWidth="1.7"
+        android:strokeColor="#D993C5FD"
         android:strokeLineCap="round" />
 
-    <!-- High-contrast exclamation mark inside the siren dome -->
+    <!-- Outer radar ring (r = 30, boosted stroke and brightness for small launcher sizes) -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M54,44.5 L54,54"
-        android:strokeWidth="3.2"
-        android:strokeColor="#FFFBEB"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="#FFFBEB"
-        android:pathData="M54,57.5 A1.9,1.9 0 1,1 53.99,57.5 Z" />
+        android:pathData="M54,24 A30,30 0 1,0 54,84 A30,30 0 1,0 54,24 Z"
+        android:strokeWidth="1.7"
+        android:strokeColor="#9960A5FA" />
 
-    <!-- Crisp bright white metallic siren pedestal base -->
+    <!-- Middle radar ring (r = 22.5) -->
     <path
-        android:fillColor="#F8FAFC"
-        android:pathData="M38,65 L70,65 L73.8,73.2 C74.5,74.8 73.3,76.5 71.5,76.5 L36.5,76.5 C34.7,76.5 33.5,74.8 34.2,73.2 Z" />
+        android:fillColor="#00000000"
+        android:pathData="M54,31.5 A22.5,22.5 0 1,0 54,76.5 A22.5,22.5 0 1,0 54,31.5 Z"
+        android:strokeWidth="1.7"
+        android:strokeColor="#CC60A5FA" />
 
-    <!-- Subtle slate trim at bottom edge of pedestal for 3D depth -->
+    <!-- Red threat blip in upper-right radar sector -->
     <path
-        android:fillColor="#CBD5E1"
-        android:pathData="M35.2,72 L72.8,72 L73.8,73.2 C74.5,74.8 73.3,76.5 71.5,76.5 L36.5,76.5 C34.7,76.5 33.5,74.8 34.2,73.2 Z" />
+        android:fillColor="#66EF4444"
+        android:pathData="M71.3,36.1 A4.5,4.5 0 1,0 71.3,45.1 A4.5,4.5 0 1,0 71.3,36.1 Z" />
+    <path
+        android:fillColor="#FFFF4D4D"
+        android:pathData="M71.3,38.0 A2.6,2.6 0 1,0 71.3,43.2 A2.6,2.6 0 1,0 71.3,38.0 Z" />
+
+    <!-- Green safe blip in lower-left radar quadrant -->
+    <path
+        android:fillColor="#5922C55E"
+        android:pathData="M34.2,60.8 A4.1,4.1 0 1,0 34.2,69.0 A4.1,4.1 0 1,0 34.2,60.8 Z" />
+    <path
+        android:fillColor="#FF34D399"
+        android:pathData="M34.2,62.6 A2.3,2.3 0 1,0 34.2,67.2 A2.3,2.3 0 1,0 34.2,62.6 Z" />
+
+    <!-- Drop shadow under central shield badge -->
+    <path
+        android:fillColor="#73000000"
+        android:pathData="M54,38.8 A16.4,16.4 0 1,0 54,71.6 A16.4,16.4 0 1,0 54,38.8 Z" />
+
+    <!-- Central circular badge with brighter navy fill and vivid sky-blue border -->
+    <path
+        android:pathData="M54,38.5 A15.5,15.5 0 1,0 54,69.5 A15.5,15.5 0 1,0 54,38.5 Z"
+        android:strokeWidth="1.9"
+        android:strokeColor="#F260A5FA">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="50"
+                android:gradientRadius="16"
+                android:type="radial">
+                <item
+                    android:color="#FF293C56"
+                    android:offset="0.0" />
+                <item
+                    android:color="#FF1B293D"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Bright luminous Shield emblem -->
+    <path
+        android:pathData="M54,45.42 L46.98,48.54 L46.98,53.22 C46.98,57.55 49.98,61.60 54,62.58 C58.02,61.60 61.02,57.55 61.02,53.22 L61.02,48.54 Z"
+        android:strokeWidth="0.6"
+        android:strokeColor="#CCBAE6FD"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:endX="54"
+                android:endY="62.58"
+                android:startX="54"
+                android:startY="45.42"
+                android:type="linear">
+                <item
+                    android:color="#FF93C5FD"
+                    android:offset="0.0" />
+                <item
+                    android:color="#FF2C86E8"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

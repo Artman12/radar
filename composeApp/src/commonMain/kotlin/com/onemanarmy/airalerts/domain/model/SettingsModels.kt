@@ -84,7 +84,7 @@ data class AppSettings(
     val threatRadiusNotificationEnabled: Boolean = false,
     val threatNotificationRadiusKm: Int = 10,
     val threatVibrationPattern: ThreatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
-    val threatSoundPattern: ThreatSoundPattern = ThreatSoundPattern.BUZZER,
+    val threatSoundPattern: ThreatSoundPattern = ThreatSoundPattern.ALARM_BEEP,
     val threatSoundVolumePercent: Int = 85,
     val lastActionIndex: Long = 0L,
     val lastKnownAlertCheckEpochMs: Long = 0L,

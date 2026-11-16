@@ -72,8 +72,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -533,6 +537,7 @@ private fun WelcomeStep(onStart: () -> Unit) {
 private fun RadarShieldHero() {
     val primary = MaterialTheme.colorScheme.primary
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+    val ringColor = Color(0xFF4B9AF4)
 
     Box(
         modifier = Modifier.size(132.dp),
@@ -541,10 +546,14 @@ private fun RadarShieldHero() {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
             val maxRadius = size.minDimension / 2f
+            val outerRingRadius = maxRadius * 0.92f
 
+            // Soft radial glow that blends naturally into the onboarding background
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(primary.copy(alpha = 0.24f), Color.Transparent),
+                    0.0f to primary.copy(alpha = 0.28f),
+                    0.55f to primary.copy(alpha = 0.10f),
+                    1.0f to Color.Transparent,
                     center = center,
                     radius = maxRadius
                 ),
@@ -552,43 +561,83 @@ private fun RadarShieldHero() {
                 center = center
             )
 
+            // Balanced radar sweep wedge (-55 deg to +15 deg)
+            val startAngleRad = ((-55.0 * PI) / 180.0).toFloat()
+            val endAngleRad = ((15.0 * PI) / 180.0).toFloat()
+            val rayTip = Offset(
+                center.x + outerRingRadius * cos(startAngleRad),
+                center.y + outerRingRadius * sin(startAngleRad)
+            )
+            val trailTip = Offset(
+                center.x + outerRingRadius * cos(endAngleRad),
+                center.y + outerRingRadius * sin(endAngleRad)
+            )
+
             drawArc(
-                brush = Brush.sweepGradient(
-                    0.0f to Color.Transparent,
-                    0.75f to Color.Transparent,
-                    0.92f to primary.copy(alpha = 0.22f),
-                    1.0f to primary.copy(alpha = 0.05f),
-                    center = center
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        primary.copy(alpha = 0.34f),
+                        primary.copy(alpha = 0.06f)
+                    ),
+                    start = rayTip,
+                    end = trailTip
                 ),
                 startAngle = -55f,
                 sweepAngle = 70f,
                 useCenter = true,
                 topLeft = Offset(
-                    center.x - (maxRadius * 0.92f),
-                    center.y - (maxRadius * 0.92f)
+                    center.x - outerRingRadius,
+                    center.y - outerRingRadius
                 ),
-                size = Size(maxRadius * 1.84f, maxRadius * 1.84f)
+                size = Size(outerRingRadius * 2f, outerRingRadius * 2f)
             )
 
-            listOf(0.92f, 0.70f, 0.50f).forEachIndexed { idx, factor ->
+            // Subtle leading-edge sweep ray
+            drawLine(
+                color = Color(0xFF7CB8FA).copy(alpha = 0.52f),
+                start = center,
+                end = rayTip,
+                strokeWidth = 1.4.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+
+            // Medium-contrast concentric radar rings
+            listOf(
+                0.92f to 0.30f,
+                0.70f to 0.42f,
+                0.50f to 0.52f
+            ).forEach { (factor, alpha) ->
                 drawCircle(
-                    color = primary.copy(alpha = 0.14f + idx * 0.08f),
+                    color = ringColor.copy(alpha = alpha),
                     radius = maxRadius * factor,
                     center = center,
-                    style = Stroke(width = 1.2.dp.toPx())
+                    style = Stroke(width = 1.4.dp.toPx())
                 )
             }
 
-            // Subtle blip accents on the radar rings
+            // Blip accents with soft halos
+            val redCenter = Offset(center.x + maxRadius * 0.54f, center.y - maxRadius * 0.42f)
+            drawCircle(
+                color = AlertColors.AlertRed.copy(alpha = 0.22f),
+                radius = 5.4.dp.toPx(),
+                center = redCenter
+            )
             drawCircle(
                 color = AlertColors.AlertRed,
                 radius = 3.5.dp.toPx(),
-                center = Offset(center.x + maxRadius * 0.54f, center.y - maxRadius * 0.42f)
+                center = redCenter
+            )
+
+            val greenCenter = Offset(center.x - maxRadius * 0.62f, center.y + maxRadius * 0.34f)
+            drawCircle(
+                color = AlertColors.SafeGreen.copy(alpha = 0.20f),
+                radius = 4.8.dp.toPx(),
+                center = greenCenter
             )
             drawCircle(
                 color = AlertColors.SafeGreen,
-                radius = 3.dp.toPx(),
-                center = Offset(center.x - maxRadius * 0.62f, center.y + maxRadius * 0.34f)
+                radius = 3.0.dp.toPx(),
+                center = greenCenter
             )
         }
 
@@ -597,13 +646,13 @@ private fun RadarShieldHero() {
                 .size(64.dp)
                 .clip(CircleShape)
                 .background(surfaceColor)
-                .border(1.5.dp, primary.copy(alpha = 0.55f), CircleShape),
+                .border(1.6.dp, primary.copy(alpha = 0.72f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Shield,
                 contentDescription = null,
-                tint = primary,
+                tint = Color(0xFF479AF2),
                 modifier = Modifier.size(32.dp)
             )
         }

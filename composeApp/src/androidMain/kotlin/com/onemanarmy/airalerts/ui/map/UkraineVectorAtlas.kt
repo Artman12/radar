@@ -820,7 +820,7 @@ object UkraineMapPreloader {
             val appContext = context.applicationContext
             org.osmdroid.config.Configuration.getInstance().apply {
                 load(appContext, appContext.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
-                userAgentValue = "${appContext.packageName}/1.0 (Android; AirAlerts)"
+                userAgentValue = "${appContext.packageName}/1.0 (Android; Radar)"
                 osmdroidBasePath = java.io.File(appContext.cacheDir, "osmdroid")
                 osmdroidTileCache = java.io.File(appContext.cacheDir, "osmdroid/tiles")
                 cacheMapTileOvershoot = 48

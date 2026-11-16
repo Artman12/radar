@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AirAlerts</string>
+    <string name="app_name">Радар</string>
 
     <!-- Navigation Tabs -->
     <string name="tab_map">Map</string>
@@ -9,7 +9,7 @@
     <!-- Onboarding -->
     <string name="onboarding_step_indicator">Step %1$d of 4</string>
     <string name="onboarding_welcome_title">Autonomous Air Alert Monitor</string>
-    <string name="onboarding_welcome_desc">AirAlerts works directly from your device without third-party servers. It combines regional air-raid alerts with live open-source radar data from NEPTUN.</string>
+    <string name="onboarding_welcome_desc">Radar works directly from your device without third-party servers. It combines regional air-raid alerts with live open-source radar data from NEPTUN.</string>
     <string name="onboarding_disclaimer_card_title">Important Notice</string>
     <string name="onboarding_disclaimer_card_body">Aerial target positions on the radar map are approximate and based on open OSINT monitoring feeds. Always rely on official alerts and seek shelter immediately during a siren.</string>
     <string name="onboarding_btn_start">Start Setup</string>

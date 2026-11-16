@@ -41,7 +41,7 @@ class NominatimGeocoderApi(
     companion object {
         private const val SEARCH_URL = "https://nominatim.openstreetmap.org/search"
         private const val REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val USER_AGENT = "AirAlerts-KMP-Android/1.0"
+        private const val USER_AGENT = "Radar-KMP-Android/1.0"
     }
 
     suspend fun searchInUkraine(query: String): List<GeocodedAddress> = withContext(Dispatchers.IO) {

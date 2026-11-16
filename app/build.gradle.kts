@@ -10,7 +10,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.onemanarmy.airalerts"
+        applicationId = "com.onemanarmy.radar"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

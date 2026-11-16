@@ -76,7 +76,7 @@ class AndroidPlatformNotifier(
                 "Background Alert Monitoring",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Persistent status notification while AirAlerts monitors official feeds"
+                description = "Persistent status notification while Radar monitors official feeds"
                 setShowBadge(false)
                 enableVibration(false)
                 setSound(null, null)

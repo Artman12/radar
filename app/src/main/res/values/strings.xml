@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AirAlerts</string>
+    <string name="app_name">Радар</string>
     <string name="fg_channel_name">Alert Monitoring Service</string>
     <string name="fg_channel_desc">Persistent background monitoring for air raid alerts</string>
     <string name="alert_channel_name">Air Raid Alerts</string>

@@ -87,7 +87,7 @@ class OkHttpTileDownloader(
 
         val userAgent = Configuration.getInstance().userAgentValue
             ?.takeIf { it.isNotBlank() }
-            ?: "AirAlerts/1.0 (Android)"
+            ?: "Radar/1.0 (Android)"
 
         val bytes = fetchBytes(targetUrl, userAgent) ?: return null
         return cacheAndDecode(
