@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.onemanarmy.airalerts.data.remote.HttpClientFactory
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AppSettings
+import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointAlertState
 import com.onemanarmy.airalerts.domain.model.RegionItem
 import com.onemanarmy.airalerts.domain.model.SavedPoint
@@ -28,6 +29,7 @@ class AppPreferencesRepository(
         val CACHED_REGIONS = stringPreferencesKey("cached_regions_json")
         val ALERT_STATES = stringPreferencesKey("dedup_alert_states_json")
         val LAST_ACTIVE_ALERTS = stringPreferencesKey("last_active_alerts_json")
+        val OCCUPIED_TERRITORIES_CACHE = stringPreferencesKey("occupied_territories_cache_json")
     }
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { prefs ->
@@ -58,6 +60,12 @@ class AppPreferencesRepository(
         prefs[Keys.LAST_ACTIVE_ALERTS]?.let { raw ->
             runCatching { json.decodeFromString<List<ActiveAlertInfo>>(raw) }.getOrNull()
         } ?: emptyList()
+    }
+
+    val occupiedTerritoriesFlow: Flow<OccupiedTerritoriesSnapshot?> = dataStore.data.map { prefs ->
+        prefs[Keys.OCCUPIED_TERRITORIES_CACHE]?.let { raw ->
+            runCatching { json.decodeFromString<OccupiedTerritoriesSnapshot>(raw) }.getOrNull()
+        }
     }
 
     suspend fun updateSettings(transform: (AppSettings) -> AppSettings) {
@@ -131,6 +139,12 @@ class AppPreferencesRepository(
     suspend fun saveLastActiveAlerts(alerts: List<ActiveAlertInfo>) {
         dataStore.edit { prefs ->
             prefs[Keys.LAST_ACTIVE_ALERTS] = json.encodeToString(alerts)
+        }
+    }
+
+    suspend fun saveOccupiedTerritoriesCache(snapshot: OccupiedTerritoriesSnapshot) {
+        dataStore.edit { prefs ->
+            prefs[Keys.OCCUPIED_TERRITORIES_CACHE] = json.encodeToString(snapshot)
         }
     }
 }

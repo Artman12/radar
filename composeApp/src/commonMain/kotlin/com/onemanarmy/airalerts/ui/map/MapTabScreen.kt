@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,17 +17,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Radar
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.ZoomOutMap
@@ -60,6 +63,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.onemanarmy.airalerts.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
 import com.onemanarmy.airalerts.domain.logic.DurationFormatter
 import com.onemanarmy.airalerts.domain.model.AdminLevel
@@ -74,8 +78,9 @@ import com.onemanarmy.airalerts.resources.legend_clear
 import com.onemanarmy.airalerts.resources.legend_critical
 import com.onemanarmy.airalerts.resources.legend_elevated
 import com.onemanarmy.airalerts.resources.legend_high
-import com.onemanarmy.airalerts.resources.map_add_point
+import com.onemanarmy.airalerts.resources.legend_occupied
 import com.onemanarmy.airalerts.resources.map_center_gps
+import com.onemanarmy.airalerts.resources.map_disclaimer_deepstate_link
 import com.onemanarmy.airalerts.resources.map_disclaimer_link
 import com.onemanarmy.airalerts.resources.map_disclaimer_prefix
 import com.onemanarmy.airalerts.resources.map_nearby_threat_banner
@@ -99,6 +104,7 @@ import com.onemanarmy.airalerts.ui.components.AllThreatsBottomSheet
 import com.onemanarmy.airalerts.ui.components.CrosshairMapPickerOverlay
 import com.onemanarmy.airalerts.ui.components.MapZoomControlsPill
 import com.onemanarmy.airalerts.ui.components.PointDetailsBottomSheet
+import com.onemanarmy.airalerts.ui.components.RefreshCountdownBadge
 import com.onemanarmy.airalerts.ui.components.ThreatDetailsBottomSheet
 import com.onemanarmy.airalerts.ui.components.ThreatKnowledgeBaseSheet
 import com.onemanarmy.airalerts.ui.theme.AlertColors
@@ -108,6 +114,7 @@ import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun MapTabScreen(
@@ -149,7 +156,9 @@ fun MapTabScreen(
     var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
     var isAllThreatsSheetOpen by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isCompactLandscape = maxWidth > maxHeight && maxHeight < 520.dp
+
         if (uiState.isCrosshairMode) {
             val defaultLabel = stringResource(Res.string.default_home_name)
             CrosshairMapPickerOverlay(
@@ -176,8 +185,10 @@ fun MapTabScreen(
                 activeAlerts = uiState.activeAlerts,
                 boundaries = uiState.boundaries,
                 regionThreats = uiState.regionThreats,
+                occupiedTerritories = uiState.occupiedTerritories,
                 selectedRegionId = uiState.selectedRegion?.polygon?.id,
                 showThreatsLayer = uiState.settings.radarLayerEnabled,
+                showOccupiedLayer = uiState.settings.occupiedLayerEnabled,
                 warningRadiusKm = uiState.settings.threatNotificationRadiusKm,
                 highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
                 gpsCoordinates = gpsPair,
@@ -193,14 +204,20 @@ fun MapTabScreen(
             // Top sticky swipeable status card + optional proximity banner.
             Column(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .align(if (isCompactLandscape) Alignment.TopStart else Alignment.TopCenter)
+                    .then(
+                        if (isCompactLandscape) {
+                            Modifier.widthIn(max = 380.dp).padding(top = 8.dp)
+                        } else {
+                            Modifier.fillMaxWidth().padding(top = 12.dp)
+                        }
+                    ),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 StickyStatusPager(
                     statuses = uiState.pointStatuses,
                     selectedIndex = uiState.selectedPointIndex,
+                    compact = isCompactLandscape,
                     onPageSelected = viewModel::selectPointPage,
                     onCardClick = viewModel::onPointClicked
                 )
@@ -211,7 +228,7 @@ fun MapTabScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = if (isCompactLandscape) 12.dp else 16.dp)
                             .clickable { viewModel.onThreatClicked(nearby) },
                         shape = RoundedCornerShape(12.dp),
                         color = AlertColors.WarningAmberContainerDark.copy(alpha = 0.96f),
@@ -219,7 +236,7 @@ fun MapTabScreen(
                         shadowElevation = 4.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -255,203 +272,179 @@ fun MapTabScreen(
                 }
             }
 
-            // Bottom-left selected region card + active threats summary + threat legend pill.
+            // Bottom overlays + attribution bar stacked with identical 6.dp vertical gaps
             Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 12.dp, end = 84.dp, bottom = 48.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                uiState.selectedRegion?.let { selected ->
-                    SelectedRegionInfoCard(
-                        selected = selected,
-                        onDismiss = viewModel::dismissSelectedRegion
-                    )
-                }
-
-                if (uiState.settings.radarLayerEnabled) {
-                    ActiveThreatsSummaryPill(
-                        threats = uiState.threats,
-                        highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
-                        onClick = { isAllThreatsSheetOpen = true }
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RegionThreatLegendPill()
-
-                    Surface(
-                        modifier = Modifier.clickable { isKnowledgeBaseOpen = true },
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                        tonalElevation = 2.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                contentDescription = stringResource(Res.string.kb_map_legend_btn),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = stringResource(Res.string.kb_map_legend_btn),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Right-side map zoom pill + Floating Action Buttons.
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 52.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                MapZoomControlsPill(
-                    onZoomIn = { zoomInVersion++ },
-                    onZoomOut = { zoomOutVersion++ }
-                )
-
-                SmallFloatingActionButton(
-                    onClick = viewModel::zoomToUkraine,
-                    shape = RoundedCornerShape(14.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-                    modifier = Modifier.border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline,
-                        RoundedCornerShape(14.dp)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ZoomOutMap,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                SmallFloatingActionButton(
-                    onClick = viewModel::toggleRadarLayer,
-                    shape = RoundedCornerShape(14.dp),
-                    containerColor = if (uiState.settings.radarLayerEnabled) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
-                    },
-                    contentColor = if (uiState.settings.radarLayerEnabled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-                    modifier = Modifier.border(
-                        1.dp,
-                        if (uiState.settings.radarLayerEnabled) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                        RoundedCornerShape(14.dp)
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (uiState.settings.radarLayerEnabled) {
-                            Icons.Default.Radar
-                        } else {
-                            Icons.Default.VisibilityOff
-                        },
-                        contentDescription = stringResource(
-                            if (uiState.settings.radarLayerEnabled) {
-                                Res.string.map_toggle_radar_on
-                            } else {
-                                Res.string.map_toggle_radar_off
-                            }
-                        ),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                SmallFloatingActionButton(
-                    onClick = viewModel::centerOnMyLocation,
-                    shape = RoundedCornerShape(14.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-                    modifier = Modifier.border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outline,
-                        RoundedCornerShape(14.dp)
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MyLocation,
-                        contentDescription = stringResource(Res.string.map_center_gps),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                FloatingActionButton(
-                    onClick = viewModel::openAddLocationSheet,
-                    shape = RoundedCornerShape(16.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(Res.string.map_add_point)
-                    )
-                }
-            }
-
-            // Bottom semi-transparent NEPTUN attribution & approximate disclaimer bar.
-            Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
-                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    .padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        bottom = if (isCompactLandscape) 4.dp else 8.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(Res.string.map_disclaimer_prefix),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(Res.string.map_disclaimer_link),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            textDecoration = TextDecoration.Underline,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable {
-                            viewModel.openExternalUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    // Bottom-left selected region card + active threats summary + threats guide + single-line legend pill.
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(end = if (isCompactLandscape) 120.dp else 72.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        uiState.selectedRegion?.let { selected ->
+                            SelectedRegionInfoCard(
+                                selected = selected,
+                                onDismiss = viewModel::dismissSelectedRegion
+                            )
                         }
-                    )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (uiState.settings.radarLayerEnabled) {
+                                ActiveThreatsSummaryPill(
+                                    threats = uiState.threats,
+                                    highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
+                                    nextRefreshEpochMs = uiState.nextRadarRefreshEpochMs,
+                                    refreshIntervalMs = uiState.radarPollIntervalMs,
+                                    isRefreshing = uiState.isRadarLoading,
+                                    onClick = { isAllThreatsSheetOpen = true },
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                            } else if (uiState.settings.lastKnownAlertCheckEpochMs > 0L) {
+                                AlertRefreshStatusPill(
+                                    lastAlertCheckEpochMs = uiState.settings.lastKnownAlertCheckEpochMs,
+                                    alertPollIntervalMs = uiState.alertPollIntervalMs
+                                )
+                            }
+
+                            ThreatGuideButton(
+                                onClick = { isKnowledgeBaseOpen = true }
+                            )
+                        }
+
+                        RegionThreatLegendPill(
+                            showOccupied = uiState.settings.occupiedLayerEnabled
+                        )
+                    }
+
+                    // Right-side map zoom pill + layer toggle + My Location FAB.
+                    if (isCompactLandscape) {
+                        Row(
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                ZoomToUkraineButton(
+                                    onClick = viewModel::zoomToUkraine,
+                                    compact = true
+                                )
+                                RadarLayerToggleButton(
+                                    enabled = uiState.settings.radarLayerEnabled,
+                                    onClick = viewModel::toggleRadarLayer,
+                                    compact = true
+                                )
+                            }
+
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                MapZoomControlsPill(
+                                    onZoomIn = { zoomInVersion++ },
+                                    onZoomOut = { zoomOutVersion++ },
+                                    compact = true
+                                )
+                                MyLocationFab(
+                                    onClick = viewModel::centerOnMyLocation,
+                                    compact = true
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            MapZoomControlsPill(
+                                onZoomIn = { zoomInVersion++ },
+                                onZoomOut = { zoomOutVersion++ }
+                            )
+
+                            ZoomToUkraineButton(onClick = viewModel::zoomToUkraine)
+
+                            RadarLayerToggleButton(
+                                enabled = uiState.settings.radarLayerEnabled,
+                                onClick = viewModel::toggleRadarLayer
+                            )
+
+                            MyLocationFab(onClick = viewModel::centerOnMyLocation)
+                        }
+                    }
+                }
+
+                // Bottom semi-transparent NEPTUN & DeepState attribution & approximate disclaimer bar.
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = if (isCompactLandscape) 4.dp else 6.dp
+                            ),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.map_disclaimer_prefix),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = stringResource(Res.string.map_disclaimer_link),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                textDecoration = TextDecoration.Underline,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                viewModel.openExternalUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+                            }
+                        )
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(Res.string.map_disclaimer_deepstate_link),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                textDecoration = TextDecoration.Underline,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                viewModel.openExternalUrl(DeepStateOccupiedApi.DEEPSTATE_BASE_URL)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -513,15 +506,177 @@ fun MapTabScreen(
 }
 
 @Composable
+private fun ThreatGuideButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                contentDescription = stringResource(Res.string.kb_map_legend_btn),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = stringResource(Res.string.kb_map_legend_btn),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun AlertRefreshStatusPill(
+    lastAlertCheckEpochMs: Long,
+    alertPollIntervalMs: Long,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(13.dp)
+            )
+            RefreshCountdownBadge(
+                nextRefreshEpochMs = lastAlertCheckEpochMs + alertPollIntervalMs,
+                intervalMs = alertPollIntervalMs,
+                isRefreshing = false
+            )
+        }
+    }
+}
+
+@Composable
+private fun ZoomToUkraineButton(
+    onClick: () -> Unit,
+    compact: Boolean = false
+) {
+    SmallFloatingActionButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
+        modifier = Modifier
+            .then(if (compact) Modifier.size(38.dp) else Modifier)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline,
+                RoundedCornerShape(14.dp)
+            )
+    ) {
+        Icon(
+            imageVector = Icons.Default.ZoomOutMap,
+            contentDescription = null,
+            modifier = Modifier.size(if (compact) 18.dp else 20.dp)
+        )
+    }
+}
+
+@Composable
+private fun RadarLayerToggleButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+    compact: Boolean = false
+) {
+    SmallFloatingActionButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        containerColor = if (enabled) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
+        },
+        contentColor = if (enabled) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
+        modifier = Modifier
+            .then(if (compact) Modifier.size(38.dp) else Modifier)
+            .border(
+                1.dp,
+                if (enabled) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                } else {
+                    MaterialTheme.colorScheme.outline
+                },
+                RoundedCornerShape(14.dp)
+            )
+    ) {
+        Icon(
+            imageVector = if (enabled) Icons.Default.Radar else Icons.Default.VisibilityOff,
+            contentDescription = stringResource(
+                if (enabled) {
+                    Res.string.map_toggle_radar_on
+                } else {
+                    Res.string.map_toggle_radar_off
+                }
+            ),
+            modifier = Modifier.size(if (compact) 18.dp else 20.dp)
+        )
+    }
+}
+
+@Composable
+private fun MyLocationFab(
+    onClick: () -> Unit,
+    compact: Boolean = false
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = if (compact) Modifier.size(46.dp) else Modifier,
+        shape = RoundedCornerShape(if (compact) 14.dp else 16.dp),
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    ) {
+        Icon(
+            imageVector = Icons.Default.MyLocation,
+            contentDescription = stringResource(Res.string.map_center_gps),
+            modifier = if (compact) Modifier.size(22.dp) else Modifier
+        )
+    }
+}
+
+@Composable
 private fun StickyStatusPager(
     statuses: List<PointStatus>,
     selectedIndex: Int,
+    compact: Boolean = false,
     onPageSelected: (Int) -> Unit,
     onCardClick: (PointStatus) -> Unit
 ) {
+    val horizontalPad = if (compact) 12.dp else 16.dp
     if (statuses.isEmpty()) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPad),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.96f)
@@ -530,7 +685,7 @@ private fun StickyStatusPager(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(if (compact) 12.dp else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
@@ -569,16 +724,17 @@ private fun StickyStatusPager(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)
     ) {
         HorizontalPager(
             state = pagerState,
-            contentPadding = PaddingValues(horizontal = 16.dp),
+            contentPadding = PaddingValues(horizontal = horizontalPad),
             pageSpacing = 10.dp
         ) { page ->
             val status = statuses[page]
             StatusStickyCard(
                 status = status,
+                compact = compact,
                 onClick = { onCardClick(status) }
             )
         }
@@ -609,13 +765,14 @@ private fun StickyStatusPager(
 @Composable
 private fun StatusStickyCard(
     status: PointStatus,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     var nowInstant by remember { mutableStateOf(Clock.System.now()) }
     LaunchedEffect(status.isAlertActive, status.earliestStartedAtIso) {
         while (status.isAlertActive) {
             nowInstant = Clock.System.now()
-            delay(1_000L)
+            delay(1.seconds)
         }
     }
 
@@ -664,13 +821,15 @@ private fun StatusStickyCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = if (compact) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(if (compact) 34.dp else 40.dp)
                     .clip(CircleShape)
                     .background(iconTint.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center
@@ -679,7 +838,7 @@ private fun StatusStickyCard(
                     imageVector = if (status.isAlertActive) Icons.Default.Warning else Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(if (compact) 19.dp else 22.dp)
                 )
             }
             Column(
@@ -688,7 +847,7 @@ private fun StatusStickyCard(
             ) {
                 Text(
                     text = headlineText,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = contentColor,
                     maxLines = 1,
@@ -809,23 +968,52 @@ private fun SelectedRegionInfoCard(
 }
 
 @Composable
-private fun RegionThreatLegendPill() {
+private fun RegionThreatLegendPill(
+    showOccupied: Boolean,
+    modifier: Modifier = Modifier
+) {
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 2.dp
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             LegendItem(color = AlertColors.SafeGreen, label = stringResource(Res.string.legend_clear))
             LegendItem(color = AlertColors.WarningAmber, label = stringResource(Res.string.legend_elevated))
             LegendItem(color = AlertColors.AlertRed, label = stringResource(Res.string.legend_high))
             LegendItem(color = AlertColors.CriticalRed, label = stringResource(Res.string.legend_critical))
+            if (showOccupied) {
+                OccupiedLegendItem(label = stringResource(Res.string.legend_occupied))
+            }
         }
+    }
+}
+
+@Composable
+private fun OccupiedLegendItem(label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(AlertColors.OccupiedDarkRed)
+                .border(0.8.dp, Color(0xFF91121C), RoundedCornerShape(2.dp))
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
     }
 }
 
@@ -833,11 +1021,11 @@ private fun RegionThreatLegendPill() {
 private fun LegendItem(color: Color, label: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(7.dp)
                 .clip(CircleShape)
                 .background(color)
         )

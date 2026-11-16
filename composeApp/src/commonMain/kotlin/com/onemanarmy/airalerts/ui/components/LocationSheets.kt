@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.LocationOn
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.onemanarmy.airalerts.domain.logic.DurationFormatter
 import com.onemanarmy.airalerts.domain.model.PointStatus
@@ -148,6 +151,12 @@ fun AddLocationBottomSheet(
                     label = { Text(stringResource(Res.string.field_search_address)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            if (searchQuery.isNotBlank()) onSearchSubmit()
+                        }
+                    ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 )
@@ -217,7 +226,7 @@ fun AddLocationBottomSheet(
                         }
                     }
                 }
-            } else if (!isSearching && searchQuery.isNotBlank()) {
+            } else if (!isSearching && searchQuery.trim().length >= 2) {
                 Text(
                     text = stringResource(Res.string.search_no_results),
                     style = MaterialTheme.typography.bodySmall,

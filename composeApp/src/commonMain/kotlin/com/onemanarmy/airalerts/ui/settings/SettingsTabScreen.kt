@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.Notifications
@@ -99,6 +100,7 @@ import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
 import com.onemanarmy.airalerts.domain.model.ThreatVibrationPattern
 import com.onemanarmy.airalerts.domain.model.VibrationPreset
 import com.onemanarmy.airalerts.resources.Res
+import com.onemanarmy.airalerts.resources.about_deepstate
 import com.onemanarmy.airalerts.resources.about_disclaimer
 import com.onemanarmy.airalerts.resources.about_neptun
 import com.onemanarmy.airalerts.resources.about_ukraine_alarm
@@ -129,6 +131,7 @@ import com.onemanarmy.airalerts.resources.settings_hromada_notif_desc
 import com.onemanarmy.airalerts.resources.settings_hromada_notif_enable
 import com.onemanarmy.airalerts.resources.settings_kb_subtitle
 import com.onemanarmy.airalerts.resources.settings_kb_title
+import com.onemanarmy.airalerts.resources.settings_map_section
 import com.onemanarmy.airalerts.resources.settings_night_behavior
 import com.onemanarmy.airalerts.resources.settings_night_days
 import com.onemanarmy.airalerts.resources.settings_night_end
@@ -138,6 +141,8 @@ import com.onemanarmy.airalerts.resources.settings_night_mode_section
 import com.onemanarmy.airalerts.resources.settings_night_scope_note
 import com.onemanarmy.airalerts.resources.settings_night_start
 import com.onemanarmy.airalerts.resources.settings_notifications_section
+import com.onemanarmy.airalerts.resources.settings_occupied_layer_desc
+import com.onemanarmy.airalerts.resources.settings_occupied_layer_title
 import com.onemanarmy.airalerts.resources.settings_radius_badge_km
 import com.onemanarmy.airalerts.resources.settings_radius_badge_zero
 import com.onemanarmy.airalerts.resources.settings_radius_label
@@ -708,7 +713,41 @@ fun SettingsTabScreen(
             }
         }
 
-        // Section 3: Background Diagnostics Checklist
+        // Section 3: Map Display
+        item {
+            SettingsSectionCard(
+                icon = Icons.Default.Layers,
+                title = stringResource(Res.string.settings_map_section)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f).padding(end = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_occupied_layer_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(Res.string.settings_occupied_layer_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = settings.occupiedLayerEnabled,
+                        onCheckedChange = viewModel::setOccupiedLayerEnabled
+                    )
+                }
+            }
+        }
+
+        // Section 4: Background Diagnostics Checklist
         item {
             SettingsSectionCard(
                 icon = Icons.Default.HealthAndSafety,
@@ -846,6 +885,27 @@ fun SettingsTabScreen(
                 ) {
                     Text(
                         text = stringResource(Res.string.about_neptun),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = viewModel::openDeepStateSite)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(Res.string.about_deepstate),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

@@ -3,6 +3,7 @@ package com.onemanarmy.airalerts.ui.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
+import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
 import com.onemanarmy.airalerts.domain.model.RegionThreatInfo
@@ -28,8 +29,10 @@ expect fun AlertMapView(
     activeAlerts: List<ActiveAlertInfo> = emptyList(),
     boundaries: UkraineMapBoundaries? = null,
     regionThreats: RegionThreatSnapshot? = null,
+    occupiedTerritories: OccupiedTerritoriesSnapshot? = null,
     selectedRegionId: String? = null,
     showThreatsLayer: Boolean,
+    showOccupiedLayer: Boolean = false,
     warningRadiusKm: Int,
     highlightNearbyThreats: Boolean = true,
     gpsCoordinates: Pair<Double, Double>?,

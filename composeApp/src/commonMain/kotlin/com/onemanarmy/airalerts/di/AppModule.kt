@@ -2,12 +2,14 @@ package com.onemanarmy.airalerts.di
 
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
 import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
+import com.onemanarmy.airalerts.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.airalerts.data.remote.HttpClientFactory
 import com.onemanarmy.airalerts.data.remote.NeptunAlertsApi
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
 import com.onemanarmy.airalerts.data.remote.NominatimGeocoderApi
 import com.onemanarmy.airalerts.data.remote.UkraineAlarmApi
 import com.onemanarmy.airalerts.data.repository.AlertMonitoringRepository
+import com.onemanarmy.airalerts.data.repository.OccupiedTerritoriesRepository
 import com.onemanarmy.airalerts.data.repository.RadarRepository
 import com.onemanarmy.airalerts.domain.logic.RegionThreatEvaluator
 import com.onemanarmy.airalerts.platform.PlatformDataStoreFactory
@@ -26,6 +28,7 @@ val commonModule = module {
     single { UkraineAlarmApi(get()) }
     single { NeptunAlertsApi(get()) }
     single { NeptunRadarApi(get()) }
+    single { DeepStateOccupiedApi(get()) }
     single { NominatimGeocoderApi(get()) }
 
     single { get<PlatformDataStoreFactory>().createPreferencesDataStore() }
@@ -34,6 +37,7 @@ val commonModule = module {
     single { RegionThreatEvaluator() }
 
     single { RadarRepository(get()) }
+    single { OccupiedTerritoriesRepository(get(), get()) }
     single {
         AlertMonitoringRepository(
             ukraineAlarmApi = get(),
@@ -48,7 +52,7 @@ val commonModule = module {
     }
 
     viewModel { OnboardingViewModel(get(), get(), get(), get(), get()) }
-    viewModel { MapViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { MapViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { PointsViewModel(get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get(), get(), get()) }
 }

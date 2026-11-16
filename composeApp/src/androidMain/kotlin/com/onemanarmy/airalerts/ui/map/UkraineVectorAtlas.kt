@@ -9,6 +9,8 @@ import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.RectF
+import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
+import com.onemanarmy.airalerts.domain.model.OccupiedZoneCategory
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
 import com.onemanarmy.airalerts.domain.model.RegionThreatInfo
 import com.onemanarmy.airalerts.domain.model.RegionThreatLevel
@@ -640,20 +642,85 @@ internal class UkraineThreatAtlas(
     val overviewAlertHighlights: List<OverviewAlertHighlight>
 )
 
+internal class OccupiedPolygonEntry(
+    val minLocalX: Float,
+    val maxLocalX: Float,
+    val minLocalY: Float,
+    val maxLocalY: Float,
+    val borderLines: FloatArray
+)
+
+internal class UkraineOccupiedAtlas(
+    val sourceSnapshot: OccupiedTerritoriesSnapshot,
+    val entries: List<OccupiedPolygonEntry>,
+    val combined2014Path: Path,
+    val combined2022Path: Path,
+    val allBorderLines: FloatArray
+) {
+    companion object {
+        fun build(snapshot: OccupiedTerritoriesSnapshot): UkraineOccupiedAtlas {
+            val entries = ArrayList<OccupiedPolygonEntry>(snapshot.polygons.size)
+            val combined2014Path = Path()
+            val combined2022Path = Path()
+            val allRingGroups = ArrayList<List<FloatArray>>(snapshot.polygons.size)
+
+            for (poly in snapshot.polygons) {
+                val localRings = MercatorSpace.projectRings(poly.rings, MercatorSpace.DETAIL_MIN_DIST)
+                if (localRings.isEmpty()) continue
+                allRingGroups.add(localRings)
+
+                val targetCombined = when (poly.category) {
+                    OccupiedZoneCategory.OCCUPIED_2014 -> combined2014Path
+                    OccupiedZoneCategory.OCCUPIED_2022 -> combined2022Path
+                }
+                MercatorSpace.appendLocalRingsToPath(localRings, targetCombined)
+
+                val borderLines = MercatorSpace.ringsToLineSegments(listOf(localRings))
+                entries.add(
+                    OccupiedPolygonEntry(
+                        minLocalX = MercatorSpace.toLocalX(poly.minLon.toDouble()),
+                        maxLocalX = MercatorSpace.toLocalX(poly.maxLon.toDouble()),
+                        minLocalY = MercatorSpace.toLocalY(poly.maxLat.toDouble()),
+                        maxLocalY = MercatorSpace.toLocalY(poly.minLat.toDouble()),
+                        borderLines = borderLines
+                    )
+                )
+            }
+
+            combined2014Path.fillType = Path.FillType.EVEN_ODD
+            combined2022Path.fillType = Path.FillType.EVEN_ODD
+            val allBorderLines = MercatorSpace.ringsToLineSegments(allRingGroups)
+
+            return UkraineOccupiedAtlas(
+                sourceSnapshot = snapshot,
+                entries = entries,
+                combined2014Path = combined2014Path,
+                combined2022Path = combined2022Path,
+                allBorderLines = allBorderLines
+            )
+        }
+    }
+}
+
 /**
- * Single-entry process-wide cache for the static Mercator atlas and threat fill bitmap.
+ * Single-entry process-wide cache for the static Mercator atlas, threat fill bitmap,
+ * and occupied-territories vector atlas.
  * Prevents rebuilding 30-40 MB of bitmaps and re-projecting 150k vertices when switching tabs
  * or opening the crosshair picker.
  */
 internal object UkraineAtlasCache {
     private val staticLock = Any()
     private val threatLock = Any()
+    private val occupiedLock = Any()
 
     @Volatile
     private var cachedStatic: UkraineStaticMercatorAtlas? = null
 
     @Volatile
     private var cachedThreat: UkraineThreatAtlas? = null
+
+    @Volatile
+    private var cachedOccupied: UkraineOccupiedAtlas? = null
 
     fun peekStatic(
         boundaries: UkraineMapBoundaries?,
@@ -707,6 +774,29 @@ internal object UkraineAtlasCache {
             return built
         }
     }
+
+    fun peekOccupied(snapshot: OccupiedTerritoriesSnapshot?): UkraineOccupiedAtlas? {
+        val existing = cachedOccupied ?: return null
+        return if (snapshot != null &&
+            existing.sourceSnapshot.fetchedAtEpochMs == snapshot.fetchedAtEpochMs &&
+            existing.sourceSnapshot.sourceHistoryId == snapshot.sourceHistoryId &&
+            existing.sourceSnapshot.polygons.size == snapshot.polygons.size
+        ) {
+            existing
+        } else {
+            null
+        }
+    }
+
+    fun getOrBuildOccupied(snapshot: OccupiedTerritoriesSnapshot): UkraineOccupiedAtlas {
+        peekOccupied(snapshot)?.let { return it }
+        synchronized(occupiedLock) {
+            peekOccupied(snapshot)?.let { return it }
+            val built = UkraineOccupiedAtlas.build(snapshot)
+            cachedOccupied = built
+            return built
+        }
+    }
 }
 
 /**
@@ -752,6 +842,7 @@ object UkraineMapPreloader {
 
         com.onemanarmy.airalerts.data.remote.ResilientOkHttpProvider.prewarmDnsAsync(
             "neptun.in.ua",
+            "deepstatemap.live",
             "server.arcgisonline.com",
             "nominatim.openstreetmap.org"
         )

@@ -21,6 +21,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.viewinterop.AndroidView
@@ -33,6 +34,7 @@ import com.onemanarmy.airalerts.domain.logic.GeoUtils
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AlertLevel
+import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
 import com.onemanarmy.airalerts.domain.model.RegionThreatInfo
@@ -74,8 +76,10 @@ actual fun AlertMapView(
     activeAlerts: List<ActiveAlertInfo>,
     boundaries: UkraineMapBoundaries?,
     regionThreats: RegionThreatSnapshot?,
+    occupiedTerritories: OccupiedTerritoriesSnapshot?,
     selectedRegionId: String?,
     showThreatsLayer: Boolean,
+    showOccupiedLayer: Boolean,
     warningRadiusKm: Int,
     highlightNearbyThreats: Boolean,
     gpsCoordinates: Pair<Double, Double>?,
@@ -150,6 +154,28 @@ actual fun AlertMapView(
         staticAtlas?.getSelectedRegionPath(selectedRegionId)
     }
 
+    val prebuiltOccupied = remember(occupiedTerritories) {
+        UkraineAtlasCache.peekOccupied(occupiedTerritories)
+    }
+    val occupiedAtlas by produceState<UkraineOccupiedAtlas?>(
+        initialValue = prebuiltOccupied,
+        occupiedTerritories
+    ) {
+        val snapshot = occupiedTerritories
+        if (snapshot == null || snapshot.polygons.isEmpty()) {
+            value = null
+            return@produceState
+        }
+        val existing = UkraineAtlasCache.peekOccupied(snapshot)
+        if (existing != null) {
+            value = existing
+            return@produceState
+        }
+        value = withContext(Dispatchers.Default) {
+            UkraineAtlasCache.getOrBuildOccupied(snapshot)
+        }
+    }
+
     val currentOnPointClicked by rememberUpdatedState(onPointClicked)
     val currentOnThreatClicked by rememberUpdatedState(onThreatClicked)
     val currentOnRegionClicked by rememberUpdatedState(onRegionClicked)
@@ -159,6 +185,7 @@ actual fun AlertMapView(
 
     val density = LocalDensity.current.density
     val regionsOverlay = remember(density) { UkraineRegionsOverlay(density) }
+    val occupiedOverlay = remember(density) { OccupiedTerritoriesOverlay(density) }
     val maskOverlay = remember(density) { UkraineMaskOverlay(density) }
     val darkTileFilter = remember { createDarkMapColorFilter() }
     val labelsTileFilter = remember { createLabelsColorFilter() }
@@ -177,6 +204,9 @@ actual fun AlertMapView(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
+            clipChildren = true
+            clipToPadding = true
+            clipToOutline = true
             setMultiTouchControls(true)
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             isTilesScaledToDpi = true
@@ -264,7 +294,7 @@ actual fun AlertMapView(
     }
 
     AndroidView(
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
         factory = { mapView },
         update = { view ->
             val canvasBg = Color.rgb(11, 16, 23)
@@ -300,6 +330,10 @@ actual fun AlertMapView(
                 onRegionTap = { polygon, info -> currentOnRegionClicked(polygon, info) },
                 onUserTouch = { currentOnUserMapInteraction() }
             )
+            occupiedOverlay.updateState(
+                occupiedAtlas = occupiedAtlas,
+                isVisible = showOccupiedLayer && !isCrosshairPickerMode
+            )
             maskOverlay.updateState(
                 staticAtlas = staticAtlas,
                 maskColor = canvasBg,
@@ -322,6 +356,7 @@ actual fun AlertMapView(
                 needsInvalidate = true
                 view.overlays.clear()
                 view.overlays.add(regionsOverlay)
+                view.overlays.add(occupiedOverlay)
                 view.overlays.add(labelsOverlay)
                 view.overlays.add(maskOverlay)
 
@@ -444,7 +479,14 @@ actual fun AlertMapView(
                 }
             }
 
-            val renderKey = AtlasRenderKey(staticAtlas, threatAtlas, selectedRegionId, isDark)
+            val renderKey = AtlasRenderKey(
+                staticAtlas = staticAtlas,
+                threatAtlas = threatAtlas,
+                occupiedAtlas = occupiedAtlas,
+                showOccupiedLayer = showOccupiedLayer,
+                selectedRegionId = selectedRegionId,
+                isDark = isDark
+            )
             if (lastRenderKey[0] != renderKey) {
                 lastRenderKey[0] = renderKey
                 needsInvalidate = true
@@ -470,6 +512,8 @@ private data class DynamicOverlayKey(
 private data class AtlasRenderKey(
     val staticAtlas: UkraineStaticMercatorAtlas?,
     val threatAtlas: UkraineThreatAtlas?,
+    val occupiedAtlas: UkraineOccupiedAtlas?,
+    val showOccupiedLayer: Boolean,
     val selectedRegionId: String?,
     val isDark: Boolean
 )
@@ -866,6 +910,7 @@ private class UkraineMaskOverlay(
         val maxY = MercatorSpace.maxLocalY
 
         val saveCount = canvas.save()
+        canvas.clipRect(projection.intrinsicScreenRect)
         canvas.concat(drawMatrix)
 
         canvas.drawRect(-1_200_000f, -1_200_000f, 1_200_000f, minY, maskWingPaint)
@@ -899,6 +944,94 @@ private class UkraineMaskOverlay(
                 }
                 if (cell.countryBorderLines.size >= 4) {
                     canvas.drawLines(cell.countryBorderLines, borderPaint)
+                }
+            }
+        }
+
+        canvas.restoreToCount(saveCount)
+    }
+}
+
+/**
+ * Renders currently occupied Ukrainian territories with a very dark red, high-transparency tint
+ * over the alert regions layer so both alerted and unalerted areas remain distinguishable.
+ */
+private class OccupiedTerritoriesOverlay(
+    private val density: Float
+) : Overlay() {
+
+    private var occupiedAtlas: UkraineOccupiedAtlas? = null
+    private var isVisible: Boolean = false
+
+    private val drawMatrix = Matrix()
+
+    private val fill2014Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.argb(104, 68, 4, 10)
+    }
+    private val fill2022Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.argb(96, 74, 5, 11)
+    }
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        color = Color.argb(180, 145, 18, 28)
+    }
+
+    fun updateState(
+        occupiedAtlas: UkraineOccupiedAtlas?,
+        isVisible: Boolean
+    ) {
+        this.occupiedAtlas = occupiedAtlas
+        this.isVisible = isVisible
+    }
+
+    override fun draw(pCanvas: Canvas?, pProjection: Projection?) {
+        if (!isVisible) return
+        val canvas = pCanvas ?: return
+        val projection = pProjection ?: return
+        val atlas = occupiedAtlas ?: return
+        if (atlas.entries.isEmpty()) return
+
+        val scale = MercatorSpace.computeScreenMatrix(projection, drawMatrix)
+        if (scale <= 0f) return
+        val invScale = 1f / scale
+
+        borderPaint.strokeWidth = (1.3f * density * invScale).coerceAtLeast(0.001f)
+
+        val saveCount = canvas.save()
+        canvas.concat(drawMatrix)
+
+        if (!atlas.combined2014Path.isEmpty) {
+            canvas.drawPath(atlas.combined2014Path, fill2014Paint)
+        }
+        if (!atlas.combined2022Path.isEmpty) {
+            canvas.drawPath(atlas.combined2022Path, fill2022Paint)
+        }
+
+        if (projection.zoomLevel < 8.0) {
+            if (atlas.allBorderLines.size >= 4) {
+                canvas.drawLines(atlas.allBorderLines, borderPaint)
+            }
+        } else {
+            val bbox = projection.boundingBox
+            val viewMinX = MercatorSpace.toLocalX(bbox.lonWest)
+            val viewMaxX = MercatorSpace.toLocalX(bbox.lonEast)
+            val viewMinY = MercatorSpace.toLocalY(bbox.latNorth)
+            val viewMaxY = MercatorSpace.toLocalY(bbox.latSouth)
+
+            for (entry in atlas.entries) {
+                if (entry.maxLocalX < viewMinX ||
+                    entry.minLocalX > viewMaxX ||
+                    entry.maxLocalY < viewMinY ||
+                    entry.minLocalY > viewMaxY
+                ) {
+                    continue
+                }
+                if (entry.borderLines.size >= 4) {
+                    canvas.drawLines(entry.borderLines, borderPaint)
                 }
             }
         }

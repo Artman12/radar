@@ -78,6 +78,7 @@ data class AppSettings(
     val nightActiveDaysIso: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7),
     val nightModeBehavior: NightModeBehavior = NightModeBehavior.FILTER_ALL_CLEAR,
     val radarLayerEnabled: Boolean = true,
+    val occupiedLayerEnabled: Boolean = true,
     val hromadaAlertNotificationsEnabled: Boolean = true,
     val threatRadiusNotificationEnabled: Boolean = false,
     val threatNotificationRadiusKm: Int = 10,

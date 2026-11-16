@@ -9,6 +9,8 @@ import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.SavedPoint
 import com.onemanarmy.airalerts.platform.GeocodedAddress
 import com.onemanarmy.airalerts.platform.SystemDiagnosticsProvider
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +43,7 @@ class PointsViewModel(
 ) : ViewModel() {
 
     private val _local = MutableStateFlow(PointsUiState())
+    private var searchJob: Job? = null
 
     val uiState: StateFlow<PointsUiState> = combine(
         _local,
@@ -178,12 +181,26 @@ class PointsViewModel(
 
     fun updateSearchQuery(query: String) {
         _local.update { it.copy(searchQuery = query) }
+        searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.length < 2) {
+            _local.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            return
+        }
+        searchJob = viewModelScope.launch {
+            val local = monitoringRepo.searchLocalPlaces(trimmed)
+            _local.update { it.copy(searchResults = local) }
+            delay(350L)
+            val combined = monitoringRepo.searchPlaces(trimmed)
+            _local.update { it.copy(searchResults = combined, isSearching = false) }
+        }
     }
 
     fun searchAddress() {
         val query = _local.value.searchQuery.trim()
         if (query.isBlank()) return
-        viewModelScope.launch {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             _local.update { it.copy(isSearching = true) }
             val results = monitoringRepo.searchPlaces(query)
             _local.update { it.copy(searchResults = results, isSearching = false) }

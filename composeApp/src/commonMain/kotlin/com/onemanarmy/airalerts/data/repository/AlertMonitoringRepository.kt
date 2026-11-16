@@ -6,6 +6,7 @@ import com.onemanarmy.airalerts.data.remote.NeptunAlertsApi
 import com.onemanarmy.airalerts.data.remote.UkraineAlarmApi
 import com.onemanarmy.airalerts.domain.logic.AlertDeduplicator
 import com.onemanarmy.airalerts.domain.logic.NotificationDecision
+import com.onemanarmy.airalerts.domain.logic.PlaceSearchMatcher
 import com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluator
 import com.onemanarmy.airalerts.domain.logic.RegionMatcher
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
@@ -227,8 +228,21 @@ class AlertMonitoringRepository(
         )
     }
 
+    suspend fun searchLocalPlaces(query: String): List<GeocodedAddress> {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+        val boundaries = boundaryRepo.loadIfNeeded()
+        return PlaceSearchMatcher.search(trimmed, boundaries)
+    }
+
     suspend fun searchPlaces(query: String): List<GeocodedAddress> {
-        return geocoder.searchAddress(query)
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return emptyList()
+        val local = searchLocalPlaces(trimmed)
+        val remote = withTimeoutOrNull(3_000L) {
+            runCatching { geocoder.searchAddress(trimmed) }.getOrDefault(emptyList())
+        }.orEmpty()
+        return PlaceSearchMatcher.mergeResults(local, remote)
     }
 
     suspend fun refreshGpsLocation(): ResolvedLocation? {

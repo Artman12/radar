@@ -6,12 +6,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -73,13 +76,31 @@ fun CrosshairMapPickerOverlay(
     var zoomInVersion by remember { mutableIntStateOf(0) }
     var zoomOutVersion by remember { mutableIntStateOf(0) }
 
-    val insetsModifier = if (applySafeDrawingInsets) {
-        Modifier.windowInsetsPadding(WindowInsets.safeDrawing)
+    val topInsetsModifier = if (applySafeDrawingInsets) {
+        Modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        )
+    } else {
+        Modifier
+    }
+    val bottomInsetsModifier = if (applySafeDrawingInsets) {
+        Modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+        )
+    } else {
+        Modifier
+    }
+    val horizontalInsetsModifier = if (applySafeDrawingInsets) {
+        Modifier.windowInsetsPadding(
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+        )
     } else {
         Modifier
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isCompactLandscape = maxWidth > maxHeight && maxHeight < 520.dp
+
         AlertMapView(
             modifier = Modifier.fillMaxSize(),
             centerLat = initialLat,
@@ -133,15 +154,18 @@ fun CrosshairMapPickerOverlay(
         Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .then(insetsModifier)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .then(topInsetsModifier)
+                .padding(horizontal = 16.dp, vertical = if (isCompactLandscape) 8.dp else 14.dp),
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.96f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             shadowElevation = 6.dp
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.padding(
+                    horizontal = 16.dp,
+                    vertical = if (isCompactLandscape) 7.dp else 10.dp
+                ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -160,64 +184,74 @@ fun CrosshairMapPickerOverlay(
             }
         }
 
-        // Right-side zoom pill positioned cleanly above the bottom action dock.
-        MapZoomControlsPill(
-            onZoomIn = { zoomInVersion++ },
-            onZoomOut = { zoomOutVersion++ },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .then(insetsModifier)
-                .padding(end = 16.dp, bottom = 104.dp)
-        )
-
-        // Opaque bottom dock with high-contrast Cancel and Save buttons.
-        Surface(
+        // Bottom controls stack: zoom pill sits cleanly above the opaque action dock.
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.97f),
-            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline),
-            shadowElevation = 10.dp
+            horizontalAlignment = Alignment.End
         ) {
-            Row(
+            MapZoomControlsPill(
+                onZoomIn = { zoomInVersion++ },
+                onZoomOut = { zoomOutVersion++ },
+                compact = isCompactLandscape,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .then(insetsModifier)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .then(horizontalInsetsModifier)
+                    .padding(end = 16.dp, bottom = if (isCompactLandscape) 8.dp else 14.dp)
+            )
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.97f),
+                shadowElevation = 10.dp
             ) {
-                OutlinedButton(
-                    onClick = onCancel,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                ) {
-                    Text(
-                        text = stringResource(Res.string.btn_cancel),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Button(
-                    onClick = { onConfirm(pickedCoords[0], pickedCoords[1]) },
-                    enabled = !isLoading,
-                    modifier = Modifier.weight(1f).height(50.dp),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text(
-                            text = confirmLabel,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(bottomInsetsModifier)
+                            .padding(
+                                horizontal = 16.dp,
+                                vertical = if (isCompactLandscape) 8.dp else 14.dp
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val buttonHeight = if (isCompactLandscape) 42.dp else 50.dp
+                        OutlinedButton(
+                            onClick = onCancel,
+                            modifier = Modifier.weight(1f).height(buttonHeight),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.btn_cancel),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Button(
+                            onClick = { onConfirm(pickedCoords[0], pickedCoords[1]) },
+                            enabled = !isLoading,
+                            modifier = Modifier.weight(1f).height(buttonHeight),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Text(
+                                    text = confirmLabel,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -232,8 +266,11 @@ fun CrosshairMapPickerOverlay(
 fun MapZoomControlsPill(
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    compact: Boolean = false
 ) {
+    val pillWidth = if (compact) 38.dp else 42.dp
+    val buttonHeight = if (compact) 34.dp else 40.dp
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
@@ -242,13 +279,13 @@ fun MapZoomControlsPill(
         shadowElevation = 4.dp
     ) {
         Column(
-            modifier = Modifier.width(42.dp),
+            modifier = Modifier.width(pillWidth),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(buttonHeight)
                     .clickable(onClick = onZoomIn),
                 contentAlignment = Alignment.Center
             ) {
@@ -256,14 +293,14 @@ fun MapZoomControlsPill(
                     imageVector = Icons.Default.Add,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (compact) 18.dp else 20.dp)
                 )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(buttonHeight)
                     .clickable(onClick = onZoomOut),
                 contentAlignment = Alignment.Center
             ) {
@@ -271,7 +308,7 @@ fun MapZoomControlsPill(
                     imageVector = Icons.Default.Remove,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (compact) 18.dp else 20.dp)
                 )
             }
         }

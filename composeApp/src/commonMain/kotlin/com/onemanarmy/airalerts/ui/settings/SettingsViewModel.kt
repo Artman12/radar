@@ -3,6 +3,7 @@ package com.onemanarmy.airalerts.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
+import com.onemanarmy.airalerts.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.AppSettings
@@ -139,6 +140,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setOccupiedLayerEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(occupiedLayerEnabled = enabled) }
+        }
+    }
+
     fun setThreatRadiusNotificationEnabled(enabled: Boolean) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(threatRadiusNotificationEnabled = enabled) }
@@ -217,5 +224,9 @@ class SettingsViewModel(
 
     fun openNeptunSite() {
         diagnosticsProvider.openUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+    }
+
+    fun openDeepStateSite() {
+        diagnosticsProvider.openUrl(DeepStateOccupiedApi.DEEPSTATE_BASE_URL)
     }
 }

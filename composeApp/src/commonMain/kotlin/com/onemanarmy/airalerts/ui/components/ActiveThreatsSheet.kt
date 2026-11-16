@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,19 +33,24 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.onemanarmy.airalerts.domain.model.ThreatType
 import com.onemanarmy.airalerts.domain.model.ThreatWithProximity
 import com.onemanarmy.airalerts.resources.Res
+import com.onemanarmy.airalerts.resources.map_next_refresh_cd
 import com.onemanarmy.airalerts.resources.threats_list_distance_from
 import com.onemanarmy.airalerts.resources.threats_list_empty
 import com.onemanarmy.airalerts.resources.threats_list_filter_all
@@ -54,8 +60,12 @@ import com.onemanarmy.airalerts.resources.threats_list_total
 import com.onemanarmy.airalerts.resources.threats_summary_none
 import com.onemanarmy.airalerts.ui.common.threatTypeLabel
 import com.onemanarmy.airalerts.ui.theme.AlertColors
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 internal val THREAT_DISPLAY_ORDER = listOf(
     ThreatType.BALLISTIC,
@@ -114,6 +124,9 @@ private fun typePriorityIndex(type: ThreatType): Int {
 fun ActiveThreatsSummaryPill(
     threats: List<ThreatWithProximity>,
     highlightNearbyThreats: Boolean,
+    nextRefreshEpochMs: Long? = null,
+    refreshIntervalMs: Long = 10_000L,
+    isRefreshing: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -139,9 +152,16 @@ fun ActiveThreatsSummaryPill(
         if (counts.isEmpty()) {
             Row(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (isRefreshing || nextRefreshEpochMs != null) {
+                    RefreshCountdownBadge(
+                        nextRefreshEpochMs = nextRefreshEpochMs,
+                        intervalMs = refreshIntervalMs,
+                        isRefreshing = isRefreshing
+                    )
+                }
                 Icon(
                     imageVector = Icons.Default.Radar,
                     contentDescription = null,
@@ -161,6 +181,13 @@ fun ActiveThreatsSummaryPill(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (isRefreshing || nextRefreshEpochMs != null) {
+                    RefreshCountdownBadge(
+                        nextRefreshEpochMs = nextRefreshEpochMs,
+                        intervalMs = refreshIntervalMs,
+                        isRefreshing = isRefreshing
+                    )
+                }
                 FlowRow(
                     modifier = Modifier.weight(1f, fill = false),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -199,6 +226,56 @@ fun ActiveThreatsSummaryPill(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun RefreshCountdownBadge(
+    nextRefreshEpochMs: Long?,
+    intervalMs: Long,
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier
+) {
+    var nowMs by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
+
+    LaunchedEffect(nextRefreshEpochMs, isRefreshing) {
+        if (!isRefreshing && nextRefreshEpochMs != null) {
+            while (isActive) {
+                nowMs = Clock.System.now().toEpochMilliseconds()
+                delay(150.milliseconds)
+            }
+        }
+    }
+
+    if (isRefreshing) {
+        CircularProgressIndicator(
+            modifier = modifier.size(12.dp),
+            strokeWidth = 1.8.dp,
+            color = MaterialTheme.colorScheme.primary
+        )
+        return
+    }
+
+    val targetMs = nextRefreshEpochMs ?: return
+    val safeInterval = intervalMs.coerceAtLeast(1_000L)
+    val remainingMs = (targetMs - nowMs).coerceIn(0L, safeInterval)
+    val remainingFraction = (remainingMs.toFloat() / safeInterval.toFloat()).coerceIn(0f, 1f)
+    val secondsLeft = ((remainingMs + 999L) / 1000L).toInt().coerceAtLeast(0)
+    val cdText = stringResource(Res.string.map_next_refresh_cd, secondsLeft)
+
+    Box(
+        modifier = modifier
+            .size(12.dp)
+            .semantics { contentDescription = cdText },
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            progress = { remainingFraction },
+            modifier = Modifier.size(12.dp),
+            strokeWidth = 1.8.dp,
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
     }
 }
 

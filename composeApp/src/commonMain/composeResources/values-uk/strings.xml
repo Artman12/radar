@@ -13,6 +13,12 @@
     <string name="onboarding_disclaimer_card_title">Важливе попередження</string>
     <string name="onboarding_disclaimer_card_body">Положення повітряних цілей на карті є орієнтовним і базується на відкритих OSINT-джерелах. Завжди орієнтуйтеся на офіційні тривоги та прямуйте в укриття.</string>
     <string name="onboarding_btn_start">Почати налаштування</string>
+    <string name="onboarding_feature_alerts_title">Офіційні тривоги по громадах</string>
+    <string name="onboarding_feature_alerts_desc">Миттєві сповіщення про початок та відбій тривоги для ваших точок</string>
+    <string name="onboarding_feature_radar_title">Живий радар повітряних цілей</string>
+    <string name="onboarding_feature_radar_desc">Орієнтовні траєкторії цілей OSINT та попередження про наближення</string>
+    <string name="onboarding_feature_privacy_title">Автономно та приватно</string>
+    <string name="onboarding_feature_privacy_desc">Працює напряму з вашого пристрою без сторонніх серверів</string>
 
     <string name="onboarding_permissions_title">Критичні дозволи</string>
     <string name="onboarding_permissions_desc">Для своєчасних сповіщень навіть із вимкненим екраном надайте дозвіл на сповіщення та фонову роботу без обмежень.</string>
@@ -33,6 +39,8 @@
     <string name="onboarding_option_gps_desc">Автоматично визначає ваш регіон за GPS. Дозвіл у фоні потрібен для відстеження під час руху.</string>
     <string name="onboarding_option_map_title">Вибрати точку на карті</string>
     <string name="onboarding_option_map_desc">Встановіть маркер вручну (наприклад, «Дім») без надання доступу до GPS.</string>
+    <string name="onboarding_tag_recommended">Рекомендовано</string>
+    <string name="onboarding_tag_manual">Без GPS</string>
     <string name="onboarding_location_selected">Обрано: %1$s</string>
     <string name="onboarding_pick_point_confirm">Підтвердити точку</string>
     <string name="default_home_name">Дім</string>
@@ -40,7 +48,10 @@
     <string name="onboarding_comfort_title">Комфорт та вібрація</string>
     <string name="onboarding_comfort_desc">Налаштуйте «Нічний режим» і делікатну вібрацію, щоб сповіщення були помітними, але не різкими.</string>
     <string name="onboarding_night_toggle">Увімкнути нічний режим (23:00 – 07:00)</string>
+    <string name="onboarding_night_title">Нічний режим</string>
+    <string name="onboarding_night_subtitle">23:00 – 07:00 • Тихі години для сповіщень по громаді</string>
     <string name="onboarding_vibration_label">Пресет вібрації</string>
+    <string name="onboarding_vibration_subtitle">Оберіть інтенсивність вібровідгуку для сповіщень</string>
     <string name="btn_test">Перевірити</string>
     <string name="btn_finish">Завершити</string>
 
@@ -49,14 +60,17 @@
     <string name="status_alert_active">Повітряна тривога • %1$s</string>
     <string name="status_yellow_warning">Підвищена загроза • %1$s</string>
     <string name="status_no_points_title">Немає відстежуваних локацій</string>
-    <string name="status_no_points_subtitle">Натисніть +, щоб додати точку або увімкніть GPS</string>
+    <string name="status_no_points_subtitle">Додайте локацію у «Мої точки» або увімкніть GPS</string>
     <string name="status_point_subtitle">%1$s (%2$s)</string>
     <string name="map_toggle_radar_on">Приховати повітряні цілі</string>
     <string name="map_toggle_radar_off">Показати повітряні цілі</string>
+    <string name="map_toggle_occupied_on">Приховати окуповані території</string>
+    <string name="map_toggle_occupied_off">Показати окуповані території</string>
     <string name="map_center_gps">Центрувати на моїй геопозиції</string>
     <string name="map_add_point">Додати точку</string>
     <string name="map_disclaimer_prefix">Положення цілей є орієнтовним • Джерело: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
+    <string name="map_disclaimer_deepstate_link">DeepState</string>
     <string name="map_nearby_threat_banner">Ціль у межах %1$d км від %2$s (~%3$d км)</string>
     <string name="map_nearby_threat_banner_zero">Ціль у межах 500 м від %1$s (~%2$d км)</string>
     <string name="map_crosshair_hint">Переміщуйте карту для вибору точки</string>
@@ -66,7 +80,10 @@
     <string name="legend_elevated">Загроза</string>
     <string name="legend_high">Тривога</string>
     <string name="legend_critical">Ціль</string>
+    <string name="legend_occupied">Окуповано</string>
     <string name="threats_summary_none">Цілей немає</string>
+    <string name="refresh_countdown_seconds">%1$dс</string>
+    <string name="map_next_refresh_cd">Наступне оновлення через %1$d с</string>
     <string name="threats_list_title">Активні повітряні цілі</string>
     <string name="threats_list_total">Усього: %1$d</string>
     <string name="threats_list_filter_all">Усі</string>
@@ -140,7 +157,7 @@
     <string name="kb_title">Довідник повітряних цілей</string>
     <string name="kb_subtitle">Усі іконки радара, характеристики та дії безпеки</string>
     <string name="kb_intro_note">Іконки повертаються за курсом руху цілі. Цілі у вашому радіусі попередження підсвічуються яскравим червоно-жовтим кільцем.</string>
-    <string name="kb_map_legend_btn">Довідник</string>
+    <string name="kb_map_legend_btn">Загрози</string>
     <string name="kb_safety_label">Правила безпеки</string>
 
     <string name="kb_uav_profile">~150–185 км/год • Гвинтовий дельта-БпЛА</string>
@@ -257,6 +274,10 @@
     <string name="settings_kb_title">Довідник повітряних цілей</string>
     <string name="settings_kb_subtitle">Усі іконки цілей, їхній опис та поради з безпеки</string>
 
+    <string name="settings_map_section">Відображення карти</string>
+    <string name="settings_occupied_layer_title">Окуповані території</string>
+    <string name="settings_occupied_layer_desc">Показувати шар окупованих територій DeepState на карті</string>
+
     <string name="settings_diagnostics_section">Діагностика фонової роботи</string>
     <string name="diag_service_title">Фонова служба моніторингу</string>
     <string name="diag_service_running">Активна</string>
@@ -273,6 +294,7 @@
     <string name="settings_about_section">Довідник та джерела даних</string>
     <string name="about_ukraine_alarm">Тривоги: NEPTUN Alerts API</string>
     <string name="about_neptun">Шар повітряних цілей: Радар OSINT NEPTUN</string>
+    <string name="about_deepstate">Шар окупованих територій: DeepStateMap</string>
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>
 
     <!-- Background Notification Strings -->

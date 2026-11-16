@@ -28,6 +28,10 @@ object AlertColors {
     val WarningAmberContainerLight = Color(0xFFFFF0D4)
     val WarningAmberContainerDark = Color(0xFF472905)
     val WarningOnContainerDark = Color(0xFFFDE68A)
+
+    val OccupiedDarkRed = Color(0xFF4A050B)
+    val OccupiedRose = Color(0xFFF43F5E)
+    val OccupiedContainerDark = Color(0x802F0A13)
 }
 
 private val LightColorScheme = lightColorScheme(

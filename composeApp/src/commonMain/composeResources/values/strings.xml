@@ -13,6 +13,12 @@
     <string name="onboarding_disclaimer_card_title">Important Notice</string>
     <string name="onboarding_disclaimer_card_body">Aerial target positions on the radar map are approximate and based on open OSINT monitoring feeds. Always rely on official alerts and seek shelter immediately during a siren.</string>
     <string name="onboarding_btn_start">Start Setup</string>
+    <string name="onboarding_feature_alerts_title">Official Hromada Alerts</string>
+    <string name="onboarding_feature_alerts_desc">Instant air-raid and all-clear notifications for your saved locations</string>
+    <string name="onboarding_feature_radar_title">Live OSINT Air Radar</string>
+    <string name="onboarding_feature_radar_desc">Track approximate aerial target paths and get proximity warnings</string>
+    <string name="onboarding_feature_privacy_title">Autonomous &amp; Private</string>
+    <string name="onboarding_feature_privacy_desc">Runs directly on your device with no third-party tracking servers</string>
 
     <string name="onboarding_permissions_title">Essential Permissions</string>
     <string name="onboarding_permissions_desc">To deliver timely alerts even when the screen is off, allow notifications and unrestricted background execution.</string>
@@ -33,6 +39,8 @@
     <string name="onboarding_option_gps_desc">Automatically detects your region via GPS. Background location permission is recommended if you travel.</string>
     <string name="onboarding_option_map_title">Pick a Point on Map</string>
     <string name="onboarding_option_map_desc">Place a marker manually (e.g., Home) without granting GPS access.</string>
+    <string name="onboarding_tag_recommended">Recommended</string>
+    <string name="onboarding_tag_manual">No GPS needed</string>
     <string name="onboarding_location_selected">Selected: %1$s</string>
     <string name="onboarding_pick_point_confirm">Confirm Point</string>
     <string name="default_home_name">Home</string>
@@ -40,7 +48,10 @@
     <string name="onboarding_comfort_title">Comfort &amp; Vibration</string>
     <string name="onboarding_comfort_desc">Customize Night Mode and gentle tactile feedback so alerts stay noticeable without harsh buzzing.</string>
     <string name="onboarding_night_toggle">Enable Night Mode (23:00 – 07:00)</string>
+    <string name="onboarding_night_title">Night Mode</string>
+    <string name="onboarding_night_subtitle">23:00 – 07:00 • Quiet hours for hromada alerts</string>
     <string name="onboarding_vibration_label">Vibration Preset</string>
+    <string name="onboarding_vibration_subtitle">Choose tactile feedback intensity for alerts</string>
     <string name="btn_test">Test</string>
     <string name="btn_finish">Finish</string>
 
@@ -49,14 +60,17 @@
     <string name="status_alert_active">Air Alert • %1$s</string>
     <string name="status_yellow_warning">Elevated Threat • %1$s</string>
     <string name="status_no_points_title">No tracked locations</string>
-    <string name="status_no_points_subtitle">Tap + to add a point or enable GPS tracking</string>
+    <string name="status_no_points_subtitle">Add a location in My Points or enable GPS tracking</string>
     <string name="status_point_subtitle">%1$s (%2$s)</string>
     <string name="map_toggle_radar_on">Hide air threats</string>
     <string name="map_toggle_radar_off">Show air threats</string>
+    <string name="map_toggle_occupied_on">Hide occupied territories</string>
+    <string name="map_toggle_occupied_off">Show occupied territories</string>
     <string name="map_center_gps">Center on my location</string>
     <string name="map_add_point">Add point</string>
     <string name="map_disclaimer_prefix">Target positions are approximate • Source: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
+    <string name="map_disclaimer_deepstate_link">DeepState</string>
     <string name="map_nearby_threat_banner">Threat within %1$d km of %2$s (%3$d km away)</string>
     <string name="map_nearby_threat_banner_zero">Threat within 500 m of %1$s (%2$d km away)</string>
     <string name="map_crosshair_hint">Move the map to place the crosshair</string>
@@ -66,7 +80,10 @@
     <string name="legend_elevated">Elevated</string>
     <string name="legend_high">Alert</string>
     <string name="legend_critical">Target</string>
+    <string name="legend_occupied">Occupied</string>
     <string name="threats_summary_none">No threats</string>
+    <string name="refresh_countdown_seconds">%1$ds</string>
+    <string name="map_next_refresh_cd">Next refresh in %1$d s</string>
     <string name="threats_list_title">Active Air Threats</string>
     <string name="threats_list_total">Total: %1$d</string>
     <string name="threats_list_filter_all">All</string>
@@ -140,7 +157,7 @@
     <string name="kb_title">Threat Knowledge Base</string>
     <string name="kb_subtitle">All radar icons, target profiles &amp; safety actions</string>
     <string name="kb_intro_note">Icons rotate along the reported heading. Targets inside your warning radius are highlighted with a red-amber beacon ring.</string>
-    <string name="kb_map_legend_btn">Threat Guide</string>
+    <string name="kb_map_legend_btn">Threats</string>
     <string name="kb_safety_label">Safety action</string>
 
     <string name="kb_uav_profile">~150–185 km/h • Propeller delta-wing UAV</string>
@@ -257,6 +274,10 @@
     <string name="settings_kb_title">Threat Knowledge Base</string>
     <string name="settings_kb_subtitle">View all target icons, characteristics &amp; safety actions</string>
 
+    <string name="settings_map_section">Map Display</string>
+    <string name="settings_occupied_layer_title">Occupied territories</string>
+    <string name="settings_occupied_layer_desc">Show DeepState occupied zones overlay on the map</string>
+
     <string name="settings_diagnostics_section">Background Diagnostics</string>
     <string name="diag_service_title">Foreground Monitoring Service</string>
     <string name="diag_service_running">Active</string>
@@ -273,6 +294,7 @@
     <string name="settings_about_section">Reference &amp; Data Sources</string>
     <string name="about_ukraine_alarm">Alerts: NEPTUN Alerts API</string>
     <string name="about_neptun">Aerial Threats Layer: NEPTUN OSINT Radar</string>
+    <string name="about_deepstate">Occupied Territories Layer: DeepStateMap</string>
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
 
     <!-- Background Notification Strings -->

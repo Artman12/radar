@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
 import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
 import com.onemanarmy.airalerts.data.repository.AlertMonitoringRepository
+import com.onemanarmy.airalerts.data.repository.OccupiedTerritoriesRepository
 import com.onemanarmy.airalerts.data.repository.RadarRepository
 import com.onemanarmy.airalerts.domain.logic.RegionThreatEvaluator
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AppSettings
+import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
 import com.onemanarmy.airalerts.domain.model.RegionThreatInfo
@@ -50,6 +52,7 @@ data class MapUiState(
     val activeAlerts: List<ActiveAlertInfo> = emptyList(),
     val boundaries: UkraineMapBoundaries? = null,
     val regionThreats: RegionThreatSnapshot? = null,
+    val occupiedTerritories: OccupiedTerritoriesSnapshot? = null,
     val selectedRegion: SelectedRegionDetails? = null,
     val nearbyThreat: ThreatWithProximity? = null,
     val settings: AppSettings = AppSettings(),
@@ -65,7 +68,10 @@ data class MapUiState(
     val searchQuery: String = "",
     val searchResults: List<GeocodedAddress> = emptyList(),
     val isSearching: Boolean = false,
-    val isRadarLoading: Boolean = false
+    val isRadarLoading: Boolean = false,
+    val nextRadarRefreshEpochMs: Long? = null,
+    val radarPollIntervalMs: Long = MapViewModel.RADAR_POLL_INTERVAL_MS,
+    val alertPollIntervalMs: Long = MapViewModel.ALERT_POLL_INTERVAL_MS
 )
 
 private data class MapDomainData(
@@ -73,7 +79,8 @@ private data class MapDomainData(
     val settings: AppSettings,
     val activeAlerts: List<ActiveAlertInfo>,
     val boundaries: UkraineMapBoundaries?,
-    val regionThreats: RegionThreatSnapshot?
+    val regionThreats: RegionThreatSnapshot?,
+    val occupiedTerritories: OccupiedTerritoriesSnapshot?
 )
 
 class MapViewModel(
@@ -83,12 +90,14 @@ class MapViewModel(
     private val locationClient: PlatformLocationClient,
     private val diagnosticsProvider: SystemDiagnosticsProvider,
     private val boundaryRepo: UkraineBoundaryRepository,
-    private val regionThreatEvaluator: RegionThreatEvaluator
+    private val regionThreatEvaluator: RegionThreatEvaluator,
+    private val occupiedRepo: OccupiedTerritoriesRepository
 ) : ViewModel() {
 
     private val _localState = MutableStateFlow(MapUiState())
     private val _rawThreats = MutableStateFlow<List<AirThreat>>(emptyList())
     private var radarPollingJob: Job? = null
+    private var searchJob: Job? = null
     private var latestMapCenterLat = UkraineBounds.CENTER_LAT
     private var latestMapCenterLon = UkraineBounds.CENTER_LON
     private var hasUserInteractedWithMap = false
@@ -128,9 +137,18 @@ class MapViewModel(
         prefsRepo.settingsFlow,
         monitoringRepo.activeAlertsFlow,
         boundaryRepo.boundariesFlow,
-        regionThreatsFlow
-    ) { statuses, settings, activeAlerts, boundaries, regionThreats ->
-        MapDomainData(statuses, settings, activeAlerts, boundaries, regionThreats)
+        regionThreatsFlow,
+        occupiedRepo.occupiedTerritoriesFlow
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        MapDomainData(
+            statuses = values[0] as List<PointStatus>,
+            settings = values[1] as AppSettings,
+            activeAlerts = values[2] as List<ActiveAlertInfo>,
+            boundaries = values[3] as UkraineMapBoundaries?,
+            regionThreats = values[4] as RegionThreatSnapshot?,
+            occupiedTerritories = values[5] as OccupiedTerritoriesSnapshot?
+        )
     }
 
     val uiState: StateFlow<MapUiState> = combine(
@@ -172,6 +190,7 @@ class MapViewModel(
             activeAlerts = domain.activeAlerts,
             boundaries = domain.boundaries,
             regionThreats = domain.regionThreats,
+            occupiedTerritories = domain.occupiedTerritories,
             selectedRegion = refreshedSelectedRegion,
             selectedThreatDetails = refreshedSelectedThreat,
             selectedPointIndex = safeIndex,
@@ -182,6 +201,17 @@ class MapViewModel(
     init {
         viewModelScope.launch {
             boundaryRepo.loadIfNeeded()
+        }
+
+        viewModelScope.launch {
+            prefsRepo.settingsFlow
+                .map { it.occupiedLayerEnabled }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (enabled) {
+                        occupiedRepo.refreshIfNeeded()
+                    }
+                }
         }
 
         // Apply initial focus immediately from cached points before waiting on network.
@@ -235,9 +265,16 @@ class MapViewModel(
                 val settings = prefsRepo.settingsFlow.first()
                 if (settings.radarLayerEnabled) {
                     refreshRadarOnce()
+                    val nextAt = Clock.System.now().toEpochMilliseconds() + RADAR_POLL_INTERVAL_MS
+                    _localState.update { it.copy(nextRadarRefreshEpochMs = nextAt) }
                 } else {
                     _rawThreats.value = emptyList()
-                    _localState.update { it.copy(isRadarLoading = false) }
+                    _localState.update {
+                        it.copy(
+                            isRadarLoading = false,
+                            nextRadarRefreshEpochMs = null
+                        )
+                    }
                 }
                 delay(RADAR_POLL_INTERVAL_MS)
             }
@@ -245,12 +282,19 @@ class MapViewModel(
     }
 
     companion object {
-        private const val RADAR_POLL_INTERVAL_MS = 10_000L
+        const val RADAR_POLL_INTERVAL_MS = 10_000L
+        const val ALERT_POLL_INTERVAL_MS = 15_000L
     }
 
     fun stopRadarPolling() {
         radarPollingJob?.cancel()
         radarPollingJob = null
+        _localState.update {
+            it.copy(
+                isRadarLoading = false,
+                nextRadarRefreshEpochMs = null
+            )
+        }
     }
 
     private suspend fun refreshRadarOnce() {
@@ -318,9 +362,16 @@ class MapViewModel(
             val next = !current
             prefsRepo.updateSettings { it.copy(radarLayerEnabled = next) }
             if (next) {
-                refreshRadarOnce()
+                stopRadarPolling()
+                startRadarPolling()
             } else {
                 _rawThreats.value = emptyList()
+                _localState.update {
+                    it.copy(
+                        isRadarLoading = false,
+                        nextRadarRefreshEpochMs = null
+                    )
+                }
             }
         }
     }
@@ -462,12 +513,26 @@ class MapViewModel(
 
     fun updateSearchQuery(query: String) {
         _localState.update { it.copy(searchQuery = query) }
+        searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.length < 2) {
+            _localState.update { it.copy(searchResults = emptyList(), isSearching = false) }
+            return
+        }
+        searchJob = viewModelScope.launch {
+            val local = monitoringRepo.searchLocalPlaces(trimmed)
+            _localState.update { it.copy(searchResults = local) }
+            delay(350L)
+            val combined = monitoringRepo.searchPlaces(trimmed)
+            _localState.update { it.copy(searchResults = combined, isSearching = false) }
+        }
     }
 
     fun searchAddress() {
         val query = _localState.value.searchQuery.trim()
         if (query.isBlank()) return
-        viewModelScope.launch {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             _localState.update { it.copy(isSearching = true) }
             val results = monitoringRepo.searchPlaces(query)
             _localState.update { it.copy(searchResults = results, isSearching = false) }
