@@ -342,13 +342,13 @@ fun MapTabScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                                 horizontalAlignment = Alignment.End
                             ) {
-                                ZoomToUkraineButton(
-                                    onClick = viewModel::zoomToUkraine,
-                                    compact = true
-                                )
                                 RadarLayerToggleButton(
                                     enabled = uiState.settings.radarLayerEnabled,
                                     onClick = viewModel::toggleRadarLayer,
+                                    compact = true
+                                )
+                                ZoomToUkraineButton(
+                                    onClick = viewModel::zoomToUkraine,
                                     compact = true
                                 )
                             }
@@ -381,12 +381,12 @@ fun MapTabScreen(
                                 onZoomOut = { zoomOutVersion++ }
                             )
 
-                            ZoomToUkraineButton(onClick = viewModel::zoomToUkraine)
-
                             RadarLayerToggleButton(
                                 enabled = uiState.settings.radarLayerEnabled,
                                 onClick = viewModel::toggleRadarLayer
                             )
+
+                            ZoomToUkraineButton(onClick = viewModel::zoomToUkraine)
 
                             MyLocationFab(onClick = viewModel::centerOnMyLocation)
                         }

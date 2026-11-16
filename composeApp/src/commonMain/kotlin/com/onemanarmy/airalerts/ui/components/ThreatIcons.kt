@@ -41,7 +41,7 @@ fun ThreatTypeIcon(
     }
 }
 
-private fun DrawScope.drawThreatVector(
+internal fun DrawScope.drawThreatVector(
     type: ThreatType,
     isHighlighted: Boolean
 ) {

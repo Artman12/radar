@@ -164,7 +164,9 @@ fun AddLocationBottomSheet(
                     onClick = onSearchSubmit,
                     enabled = !isSearching && searchQuery.isNotBlank(),
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.height(52.dp)
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .height(56.dp)
                 ) {
                     if (isSearching) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
