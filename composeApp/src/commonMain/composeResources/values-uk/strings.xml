@@ -179,19 +179,48 @@
     <string name="alert_type_unknown">Тривога</string>
 
     <!-- Settings Tab -->
-    <string name="settings_notifications_section">Сповіщення та делікатна вібрація</string>
+    <string name="settings_notifications_section">Сповіщення</string>
+    <string name="settings_hromada_notif_enable">Сповіщення по громаді</string>
+    <string name="settings_hromada_notif_desc">Прості сповіщення, коли в громаді активна або вимкнена тривога</string>
     <string name="settings_vibration_preset">Пресет вібрації</string>
     <string name="vibration_none">Без вібрації</string>
     <string name="vibration_ultra_soft">Ультра-м’який імпульс (90 мс)</string>
     <string name="vibration_delicate_double">Делікатний подвійний стукіт</string>
     <string name="vibration_standard">Стандартна вібрація</string>
+    <string name="vibration_short_none">Вимк</string>
+    <string name="vibration_short_ultra_soft">М’яка</string>
+    <string name="vibration_short_delicate_double">Подв.</string>
+    <string name="vibration_short_standard">Станд.</string>
     <string name="settings_sound_preset">Звук сповіщення</string>
     <string name="sound_default">Системний звук</string>
     <string name="sound_soft_chime">М’який сигнал</string>
     <string name="sound_silent">Без звуку</string>
-    <string name="btn_test_notification">Тест сповіщення</string>
-    <string name="test_notification_title">AirAlerts — Тест</string>
-    <string name="test_notification_body">Канал сповіщень та пресет вібрації активовано.</string>
+    <string name="sound_short_silent">Тихо</string>
+    <string name="sound_short_soft_chime">М’який</string>
+    <string name="sound_short_default">Станд.</string>
+    <string name="btn_test_notification">Тест сповіщення громади</string>
+    <string name="test_notification_title">🔴 Тривога АКТИВНА — Тест</string>
+    <string name="test_notification_body">Тривога активна у вашій громаді.</string>
+
+    <string name="settings_threat_radius_section">Ціль у радіусі (термінове)</string>
+    <string name="settings_threat_radius_enable">Загроза в радіусі (0–10 км)</string>
+    <string name="settings_threat_radius_desc">Термінове сповіщення лише при вході першої цілі в радіус (мовчить при виході)</string>
+    <string name="settings_threat_radius_value">Радіус сповіщення: %1$d км</string>
+    <string name="settings_threat_radius_zero_hint">Радіус сповіщення: 0 км (&lt; 500 м поруч)</string>
+    <string name="settings_threat_vibration_pattern">Тип вібрації</string>
+    <string name="threat_vibration_off">Вимк</string>
+    <string name="threat_vibration_quad_hard">4× різкі</string>
+    <string name="threat_vibration_rapid_burst">Часта</string>
+    <string name="threat_vibration_sos">SOS</string>
+    <string name="settings_threat_sound_pattern">Звуковий сигнал</string>
+    <string name="threat_sound_off">Вимк</string>
+    <string name="threat_sound_buzzer">Зумер</string>
+    <string name="threat_sound_siren">Сирена</string>
+    <string name="threat_sound_alarm">Тривога</string>
+    <string name="settings_threat_sound_volume">Гучність звуку: %1$d%%</string>
+    <string name="btn_test_threat_notification">Тест загрози поруч</string>
+    <string name="test_threat_notification_title">⚠️ ЦІЛЬ У РАДІУСІ — Тест</string>
+    <string name="test_threat_notification_body">Ударний БпЛА (Shahed-136) (~2 км) — прямуйте в укриття!</string>
 
     <string name="settings_night_mode_section">Нічний режим («Тихі години»)</string>
     <string name="settings_night_mode_enable">Увімкнути тихі години</string>
@@ -237,11 +266,15 @@
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>
 
     <!-- Background Notification Strings -->
-    <string name="notif_alert_started_title">Повітряна тривога: %1$s</string>
-    <string name="notif_alert_started_body">%1$s в %2$s</string>
-    <string name="notif_all_clear_title">Відбій тривоги: %1$s</string>
-    <string name="notif_all_clear_body">Тривога завершилась у %1$s</string>
+    <string name="notif_alert_started_title">🔴 Тривога АКТИВНА — %1$s</string>
+    <string name="notif_alert_started_body">Тривога активна: %1$s</string>
+    <string name="notif_all_clear_title">🟢 Тривогу ВИМКНЕНО — %1$s</string>
+    <string name="notif_all_clear_body">Тривога вимкнена: %1$s</string>
+    <string name="notif_hromada_suffix">%1$s громада</string>
+    <string name="notif_threat_radius_title">⚠️ ЦІЛЬ У РАДІУСІ — %1$s</string>
+    <string name="notif_threat_radius_body">%1$s (~%2$d км) — прямуйте в укриття!</string>
     <string name="notif_nearby_threat_title">Ціль поблизу %1$s</string>
     <string name="notif_nearby_threat_body">%1$s на відстані ~%2$d км</string>
+    <string name="notif_my_location">Моя геолокація</string>
     <string name="just_now">Щойно</string>
 </resources>

@@ -179,19 +179,48 @@
     <string name="alert_type_unknown">Alert</string>
 
     <!-- Settings Tab -->
-    <string name="settings_notifications_section">Notifications &amp; Delicate Vibration</string>
-    <string name="settings_vibration_preset">Vibration Preset</string>
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_hromada_notif_enable">Hromada alerts</string>
+    <string name="settings_hromada_notif_desc">Simple notifications when an alert turns active or off in your hromada</string>
+    <string name="settings_vibration_preset">Vibration preset</string>
     <string name="vibration_none">No vibration</string>
     <string name="vibration_ultra_soft">Ultra-soft pulse (90 ms)</string>
     <string name="vibration_delicate_double">Delicate double tap</string>
     <string name="vibration_standard">Standard vibration</string>
-    <string name="settings_sound_preset">Notification Sound</string>
+    <string name="vibration_short_none">Off</string>
+    <string name="vibration_short_ultra_soft">Soft</string>
+    <string name="vibration_short_delicate_double">Double</string>
+    <string name="vibration_short_standard">Standard</string>
+    <string name="settings_sound_preset">Notification sound</string>
     <string name="sound_default">System Default</string>
     <string name="sound_soft_chime">Soft Notification</string>
     <string name="sound_silent">Silent (No sound)</string>
-    <string name="btn_test_notification">Test Notification</string>
-    <string name="test_notification_title">AirAlerts — Test</string>
-    <string name="test_notification_body">Notification channel and vibration preset are active.</string>
+    <string name="sound_short_silent">Silent</string>
+    <string name="sound_short_soft_chime">Soft</string>
+    <string name="sound_short_default">Default</string>
+    <string name="btn_test_notification">Test Hromada Notification</string>
+    <string name="test_notification_title">🔴 Alert ACTIVE — Test</string>
+    <string name="test_notification_body">Alert is active in your hromada.</string>
+
+    <string name="settings_threat_radius_section">Threat in Radius (Urgent)</string>
+    <string name="settings_threat_radius_enable">Threat in radius (0–10 km)</string>
+    <string name="settings_threat_radius_desc">Urgent alert only when the first threat enters radius (silent when it leaves)</string>
+    <string name="settings_threat_radius_value">Notification radius: %1$d km</string>
+    <string name="settings_threat_radius_zero_hint">Notification radius: 0 km (&lt; 500 m overhead)</string>
+    <string name="settings_threat_vibration_pattern">Vibration pattern</string>
+    <string name="threat_vibration_off">Off</string>
+    <string name="threat_vibration_quad_hard">4× Hard</string>
+    <string name="threat_vibration_rapid_burst">Rapid</string>
+    <string name="threat_vibration_sos">SOS</string>
+    <string name="settings_threat_sound_pattern">Sound pattern</string>
+    <string name="threat_sound_off">Off</string>
+    <string name="threat_sound_buzzer">Buzzer</string>
+    <string name="threat_sound_siren">Siren</string>
+    <string name="threat_sound_alarm">Alarm</string>
+    <string name="settings_threat_sound_volume">Sound loudness: %1$d%%</string>
+    <string name="btn_test_threat_notification">Test Threat Alert</string>
+    <string name="test_threat_notification_title">⚠️ THREAT IN RADIUS — Test</string>
+    <string name="test_threat_notification_body">Attack UAV (Shahed-136) (~2 km away) — seek cover!</string>
 
     <string name="settings_night_mode_section">Night Mode (Quiet Hours)</string>
     <string name="settings_night_mode_enable">Enable Quiet Hours</string>
@@ -237,11 +266,15 @@
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
 
     <!-- Background Notification Strings -->
-    <string name="notif_alert_started_title">Air Alert: %1$s</string>
-    <string name="notif_alert_started_body">%1$s active in %2$s</string>
-    <string name="notif_all_clear_title">All Clear: %1$s</string>
-    <string name="notif_all_clear_body">Air alert ended in %1$s</string>
+    <string name="notif_alert_started_title">🔴 Alert ACTIVE — %1$s</string>
+    <string name="notif_alert_started_body">Alert is active in %1$s</string>
+    <string name="notif_all_clear_title">🟢 Alert OFF — %1$s</string>
+    <string name="notif_all_clear_body">Alert is off in %1$s</string>
+    <string name="notif_hromada_suffix">%1$s hromada</string>
+    <string name="notif_threat_radius_title">⚠️ THREAT IN RADIUS — %1$s</string>
+    <string name="notif_threat_radius_body">%1$s (~%2$d km away) — seek cover!</string>
     <string name="notif_nearby_threat_title">Threat Near %1$s</string>
     <string name="notif_nearby_threat_body">%1$s detected ~%2$d km away</string>
+    <string name="notif_my_location">My Location</string>
     <string name="just_now">Just now</string>
 </resources>

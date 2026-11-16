@@ -137,7 +137,8 @@ class OnboardingViewModel(
                 regionName = resolved.regionName,
                 notifyEnabled = true,
                 districtName = resolved.districtName,
-                oblastName = resolved.oblastName
+                oblastName = resolved.oblastName,
+                hromadaName = resolved.hromadaName
             )
             prefsRepo.saveOrUpdatePoint(point)
             _uiState.update {

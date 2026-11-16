@@ -145,7 +145,8 @@ class PointsViewModel(
                 regionId = instant.regionId,
                 regionName = instant.regionName,
                 districtName = instant.districtName,
-                oblastName = instant.oblastName
+                oblastName = instant.oblastName,
+                hromadaName = instant.hromadaName
             )
             prefsRepo.saveOrUpdatePoint(updatedInstant)
             _local.update { it.copy(repositioningPoint = null) }
@@ -158,7 +159,8 @@ class PointsViewModel(
                         regionId = refined.regionId,
                         regionName = refined.regionName,
                         districtName = refined.districtName,
-                        oblastName = refined.oblastName
+                        oblastName = refined.oblastName,
+                        hromadaName = refined.hromadaName
                     )
                 )
             }
@@ -203,7 +205,8 @@ class PointsViewModel(
                     regionName = resolved.regionName,
                     notifyEnabled = true,
                     districtName = resolved.districtName,
-                    oblastName = resolved.oblastName
+                    oblastName = resolved.oblastName,
+                    hromadaName = resolved.hromadaName
                 )
             )
             _local.update { it.copy(isAddSheetOpen = false) }
@@ -226,7 +229,8 @@ class PointsViewModel(
                     regionName = instant.regionName,
                     notifyEnabled = true,
                     districtName = instant.districtName,
-                    oblastName = instant.oblastName
+                    oblastName = instant.oblastName,
+                    hromadaName = instant.hromadaName
                 )
             )
             _local.update { it.copy(isAddSheetOpen = false) }
@@ -240,7 +244,8 @@ class PointsViewModel(
                         regionId = refined.regionId,
                         regionName = refined.regionName,
                         districtName = refined.districtName,
-                        oblastName = refined.oblastName
+                        oblastName = refined.oblastName,
+                        hromadaName = refined.hromadaName
                     )
                 )
             }

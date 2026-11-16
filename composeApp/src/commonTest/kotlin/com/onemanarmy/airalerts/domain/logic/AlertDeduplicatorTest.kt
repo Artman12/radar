@@ -140,4 +140,62 @@ class AlertDeduplicatorTest {
         assertEquals(NotificationDecision.None, result.decision)
         assertTrue(result.updatedState.isAlertActive)
     }
+
+    @Test
+    fun hromadaNotificationsDisabledSuppressesDecisions() {
+        val settings = AppSettings(hromadaAlertNotificationsEnabled = false)
+        val result = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = null,
+            settings = settings,
+            isQuietHours = false,
+            nowEpochMs = 1000L
+        )
+        assertEquals(NotificationDecision.None, result.decision)
+        assertTrue(result.updatedState.isAlertActive)
+    }
+
+    @Test
+    fun raionToOblastUpgradeForSameAlertTypeDoesNotDuplicateNotification() {
+        val hromadaPoint = homePoint.copy(hromadaName = "Кам'янська")
+        val raionAlert = ActiveAlertInfo(
+            regionId = "neptun_raion:кам'янський",
+            regionName = "Кам'янський район",
+            type = AlertType.AIR,
+            level = AlertLevel.YELLOW,
+            startedAtIso = "2026-11-15T18:00:00Z"
+        )
+        val first = AlertDeduplicator.evaluateTransition(
+            point = hromadaPoint,
+            activeAlerts = listOf(raionAlert),
+            previousState = null,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 1000L
+        )
+        val started = assertIs<NotificationDecision.AlertStarted>(first.decision)
+        assertEquals("Кам'янська", started.regionName)
+
+        val upgraded = AlertDeduplicator.evaluateTransition(
+            point = hromadaPoint,
+            activeAlerts = listOf(airAlert),
+            previousState = first.updatedState,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 2000L
+        )
+        assertEquals(NotificationDecision.None, upgraded.decision)
+
+        val cleared = AlertDeduplicator.evaluateTransition(
+            point = hromadaPoint,
+            activeAlerts = emptyList(),
+            previousState = upgraded.updatedState,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 3000L
+        )
+        val allClear = assertIs<NotificationDecision.AllClear>(cleared.decision)
+        assertEquals("Кам'янська", allClear.regionName)
+    }
 }

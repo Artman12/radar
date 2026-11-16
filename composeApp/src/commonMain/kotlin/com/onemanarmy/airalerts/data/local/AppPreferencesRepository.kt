@@ -116,6 +116,18 @@ class AppPreferencesRepository(
         }
     }
 
+    suspend fun updateAlertStates(
+        transform: (Map<String, PointAlertState>) -> Map<String, PointAlertState>
+    ) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.ALERT_STATES]?.let {
+                runCatching { json.decodeFromString<Map<String, PointAlertState>>(it) }.getOrNull()
+            } ?: emptyMap()
+            val updated = transform(current)
+            prefs[Keys.ALERT_STATES] = json.encodeToString(updated)
+        }
+    }
+
     suspend fun saveLastActiveAlerts(alerts: List<ActiveAlertInfo>) {
         dataStore.edit { prefs ->
             prefs[Keys.LAST_ACTIVE_ALERTS] = json.encodeToString(alerts)

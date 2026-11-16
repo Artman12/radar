@@ -5,4 +5,5 @@
     <string name="fg_status_active_alert">ПОВІТРЯНА ТРИВОГА • %1$s</string>
     <string name="fg_status_monitoring">Моніторинг активний</string>
     <string name="fg_status_no_network">Офлайн • Очікування мережі</string>
+    <string name="notif_my_location">Моя геолокація</string>
 </resources>

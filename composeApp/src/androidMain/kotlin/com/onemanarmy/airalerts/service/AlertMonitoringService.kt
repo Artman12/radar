@@ -102,12 +102,21 @@ class AlertMonitoringService : Service() {
             var currentDelayMs = BASE_POLL_INTERVAL_MS
 
             while (isActive) {
+                val gpsLabel = getString(com.onemanarmy.airalerts.shared.R.string.notif_my_location)
                 val result = runCatching {
                     monitoringRepo.pollAlertsOnce(
                         forceFullFetch = false,
-                        dispatchNotifications = true
+                        dispatchNotifications = true,
+                        gpsDisplayName = gpsLabel
                     )
                 }.getOrNull()
+
+                runCatching {
+                    monitoringRepo.pollThreatRadiusIfEnabled(
+                        dispatchNotifications = true,
+                        gpsDisplayName = gpsLabel
+                    )
+                }
 
                 if (result != null && result.success) {
                     currentDelayMs = BASE_POLL_INTERVAL_MS

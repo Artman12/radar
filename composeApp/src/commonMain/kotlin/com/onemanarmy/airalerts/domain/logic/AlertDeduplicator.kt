@@ -65,20 +65,20 @@ object AlertDeduplicator {
                 nowEpochMs
             } else {
                 previousState.lastTransitionEpochMs
-            }
+            },
+            isThreatInRadius = previousState?.isThreatInRadius ?: false
         )
 
-        if (!point.notifyEnabled) {
+        if (!point.notifyEnabled || !settings.hromadaAlertNotificationsEnabled) {
             return DeduplicationResult(NotificationDecision.None, updatedState)
         }
 
-        // First baseline observation: record state without spamming on initial sync unless an alert was not previously recorded?
-        // Actually, if previousState == null and an alert is already active on first run, we notify once on transition from implicit false -> true.
         val wasActive = previousState?.isAlertActive ?: false
         val previousSignature = previousState?.alertSignature.orEmpty()
 
         val silentMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.FULL_SILENCE
         val softPulseMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.ULTRA_SOFT_PULSE_ONLY
+        val targetRegionLabel = point.hromadaName.ifBlank { point.regionName }
 
         val decision = when {
             !wasActive && isActiveNow -> {
@@ -86,22 +86,28 @@ object AlertDeduplicator {
                 NotificationDecision.AlertStarted(
                     point = point,
                     primaryType = primaryType,
-                    regionName = point.regionName,
+                    regionName = targetRegionLabel,
                     silent = silentMode,
                     softPulseOnly = softPulseMode
                 )
             }
 
             wasActive && isActiveNow && signature != previousSignature -> {
-                // Only notify if a new distinct alert type/region started while already active.
-                val prevTokens = previousSignature.split("|").toSet()
-                val newTokens = signature.split("|").toSet()
-                val hasNewThreat = (newTokens - prevTokens).isNotEmpty()
-                if (hasNewThreat) {
+                // Only notify if a genuinely new alert type started while already active
+                // (prevents duplicate alerts when an active raion alert upgrades to oblast-wide).
+                val prevTypes = previousSignature.split("|")
+                    .mapNotNull { token ->
+                        token.split(":").firstNotNullOfOrNull { part ->
+                            AlertType.entries.firstOrNull { it.name == part }
+                        }
+                    }
+                    .toSet()
+                val newAlert = activeAlerts.firstOrNull { it.type !in prevTypes }
+                if (newAlert != null) {
                     NotificationDecision.AlertStarted(
                         point = point,
-                        primaryType = activeAlerts.firstOrNull()?.type ?: AlertType.AIR,
-                        regionName = point.regionName,
+                        primaryType = newAlert.type,
+                        regionName = targetRegionLabel,
                         silent = silentMode,
                         softPulseOnly = softPulseMode
                     )
@@ -116,7 +122,7 @@ object AlertDeduplicator {
                 } else {
                     NotificationDecision.AllClear(
                         point = point,
-                        regionName = point.regionName,
+                        regionName = targetRegionLabel,
                         silent = silentMode,
                         softPulseOnly = softPulseMode
                     )

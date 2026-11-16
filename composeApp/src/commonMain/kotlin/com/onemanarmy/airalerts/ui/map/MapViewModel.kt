@@ -250,6 +250,10 @@ class MapViewModel(
             .onSuccess { threats ->
                 _rawThreats.value = threats
                 _localState.update { it.copy(isRadarLoading = false) }
+                monitoringRepo.evaluateThreatRadiusThreats(
+                    threats = threats,
+                    dispatchNotifications = true
+                )
             }
             .onFailure {
                 // NEPTUN failure must never disrupt official alert monitoring.
@@ -475,7 +479,8 @@ class MapViewModel(
                 regionName = resolved.regionName,
                 notifyEnabled = true,
                 districtName = resolved.districtName,
-                oblastName = resolved.oblastName
+                oblastName = resolved.oblastName,
+                hromadaName = resolved.hromadaName
             )
             prefsRepo.saveOrUpdatePoint(newPoint)
             _localState.update {
@@ -506,7 +511,8 @@ class MapViewModel(
                 regionName = instant.regionName,
                 notifyEnabled = true,
                 districtName = instant.districtName,
-                oblastName = instant.oblastName
+                oblastName = instant.oblastName,
+                hromadaName = instant.hromadaName
             )
             prefsRepo.saveOrUpdatePoint(initialPoint)
             _localState.update {
@@ -530,7 +536,8 @@ class MapViewModel(
                         regionId = refined.regionId,
                         regionName = refined.regionName,
                         districtName = refined.districtName,
-                        oblastName = refined.oblastName
+                        oblastName = refined.oblastName,
+                        hromadaName = refined.hromadaName
                     )
                 )
             }

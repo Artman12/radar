@@ -3,7 +3,8 @@ package com.onemanarmy.airalerts.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * Vibration patterns supported by the Android NotificationChannel & VibrationEffect engine.
+ * Vibration patterns supported by the Android NotificationChannel & VibrationEffect engine
+ * for hromada alert notifications.
  */
 @Serializable
 enum class VibrationPreset {
@@ -14,13 +15,35 @@ enum class VibrationPreset {
 }
 
 /**
- * Notification sound preference applied when creating or recreating the alert channel.
+ * Notification sound preference applied when creating or recreating the hromada alert channel.
  */
 @Serializable
 enum class NotificationSoundPreset {
     DEFAULT,
     SOFT_CHIME,
     SILENT
+}
+
+/**
+ * Urgent vibration patterns for Threat-in-Radius (0-10 km) notifications.
+ */
+@Serializable
+enum class ThreatVibrationPattern {
+    OFF,
+    QUAD_HARD,
+    RAPID_BURST,
+    SOS_URGENT
+}
+
+/**
+ * Urgent sound patterns for Threat-in-Radius (0-10 km) notifications.
+ */
+@Serializable
+enum class ThreatSoundPattern {
+    OFF,
+    BUZZER,
+    SIREN_PULSE,
+    ALARM_BEEP
 }
 
 /**
@@ -57,6 +80,12 @@ data class AppSettings(
     val warningRadiusKm: Int = 30,
     val radarNearbyAlertsEnabled: Boolean = true,
     val radarLayerEnabled: Boolean = true,
+    val hromadaAlertNotificationsEnabled: Boolean = true,
+    val threatRadiusNotificationEnabled: Boolean = false,
+    val threatNotificationRadiusKm: Int = 5,
+    val threatVibrationPattern: ThreatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
+    val threatSoundPattern: ThreatSoundPattern = ThreatSoundPattern.BUZZER,
+    val threatSoundVolumePercent: Int = 85,
     val lastActionIndex: Long = 0L,
     val lastKnownAlertCheckEpochMs: Long = 0L,
     val lastApiError: String? = null

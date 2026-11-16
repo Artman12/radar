@@ -1,34 +1,43 @@
 package com.onemanarmy.airalerts.data.repository
 
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
+import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
 import com.onemanarmy.airalerts.data.remote.NeptunAlertsApi
 import com.onemanarmy.airalerts.data.remote.UkraineAlarmApi
 import com.onemanarmy.airalerts.domain.logic.AlertDeduplicator
 import com.onemanarmy.airalerts.domain.logic.NotificationDecision
 import com.onemanarmy.airalerts.domain.logic.QuietHoursEvaluator
 import com.onemanarmy.airalerts.domain.logic.RegionMatcher
+import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
+import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AlertLevel
-import com.onemanarmy.airalerts.domain.model.AlertType
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.ResolvedLocation
 import com.onemanarmy.airalerts.domain.model.SavedPoint
+import com.onemanarmy.airalerts.domain.model.ThreatType
 import com.onemanarmy.airalerts.platform.GeocodedAddress
 import com.onemanarmy.airalerts.platform.PlatformGeocoder
 import com.onemanarmy.airalerts.platform.PlatformLocationClient
 import com.onemanarmy.airalerts.platform.PlatformNotifier
 import com.onemanarmy.airalerts.resources.Res
-import com.onemanarmy.airalerts.resources.alert_type_air
-import com.onemanarmy.airalerts.resources.alert_type_artillery
-import com.onemanarmy.airalerts.resources.alert_type_chemical
-import com.onemanarmy.airalerts.resources.alert_type_nuclear
-import com.onemanarmy.airalerts.resources.alert_type_unknown
-import com.onemanarmy.airalerts.resources.alert_type_urban_fights
 import com.onemanarmy.airalerts.resources.notif_alert_started_body
 import com.onemanarmy.airalerts.resources.notif_alert_started_title
 import com.onemanarmy.airalerts.resources.notif_all_clear_body
 import com.onemanarmy.airalerts.resources.notif_all_clear_title
+import com.onemanarmy.airalerts.resources.notif_hromada_suffix
+import com.onemanarmy.airalerts.resources.notif_threat_radius_body
+import com.onemanarmy.airalerts.resources.notif_threat_radius_title
+import com.onemanarmy.airalerts.resources.threat_type_aviation
+import com.onemanarmy.airalerts.resources.threat_type_ballistic
+import com.onemanarmy.airalerts.resources.threat_type_cruise_missile
+import com.onemanarmy.airalerts.resources.threat_type_fpv
+import com.onemanarmy.airalerts.resources.threat_type_jet_shahed
+import com.onemanarmy.airalerts.resources.threat_type_kab
+import com.onemanarmy.airalerts.resources.threat_type_recon
+import com.onemanarmy.airalerts.resources.threat_type_uav
+import com.onemanarmy.airalerts.resources.threat_type_unknown
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +48,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.getString
+import kotlin.math.roundToInt
 
 data class PollResult(
     val success: Boolean,
@@ -49,11 +59,14 @@ data class PollResult(
 
 /**
  * Coordinates alert polling (UkraineAlarm API v3 when key is configured, or NEPTUN keyless alerts API),
- * GPS/location region mapping, deduplication, and notifications.
+ * GPS/location region & hromada mapping, deduplication, and notifications (both hromada status
+ * and aggressive 0-10 km threat-in-radius entry alerts).
  */
 class AlertMonitoringRepository(
     private val ukraineAlarmApi: UkraineAlarmApi,
     private val neptunAlertsApi: NeptunAlertsApi,
+    private val radarRepo: RadarRepository,
+    private val boundaryRepo: UkraineBoundaryRepository,
     private val prefsRepo: AppPreferencesRepository,
     private val locationClient: PlatformLocationClient,
     private val geocoder: PlatformGeocoder,
@@ -74,9 +87,10 @@ class AlertMonitoringRepository(
         prefsRepo.settingsFlow,
         prefsRepo.savedPointsFlow,
         prefsRepo.cachedRegionsFlow,
-        prefsRepo.lastActiveAlertsFlow
-    ) { settings, savedPoints, cachedRegions, activeAlerts ->
-        val allPoints = buildTrackedPoints(settings, savedPoints)
+        prefsRepo.lastActiveAlertsFlow,
+        boundaryRepo.boundariesFlow
+    ) { settings, savedPoints, cachedRegions, activeAlerts, _ ->
+        val allPoints = buildTrackedPoints(settings, savedPoints).map { enrichPointWithHromada(it) }
         allPoints.map { point ->
             val matchingAlerts = activeAlerts.filter { alert ->
                 RegionMatcher.isPointAffectedByAlert(
@@ -122,6 +136,7 @@ class AlertMonitoringRepository(
         longitude: Double,
         fallbackLabel: String = "Point"
     ): ResolvedLocation {
+        boundaryRepo.loadIfNeeded()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         return buildResolvedLocation(
             latitude = latitude,
@@ -136,6 +151,7 @@ class AlertMonitoringRepository(
         address: GeocodedAddress,
         fallbackLabel: String = "Point"
     ): ResolvedLocation {
+        boundaryRepo.loadIfNeeded()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         return buildResolvedLocation(
             latitude = address.latitude,
@@ -151,6 +167,7 @@ class AlertMonitoringRepository(
         longitude: Double,
         fallbackLabel: String = "Point"
     ): ResolvedLocation {
+        boundaryRepo.loadIfNeeded()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         val address = runCatching { geocoder.reverseGeocode(latitude, longitude) }.getOrNull()
         return buildResolvedLocation(
@@ -169,19 +186,23 @@ class AlertMonitoringRepository(
         fallbackLabel: String,
         cachedRegions: List<com.onemanarmy.airalerts.domain.model.RegionItem>
     ): ResolvedLocation {
+        val hromadaPolygon = boundaryRepo.findHromadaAt(latitude, longitude)
         val matched = RegionMatcher.matchRegion(
             latitude = latitude,
             longitude = longitude,
             localityName = address?.locality,
-            districtName = address?.district,
-            adminAreaName = address?.adminArea,
+            districtName = address?.district?.takeIf { it.isNotBlank() } ?: hromadaPolygon?.raionName,
+            adminAreaName = address?.adminArea?.takeIf { it.isNotBlank() } ?: hromadaPolygon?.oblastName,
             cachedRegions = cachedRegions
         )
-        val oblast = RegionMatcher.findOblastByName(address?.adminArea)?.ukName
+        val oblast = hromadaPolygon?.oblastName?.takeIf { it.isNotBlank() }
+            ?: RegionMatcher.findOblastByName(address?.adminArea)?.ukName
             ?: RegionMatcher.findOblastByName(matched.name)?.ukName
             ?: RegionMatcher.oblastCentroids.firstOrNull { it.regionId == matched.regionId }?.ukName
             ?: address?.adminArea.orEmpty()
-        val district = address?.district.orEmpty()
+        val district = address?.district?.takeIf { it.isNotBlank() }
+            ?: hromadaPolygon?.raionName.orEmpty()
+        val hromadaName = hromadaPolygon?.name.orEmpty()
         val displayRegion = when {
             district.isNotBlank() && oblast.isNotBlank() &&
                 RegionMatcher.normalizeName(district) != RegionMatcher.normalizeName(oblast) -> {
@@ -190,6 +211,7 @@ class AlertMonitoringRepository(
             else -> matched.name.ifBlank { oblast.ifBlank { fallbackLabel } }
         }
         val label = address?.locality?.takeIf { it.isNotBlank() }
+            ?: hromadaName.takeIf { it.isNotBlank() }
             ?: district.takeIf { it.isNotBlank() }
             ?: matched.name.ifBlank { fallbackLabel }
 
@@ -200,7 +222,8 @@ class AlertMonitoringRepository(
             regionName = displayRegion,
             suggestedLabel = label,
             districtName = district,
-            oblastName = oblast
+            oblastName = oblast,
+            hromadaName = hromadaName
         )
     }
 
@@ -210,10 +233,11 @@ class AlertMonitoringRepository(
 
     suspend fun refreshGpsLocation(): ResolvedLocation? {
         val coords = locationClient.getCurrentCoordinates() ?: return null
+        boundaryRepo.loadIfNeeded()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         val currentSettings = prefsRepo.settingsFlow.first()
 
-        // Seed GPS location immediately with fast offline oblast match when no location is saved yet.
+        // Seed GPS location immediately with fast offline oblast/hromada match when no location is saved yet.
         if (currentSettings.gpsLatitude == null || currentSettings.gpsPointRegionName.isNullOrBlank()) {
             val instant = buildResolvedLocation(
                 latitude = coords.latitude,
@@ -245,6 +269,7 @@ class AlertMonitoringRepository(
     }
 
     private val pollMutex = Mutex()
+    private val threatRadiusMutex = Mutex()
     private var lastSuccessfulPollMs: Long = 0L
 
     /**
@@ -287,6 +312,7 @@ class AlertMonitoringRepository(
         dispatchNotifications: Boolean,
         gpsDisplayName: String
     ): PollResult {
+        boundaryRepo.loadIfNeeded()
         val now = Clock.System.now()
         val nowMs = now.toEpochMilliseconds()
         val settings = prefsRepo.settingsFlow.first()
@@ -342,59 +368,71 @@ class AlertMonitoringRepository(
         val savedPoints = prefsRepo.savedPointsFlow.first()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         val trackedPoints = buildTrackedPoints(updatedSettings, savedPoints, gpsDisplayName)
-        val previousStates = prefsRepo.alertStatesFlow.first().toMutableMap()
+            .map { enrichPointWithHromada(it) }
         val isQuietHours = QuietHoursEvaluator.isInQuietHours(updatedSettings, now)
         val decisions = mutableListOf<NotificationDecision>()
 
-        for (point in trackedPoints) {
-            val matchingAlerts = activeAlerts.filter { alert ->
-                RegionMatcher.isPointAffectedByAlert(
+        prefsRepo.updateAlertStates { currentStates ->
+            val mutable = currentStates.toMutableMap()
+            decisions.clear()
+            for (point in trackedPoints) {
+                val matchingAlerts = activeAlerts.filter { alert ->
+                    RegionMatcher.isPointAffectedByAlert(
+                        point = point,
+                        alert = alert,
+                        cachedRegions = cachedRegions
+                    )
+                }
+                val prev = mutable[point.id]
+                val result = AlertDeduplicator.evaluateTransition(
                     point = point,
-                    alert = alert,
-                    cachedRegions = cachedRegions
+                    activeAlerts = matchingAlerts,
+                    previousState = prev,
+                    settings = updatedSettings,
+                    isQuietHours = isQuietHours,
+                    nowEpochMs = nowMs
                 )
+                mutable[point.id] = result.updatedState.copy(
+                    isThreatInRadius = prev?.isThreatInRadius ?: false
+                )
+                if (result.decision != NotificationDecision.None) {
+                    decisions += result.decision
+                }
             }
-            val result = AlertDeduplicator.evaluateTransition(
-                point = point,
-                activeAlerts = matchingAlerts,
-                previousState = previousStates[point.id],
-                settings = updatedSettings,
-                isQuietHours = isQuietHours,
-                nowEpochMs = nowMs
-            )
-            previousStates[point.id] = result.updatedState
-            if (result.decision != NotificationDecision.None) {
-                decisions += result.decision
-            }
+            mutable
         }
 
-        prefsRepo.saveAlertStates(previousStates)
-
         if (dispatchNotifications) {
-            decisions.forEachIndexed { idx, decision ->
+            for (decision in decisions) {
                 when (decision) {
                     is NotificationDecision.AlertStarted -> {
-                        val typeLabel = formatAlertTypeLabel(decision.primaryType)
+                        val hromadaLabel = formatHromadaDisplayName(decision.point)
+                        val notifId = baseNotificationId(decision.point.id)
                         notifier.showAlertNotification(
-                            notificationId = 2000 + decision.point.id.hashCode() + idx,
+                            notificationId = notifId,
                             title = getString(Res.string.notif_alert_started_title, decision.point.name),
-                            body = getString(Res.string.notif_alert_started_body, typeLabel, decision.regionName),
+                            body = getString(Res.string.notif_alert_started_body, hromadaLabel),
                             silent = decision.silent,
                             softPulseOnly = decision.softPulseOnly,
                             preset = updatedSettings.vibrationPreset,
-                            channelVersion = updatedSettings.notificationChannelVersion
+                            channelVersion = updatedSettings.notificationChannelVersion,
+                            isAlertActive = true
                         )
                     }
 
                     is NotificationDecision.AllClear -> {
+                        val hromadaLabel = formatHromadaDisplayName(decision.point)
+                        // Distinct notification ID so Alert Off always appears as a fresh notification.
+                        val notifId = baseNotificationId(decision.point.id) + 1
                         notifier.showAlertNotification(
-                            notificationId = 2000 + decision.point.id.hashCode() + idx,
+                            notificationId = notifId,
                             title = getString(Res.string.notif_all_clear_title, decision.point.name),
-                            body = getString(Res.string.notif_all_clear_body, decision.regionName),
+                            body = getString(Res.string.notif_all_clear_body, hromadaLabel),
                             silent = decision.silent,
                             softPulseOnly = decision.softPulseOnly,
                             preset = updatedSettings.vibrationPreset,
-                            channelVersion = updatedSettings.notificationChannelVersion
+                            channelVersion = updatedSettings.notificationChannelVersion,
+                            isAlertActive = false
                         )
                     }
 
@@ -408,6 +446,108 @@ class AlertMonitoringRepository(
             decisions = decisions,
             trackedStatuses = trackedPointStatusesFlow.first()
         )
+    }
+
+    /**
+     * Background entry-point for Threat-in-Radius notifications (0..10 km).
+     * Performs no network request if the setting is disabled or there are no tracked points.
+     */
+    suspend fun pollThreatRadiusIfEnabled(
+        dispatchNotifications: Boolean = true,
+        gpsDisplayName: String = "My Location"
+    ) {
+        val settings = prefsRepo.settingsFlow.first()
+        if (!settings.threatRadiusNotificationEnabled) return
+        val savedPoints = prefsRepo.savedPointsFlow.first()
+        val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
+        if (trackedPoints.none { it.notifyEnabled }) return
+
+        val threats = radarRepo.fetchRawThreats().getOrNull() ?: return
+        evaluateThreatRadiusThreats(
+            threats = threats,
+            dispatchNotifications = dispatchNotifications,
+            gpsDisplayName = gpsDisplayName
+        )
+    }
+
+    /**
+     * Evaluates an already-fetched list of threats against the 0..10 km threat-in-radius setting
+     * and dispatches an aggressive buzzer + 4-pulse vibration notification only when the first
+     * threat enters a point's radius.
+     */
+    suspend fun evaluateThreatRadiusThreats(
+        threats: List<AirThreat>,
+        dispatchNotifications: Boolean = true,
+        gpsDisplayName: String = "My Location"
+    ) {
+        threatRadiusMutex.withLock {
+            val settings = prefsRepo.settingsFlow.first()
+            val savedPoints = prefsRepo.savedPointsFlow.first()
+            val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
+            var pendingNotifications: List<com.onemanarmy.airalerts.domain.logic.ThreatRadiusNotification> = emptyList()
+
+            prefsRepo.updateAlertStates { currentStates ->
+                val result = ThreatRadiusEvaluator.evaluate(
+                    trackedPoints = trackedPoints,
+                    threats = threats,
+                    previousStates = currentStates,
+                    settings = settings
+                )
+                pendingNotifications = result.notifications
+                result.updatedStates.mapValues { (pointId, state) ->
+                    val existing = currentStates[pointId]
+                    if (existing != null) {
+                        existing.copy(isThreatInRadius = state.isThreatInRadius)
+                    } else {
+                        state
+                    }
+                }
+            }
+
+            if (dispatchNotifications && settings.threatRadiusNotificationEnabled) {
+                for (item in pendingNotifications) {
+                    val threatLabel = formatThreatTypeLabel(item.threat.type)
+                    val distanceRounded = item.distanceKm.roundToInt().coerceAtLeast(0)
+                    val notifId = baseNotificationId(item.point.id) + 2
+                    notifier.showThreatRadiusNotification(
+                        notificationId = notifId,
+                        title = getString(Res.string.notif_threat_radius_title, item.point.name),
+                        body = getString(Res.string.notif_threat_radius_body, threatLabel, distanceRounded),
+                        vibrationPattern = settings.threatVibrationPattern,
+                        soundPattern = settings.threatSoundPattern,
+                        soundVolumePercent = settings.threatSoundVolumePercent
+                    )
+                }
+            }
+        }
+    }
+
+    private fun baseNotificationId(pointId: String): Int {
+        return 2000 + ((pointId.hashCode() and 0x7FFFF) * 4)
+    }
+
+    private fun enrichPointWithHromada(point: SavedPoint): SavedPoint {
+        if (point.hromadaName.isNotBlank() && point.districtName.isNotBlank()) return point
+        val hromada = boundaryRepo.findHromadaAt(point.latitude, point.longitude) ?: return point
+        return point.copy(
+            hromadaName = point.hromadaName.ifBlank { hromada.name },
+            districtName = point.districtName.ifBlank { hromada.raionName },
+            oblastName = point.oblastName.ifBlank { hromada.oblastName }
+        )
+    }
+
+    private suspend fun formatHromadaDisplayName(point: SavedPoint): String {
+        val raw = point.hromadaName.trim()
+        if (raw.isBlank()) return point.regionName.ifBlank { point.name }
+        val lower = raw.lowercase()
+        return if (lower == "київ" || lower == "м. київ" || lower == "kyiv" ||
+            lower == "севастополь" || lower == "sevastopol" ||
+            lower.contains("громад") || lower.contains("hromada")
+        ) {
+            raw
+        } else {
+            getString(Res.string.notif_hromada_suffix, raw)
+        }
     }
 
     private suspend fun pollViaUkraineAlarm(
@@ -478,12 +618,15 @@ class AlertMonitoringRepository(
         return list
     }
 
-    private suspend fun formatAlertTypeLabel(type: AlertType): String = when (type) {
-        AlertType.AIR -> getString(Res.string.alert_type_air)
-        AlertType.ARTILLERY -> getString(Res.string.alert_type_artillery)
-        AlertType.URBAN_FIGHTS -> getString(Res.string.alert_type_urban_fights)
-        AlertType.CHEMICAL -> getString(Res.string.alert_type_chemical)
-        AlertType.NUCLEAR -> getString(Res.string.alert_type_nuclear)
-        AlertType.UNKNOWN -> getString(Res.string.alert_type_unknown)
+    private suspend fun formatThreatTypeLabel(type: ThreatType): String = when (type) {
+        ThreatType.UAV -> getString(Res.string.threat_type_uav)
+        ThreatType.JET_SHAHED -> getString(Res.string.threat_type_jet_shahed)
+        ThreatType.FPV -> getString(Res.string.threat_type_fpv)
+        ThreatType.RECON -> getString(Res.string.threat_type_recon)
+        ThreatType.CRUISE_MISSILE -> getString(Res.string.threat_type_cruise_missile)
+        ThreatType.BALLISTIC -> getString(Res.string.threat_type_ballistic)
+        ThreatType.KAB -> getString(Res.string.threat_type_kab)
+        ThreatType.AVIATION -> getString(Res.string.threat_type_aviation)
+        ThreatType.UNKNOWN -> getString(Res.string.threat_type_unknown)
     }
 }

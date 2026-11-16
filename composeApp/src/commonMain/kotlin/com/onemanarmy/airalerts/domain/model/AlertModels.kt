@@ -103,7 +103,8 @@ data class SavedPoint(
     val notifyEnabled: Boolean = true,
     val isGpsAnchor: Boolean = false,
     val districtName: String = "",
-    val oblastName: String = ""
+    val oblastName: String = "",
+    val hromadaName: String = ""
 )
 
 /**
@@ -126,7 +127,8 @@ data class PointAlertState(
     val pointId: String,
     val isAlertActive: Boolean,
     val alertSignature: String,
-    val lastTransitionEpochMs: Long
+    val lastTransitionEpochMs: Long,
+    val isThreatInRadius: Boolean = false
 )
 
 /**
@@ -139,5 +141,6 @@ data class ResolvedLocation(
     val regionName: String,
     val suggestedLabel: String,
     val districtName: String = "",
-    val oblastName: String = ""
+    val oblastName: String = "",
+    val hromadaName: String = ""
 )

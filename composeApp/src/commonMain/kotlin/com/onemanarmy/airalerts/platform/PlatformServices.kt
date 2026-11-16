@@ -3,6 +3,8 @@ package com.onemanarmy.airalerts.platform
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
+import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
+import com.onemanarmy.airalerts.domain.model.ThreatVibrationPattern
 import com.onemanarmy.airalerts.domain.model.VibrationPreset
 import kotlinx.coroutines.flow.StateFlow
 
@@ -46,7 +48,8 @@ interface PlatformNotifier {
         silent: Boolean,
         softPulseOnly: Boolean,
         preset: VibrationPreset,
-        channelVersion: Int
+        channelVersion: Int,
+        isAlertActive: Boolean? = null
     )
 
     fun previewVibration(preset: VibrationPreset)
@@ -57,6 +60,29 @@ interface PlatformNotifier {
         preset: VibrationPreset,
         soundPreset: NotificationSoundPreset,
         channelVersion: Int
+    )
+
+    fun ensureThreatRadiusChannel()
+
+    fun showThreatRadiusNotification(
+        notificationId: Int,
+        title: String,
+        body: String,
+        vibrationPattern: ThreatVibrationPattern,
+        soundPattern: ThreatSoundPattern,
+        soundVolumePercent: Int
+    )
+
+    fun previewThreatVibration(pattern: ThreatVibrationPattern)
+
+    fun previewThreatSound(pattern: ThreatSoundPattern, volumePercent: Int)
+
+    fun sendTestThreatRadiusNotification(
+        title: String,
+        body: String,
+        vibrationPattern: ThreatVibrationPattern,
+        soundPattern: ThreatSoundPattern,
+        soundVolumePercent: Int
     )
 }
 

@@ -1,5 +1,6 @@
 package com.onemanarmy.airalerts.data.local
 
+import com.onemanarmy.airalerts.domain.logic.GeoUtils
 import com.onemanarmy.airalerts.domain.model.AdminLevel
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
 import com.onemanarmy.airalerts.domain.model.UkraineMapBoundaries
@@ -44,6 +45,24 @@ class UkraineBoundaryRepository {
             }
             parsed
         }
+    }
+
+    /**
+     * Resolves the exact hromada polygon containing the given WGS84 coordinates, if loaded.
+     */
+    fun findHromadaAt(latitude: Double, longitude: Double): RegionPolygon? {
+        val boundaries = _boundariesFlow.value ?: return null
+        val fLat = latitude.toFloat()
+        val fLon = longitude.toFloat()
+        for (hromada in boundaries.hromadas) {
+            if (fLat in hromada.minLat..hromada.maxLat &&
+                fLon in hromada.minLon..hromada.maxLon &&
+                GeoUtils.isPointInRings(latitude, longitude, hromada.rings)
+            ) {
+                return hromada
+            }
+        }
+        return null
     }
 
     /**

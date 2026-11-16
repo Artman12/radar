@@ -7,6 +7,8 @@ import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.NightModeBehavior
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
+import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
+import com.onemanarmy.airalerts.domain.model.ThreatVibrationPattern
 import com.onemanarmy.airalerts.domain.model.VibrationPreset
 import com.onemanarmy.airalerts.platform.BackgroundServiceController
 import com.onemanarmy.airalerts.platform.PlatformNotifier
@@ -135,6 +137,69 @@ class SettingsViewModel(
     fun setRadarNearbyAlertsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(radarNearbyAlertsEnabled = enabled) }
+        }
+    }
+
+    fun setHromadaAlertNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(hromadaAlertNotificationsEnabled = enabled) }
+        }
+    }
+
+    fun setThreatRadiusNotificationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatRadiusNotificationEnabled = enabled) }
+            if (enabled) {
+                notifier.ensureThreatRadiusChannel()
+            }
+        }
+    }
+
+    fun setThreatNotificationRadiusKm(radiusKm: Int) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatNotificationRadiusKm = radiusKm.coerceIn(0, 10)) }
+        }
+    }
+
+    fun selectThreatVibrationPattern(pattern: ThreatVibrationPattern) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatVibrationPattern = pattern) }
+            notifier.previewThreatVibration(pattern)
+        }
+    }
+
+    fun selectThreatSoundPattern(pattern: ThreatSoundPattern) {
+        viewModelScope.launch {
+            val current = prefsRepo.settingsFlow.first()
+            prefsRepo.updateSettings { it.copy(threatSoundPattern = pattern) }
+            notifier.previewThreatSound(pattern, current.threatSoundVolumePercent)
+        }
+    }
+
+    fun setThreatSoundVolumePercent(volumePercent: Int) {
+        val clamped = volumePercent.coerceIn(0, 100)
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatSoundVolumePercent = clamped) }
+        }
+    }
+
+    fun previewThreatSoundVolume() {
+        viewModelScope.launch {
+            val current = prefsRepo.settingsFlow.first()
+            notifier.previewThreatSound(current.threatSoundPattern, current.threatSoundVolumePercent)
+        }
+    }
+
+    fun sendTestThreatNotification(title: String, body: String) {
+        viewModelScope.launch {
+            val current = prefsRepo.settingsFlow.first()
+            notifier.sendTestThreatRadiusNotification(
+                title = title,
+                body = body,
+                vibrationPattern = current.threatVibrationPattern,
+                soundPattern = current.threatSoundPattern,
+                soundVolumePercent = current.threatSoundVolumePercent
+            )
         }
     }
 

@@ -33,17 +33,19 @@ val commonModule = module {
     single { UkraineBoundaryRepository() }
     single { RegionThreatEvaluator() }
 
+    single { RadarRepository(get()) }
     single {
         AlertMonitoringRepository(
             ukraineAlarmApi = get(),
             neptunAlertsApi = get(),
+            radarRepo = get(),
+            boundaryRepo = get(),
             prefsRepo = get(),
             locationClient = get(),
             geocoder = get(),
             notifier = get()
         )
     }
-    single { RadarRepository(get()) }
 
     viewModel { OnboardingViewModel(get(), get(), get(), get(), get()) }
     viewModel { MapViewModel(get(), get(), get(), get(), get(), get(), get()) }

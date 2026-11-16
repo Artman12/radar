@@ -232,12 +232,21 @@ object RegionMatcher {
             return false
         }
 
-        val normAlertRaion = normalizeName(alert.regionName)
-        if (normAlertRaion.isBlank()) return false
+        val normAlertTarget = normalizeName(alert.regionName)
+        if (normAlertTarget.isBlank()) return false
 
-        // Match against explicit districtName first.
+        // Match against explicit hromadaName first (e.g., hromada-level alerts).
+        if (point.hromadaName.isNotBlank()) {
+            val normHromada = normalizeName(point.hromadaName)
+            if (matchesNormalized(normHromada, normAlertTarget)) {
+                return true
+            }
+        }
+
+        // Match against explicit districtName (including post-2020 raion renames).
         if (point.districtName.isNotBlank()) {
-            val normDistrict = normalizeName(point.districtName)
+            val normDistrict = normalizeRaionAlias(normalizeName(point.districtName))
+            val normAlertRaion = normalizeRaionAlias(normAlertTarget)
             if (matchesNormalized(normDistrict, normAlertRaion)) {
                 return true
             }
@@ -246,14 +255,25 @@ object RegionMatcher {
         // Also match against point.regionName or point.name stems (e.g., "Херсон" -> "Херсонський район").
         val normRegion = normalizeName(point.regionName)
         val normPointName = normalizeName(point.name)
-        if (normRegion.isNotBlank() && normRegion != normPointOblast && matchesNormalized(normRegion, normAlertRaion)) {
+        if (normRegion.isNotBlank() && normRegion != normPointOblast && matchesNormalized(normRegion, normAlertTarget)) {
             return true
         }
-        if (normPointName.isNotBlank() && matchesNormalized(normPointName, normAlertRaion)) {
+        if (normPointName.isNotBlank() && matchesNormalized(normPointName, normAlertTarget)) {
             return true
         }
 
         return false
+    }
+
+    private fun normalizeRaionAlias(norm: String): String = when {
+        norm.contains("новоград") || norm.contains("звягель") -> "звягельськ"
+        norm.contains("новомосков") || norm.contains("самарів") -> "самарівськ"
+        norm.contains("красноград") || norm.contains("берестин") -> "берестинськ"
+        norm.contains("червоноград") || norm.contains("шептицьк") -> "шептицьк"
+        norm.contains("дніпропетров") -> "дніпровськ"
+        norm.contains("кіровоград") -> "кропивницьк"
+        norm.contains("артемів") -> "бахмутськ"
+        else -> norm
     }
 
     private fun matchesCandidate(region: RegionItem, normalizedCandidate: String): Boolean {
