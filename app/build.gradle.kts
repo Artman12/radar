@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.onemanarmy.airalerts"
+    namespace = "com.onemanarmy.radar"
     compileSdk = 37
 
     defaultConfig {

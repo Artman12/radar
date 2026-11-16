@@ -24,7 +24,7 @@ val ukraineAlarmApiKey: String = localProps.getProperty("UKRAINE_ALARM_API_KEY")
 
 kotlin {
     android {
-        namespace = "com.onemanarmy.airalerts.shared"
+        namespace = "com.onemanarmy.radar.shared"
         compileSdk = 37
         minSdk = 26
 
@@ -88,7 +88,7 @@ kotlin {
 }
 
 buildkonfig {
-    packageName = "com.onemanarmy.airalerts.config"
+    packageName = "com.onemanarmy.radar.config"
 
     defaultConfigs {
         buildConfigField(STRING, "UKRAINE_ALARM_API_KEY", ukraineAlarmApiKey)
@@ -97,6 +97,6 @@ buildkonfig {
 
 compose.resources {
     publicResClass = true
-    packageOfResClass = "com.onemanarmy.airalerts.resources"
+    packageOfResClass = "com.onemanarmy.radar.resources"
     generateResClass = always
 }

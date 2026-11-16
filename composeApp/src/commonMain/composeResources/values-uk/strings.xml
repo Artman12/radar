@@ -325,7 +325,7 @@
     <string name="notif_alert_started_body">Тривога активна: %1$s</string>
     <string name="notif_yellow_alert_started_title">🟡 Підвищена загроза — %1$s</string>
     <string name="notif_yellow_alert_started_body">Підвищена загроза (жовтий рівень): %1$s</string>
-    <string name="notif_all_clear_title">🟢 Тривогу ВИМКНЕНО — %1$s</string>
+    <string name="notif_all_clear_title">🟢 ВІДБІЙ — %1$s</string>
     <string name="notif_all_clear_body">Тривога вимкнена: %1$s</string>
     <string name="notif_hromada_suffix">%1$s громада</string>
     <string name="notif_threat_radius_title">⚠️⚠️ ЦІЛЬ У РАДІУСІ — %1$s</string>
