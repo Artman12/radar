@@ -65,6 +65,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.airalerts.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
+import com.onemanarmy.airalerts.data.remote.NextAlertExplosionsApi
 import com.onemanarmy.airalerts.domain.logic.DurationFormatter
 import com.onemanarmy.airalerts.domain.model.AdminLevel
 import com.onemanarmy.airalerts.domain.model.AlertLevel
@@ -82,6 +83,7 @@ import com.onemanarmy.airalerts.resources.legend_occupied
 import com.onemanarmy.airalerts.resources.map_center_gps
 import com.onemanarmy.airalerts.resources.map_disclaimer_deepstate_link
 import com.onemanarmy.airalerts.resources.map_disclaimer_link
+import com.onemanarmy.airalerts.resources.map_disclaimer_nextalert_link
 import com.onemanarmy.airalerts.resources.map_disclaimer_prefix
 import com.onemanarmy.airalerts.resources.map_nearby_threat_banner
 import com.onemanarmy.airalerts.resources.map_nearby_threat_banner_zero
@@ -100,8 +102,11 @@ import com.onemanarmy.airalerts.resources.status_point_subtitle
 import com.onemanarmy.airalerts.resources.status_yellow_warning
 import com.onemanarmy.airalerts.ui.components.ActiveThreatsSummaryPill
 import com.onemanarmy.airalerts.ui.components.AddLocationBottomSheet
+import com.onemanarmy.airalerts.ui.components.AllExplosionsBottomSheet
 import com.onemanarmy.airalerts.ui.components.AllThreatsBottomSheet
 import com.onemanarmy.airalerts.ui.components.CrosshairMapPickerOverlay
+import com.onemanarmy.airalerts.ui.components.ExplosionDetailsBottomSheet
+import com.onemanarmy.airalerts.ui.components.ExplosionsSummaryPill
 import com.onemanarmy.airalerts.ui.components.MapZoomControlsPill
 import com.onemanarmy.airalerts.ui.components.PointDetailsBottomSheet
 import com.onemanarmy.airalerts.ui.components.RefreshCountdownBadge
@@ -155,6 +160,7 @@ fun MapTabScreen(
     var zoomOutVersion by remember { mutableIntStateOf(0) }
     var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
     var isAllThreatsSheetOpen by remember { mutableStateOf(false) }
+    var isAllExplosionsSheetOpen by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isCompactLandscape = maxWidth > maxHeight && maxHeight < 520.dp
@@ -182,12 +188,14 @@ fun MapTabScreen(
                 zoomOutVersion = zoomOutVersion,
                 trackedPoints = uiState.pointStatuses,
                 threats = uiState.threats,
+                explosions = uiState.explosions,
                 activeAlerts = uiState.activeAlerts,
                 boundaries = uiState.boundaries,
                 regionThreats = uiState.regionThreats,
                 occupiedTerritories = uiState.occupiedTerritories,
                 selectedRegionId = uiState.selectedRegion?.polygon?.id,
                 showThreatsLayer = uiState.settings.radarLayerEnabled,
+                showExplosionsLayer = uiState.settings.explosionsLayerEnabled,
                 showOccupiedLayer = uiState.settings.occupiedLayerEnabled,
                 warningRadiusKm = uiState.settings.threatNotificationRadiusKm,
                 highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
@@ -195,6 +203,7 @@ fun MapTabScreen(
                 isCrosshairPickerMode = false,
                 onPointClicked = viewModel::onPointClicked,
                 onThreatClicked = viewModel::onThreatClicked,
+                onExplosionClicked = viewModel::onExplosionClicked,
                 onRegionClicked = viewModel::onRegionClicked,
                 onMapCenterChanged = viewModel::onMapCenterChanged,
                 onMapViewportChanged = viewModel::onMapViewportChanged,
@@ -300,9 +309,17 @@ fun MapTabScreen(
                             )
                         }
 
-                        Row(
+                        if (uiState.settings.explosionsLayerEnabled && uiState.explosions.isNotEmpty()) {
+                            ExplosionsSummaryPill(
+                                explosions = uiState.explosions,
+                                onClick = { isAllExplosionsSheetOpen = true }
+                            )
+                        }
+
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically
                         ) {
                             if (uiState.settings.radarLayerEnabled) {
                                 ActiveThreatsSummaryPill(
@@ -311,8 +328,7 @@ fun MapTabScreen(
                                     nextRefreshEpochMs = uiState.nextRadarRefreshEpochMs,
                                     refreshIntervalMs = uiState.radarPollIntervalMs,
                                     isRefreshing = uiState.isRadarLoading,
-                                    onClick = { isAllThreatsSheetOpen = true },
-                                    modifier = Modifier.weight(1f, fill = false)
+                                    onClick = { isAllThreatsSheetOpen = true }
                                 )
                             } else if (uiState.settings.lastKnownAlertCheckEpochMs > 0L) {
                                 AlertRefreshStatusPill(
@@ -444,6 +460,22 @@ fun MapTabScreen(
                                 viewModel.openExternalUrl(DeepStateOccupiedApi.DEEPSTATE_BASE_URL)
                             }
                         )
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(Res.string.map_disclaimer_nextalert_link),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                textDecoration = TextDecoration.Underline,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable {
+                                viewModel.openExternalUrl(NextAlertExplosionsApi.NEXTALERT_BASE_URL)
+                            }
+                        )
                     }
                 }
             }
@@ -471,6 +503,13 @@ fun MapTabScreen(
         )
     }
 
+    uiState.selectedExplosionDetails?.let { explosion ->
+        ExplosionDetailsBottomSheet(
+            item = explosion,
+            onDismiss = viewModel::dismissDetailsSheets
+        )
+    }
+
     if (isKnowledgeBaseOpen) {
         ThreatKnowledgeBaseSheet(
             onDismiss = { isKnowledgeBaseOpen = false }
@@ -486,6 +525,18 @@ fun MapTabScreen(
                 viewModel.focusMapOn(item.threat.latitude, item.threat.longitude, 10.5)
             },
             onDismiss = { isAllThreatsSheetOpen = false }
+        )
+    }
+
+    if (isAllExplosionsSheetOpen) {
+        AllExplosionsBottomSheet(
+            explosions = uiState.explosions,
+            onExplosionSelected = { item ->
+                isAllExplosionsSheetOpen = false
+                viewModel.focusMapOn(item.explosion.latitude, item.explosion.longitude, 10.5)
+                viewModel.onExplosionClicked(item)
+            },
+            onDismiss = { isAllExplosionsSheetOpen = false }
         )
     }
 

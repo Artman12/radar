@@ -20,6 +20,7 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.onemanarmy.airalerts.domain.model.AlertLevel
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
 import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
 import com.onemanarmy.airalerts.domain.model.ThreatVibrationPattern
@@ -190,7 +191,8 @@ class AndroidPlatformNotifier(
         softPulseOnly: Boolean,
         preset: VibrationPreset,
         channelVersion: Int,
-        isAlertActive: Boolean?
+        isAlertActive: Boolean?,
+        alertLevel: AlertLevel
     ) {
         if (!hasPostNotificationPermission()) return
 
@@ -215,7 +217,11 @@ class AndroidPlatformNotifier(
             .setSilent(silent || softPulseOnly)
             .apply {
                 when (isAlertActive) {
-                    true -> color = 0xFFDC2626.toInt()
+                    true -> color = if (alertLevel == AlertLevel.YELLOW) {
+                        0xFFF59E0B.toInt()
+                    } else {
+                        0xFFDC2626.toInt()
+                    }
                     false -> color = 0xFF16A34A.toInt()
                     null -> Unit
                 }

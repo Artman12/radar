@@ -79,6 +79,7 @@ data class AppSettings(
     val nightModeBehavior: NightModeBehavior = NightModeBehavior.FILTER_ALL_CLEAR,
     val radarLayerEnabled: Boolean = true,
     val occupiedLayerEnabled: Boolean = true,
+    val explosionsLayerEnabled: Boolean = true,
     val hromadaAlertNotificationsEnabled: Boolean = true,
     val threatRadiusNotificationEnabled: Boolean = false,
     val threatNotificationRadiusKm: Int = 10,

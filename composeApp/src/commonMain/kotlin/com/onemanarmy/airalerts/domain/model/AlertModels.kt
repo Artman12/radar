@@ -128,7 +128,8 @@ data class PointAlertState(
     val isAlertActive: Boolean,
     val alertSignature: String,
     val lastTransitionEpochMs: Long,
-    val isThreatInRadius: Boolean = false
+    val isThreatInRadius: Boolean = false,
+    val highestLevel: AlertLevel = AlertLevel.NONE
 )
 
 /**

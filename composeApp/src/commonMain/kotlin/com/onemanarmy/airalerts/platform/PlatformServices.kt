@@ -2,6 +2,7 @@ package com.onemanarmy.airalerts.platform
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import com.onemanarmy.airalerts.domain.model.AlertLevel
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
 import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
 import com.onemanarmy.airalerts.domain.model.ThreatVibrationPattern
@@ -49,7 +50,8 @@ interface PlatformNotifier {
         softPulseOnly: Boolean,
         preset: VibrationPreset,
         channelVersion: Int,
-        isAlertActive: Boolean? = null
+        isAlertActive: Boolean? = null,
+        alertLevel: AlertLevel = AlertLevel.RED
     )
 
     fun previewVibration(preset: VibrationPreset)

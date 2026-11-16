@@ -41,6 +41,108 @@ fun ThreatTypeIcon(
     }
 }
 
+/**
+ * High-contrast explosion / blast icon drawn on the same normalized 80x80 grid as map markers.
+ */
+@Composable
+fun ExplosionIcon(
+    modifier: Modifier = Modifier,
+    isRecent: Boolean = true
+) {
+    Canvas(modifier = modifier) {
+        val scale = size.minDimension / 80f
+        val offsetX = (size.width - 80f * scale) / 2f
+        val offsetY = (size.height - 80f * scale) / 2f
+
+        withTransform({
+            translate(left = offsetX, top = offsetY)
+            scale(scaleX = scale, scaleY = scale, pivot = Offset.Zero)
+        }) {
+            drawExplosionVector(isRecent = isRecent)
+        }
+    }
+}
+
+internal fun DrawScope.drawExplosionVector(isRecent: Boolean) {
+    val cx = 40f
+    val cy = 40f
+
+    val whiteOuterStroke = Stroke(
+        width = 6.5f,
+        cap = StrokeCap.Round,
+        join = StrokeJoin.Round
+    )
+
+    // 8-point asymmetric jagged blast starburst
+    val outerBurst = Path().apply {
+        moveTo(cx, 10f)
+        lineTo(46.5f, 24.5f)
+        lineTo(61f, 16.5f)
+        lineTo(53.5f, 31.5f)
+        lineTo(69.5f, 38.5f)
+        lineTo(54f, 46.5f)
+        lineTo(62.5f, 61.5f)
+        lineTo(47f, 54.5f)
+        lineTo(39.5f, 69.5f)
+        lineTo(32.5f, 54f)
+        lineTo(17.5f, 61f)
+        lineTo(26.5f, 46.5f)
+        lineTo(10.5f, 39f)
+        lineTo(27f, 31.5f)
+        lineTo(19.5f, 17f)
+        lineTo(33.5f, 24.5f)
+        close()
+    }
+
+    val midBurst = Path().apply {
+        moveTo(cx, 19.5f)
+        lineTo(44.5f, 30f)
+        lineTo(54.5f, 25.5f)
+        lineTo(49.5f, 35.5f)
+        lineTo(59.5f, 39.5f)
+        lineTo(49.5f, 44.5f)
+        lineTo(54.5f, 54f)
+        lineTo(44.5f, 49.5f)
+        lineTo(40f, 59.5f)
+        lineTo(35f, 49.5f)
+        lineTo(25.5f, 54f)
+        lineTo(30.5f, 44.5f)
+        lineTo(20.5f, 39.5f)
+        lineTo(30.5f, 35f)
+        lineTo(26f, 25.5f)
+        lineTo(35.5f, 30f)
+        close()
+    }
+
+    val outerColor = if (isRecent) Color(0xFFEF2B1D) else Color(0xFFB45309)
+    val midColor = if (isRecent) Color(0xFFFF8A00) else Color(0xFFD97706)
+    val coreColor = if (isRecent) Color(0xFFFDE047) else Color(0xFFFDE68A)
+    val sparkColor = if (isRecent) Color(0xFFFFB300) else Color(0xFFD97706)
+
+    val spark1 = Offset(13.5f, 25f)
+    val spark2 = Offset(67f, 24.5f)
+    val spark3 = Offset(52f, 67.5f)
+
+    // Pass 1: Crisp white outer border around blast & sparks
+    drawPath(outerBurst, color = Color.White, style = whiteOuterStroke)
+    drawCircle(color = Color.White, radius = 4.6f, center = spark1)
+    drawCircle(color = Color.White, radius = 4.8f, center = spark2)
+    drawCircle(color = Color.White, radius = 4.4f, center = spark3)
+
+    // Pass 2: Outer fiery blast
+    drawPath(outerBurst, color = outerColor)
+    drawCircle(color = sparkColor, radius = 2.4f, center = spark1)
+    drawCircle(color = sparkColor, radius = 2.6f, center = spark2)
+    drawCircle(color = sparkColor, radius = 2.2f, center = spark3)
+
+    // Pass 3: Mid amber flame burst
+    drawPath(midBurst, color = midColor)
+
+    // Pass 4: Incandescent flash core
+    drawCircle(color = coreColor, radius = 7.2f, center = Offset(cx, cy))
+    drawCircle(color = Color.White, radius = 3.5f, center = Offset(cx, cy))
+}
+
 internal fun DrawScope.drawThreatVector(
     type: ThreatType,
     isHighlighted: Boolean

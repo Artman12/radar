@@ -30,6 +30,8 @@ import com.onemanarmy.airalerts.resources.notif_all_clear_title
 import com.onemanarmy.airalerts.resources.notif_hromada_suffix
 import com.onemanarmy.airalerts.resources.notif_threat_radius_body
 import com.onemanarmy.airalerts.resources.notif_threat_radius_title
+import com.onemanarmy.airalerts.resources.notif_yellow_alert_started_body
+import com.onemanarmy.airalerts.resources.notif_yellow_alert_started_title
 import com.onemanarmy.airalerts.resources.threat_type_aviation
 import com.onemanarmy.airalerts.resources.threat_type_ballistic
 import com.onemanarmy.airalerts.resources.threat_type_cruise_missile
@@ -422,15 +424,27 @@ class AlertMonitoringRepository(
                     is NotificationDecision.AlertStarted -> {
                         val hromadaLabel = formatHromadaDisplayName(decision.point)
                         val notifId = baseNotificationId(decision.point.id)
+                        val isYellow = decision.alertLevel == AlertLevel.YELLOW
+                        val title = if (isYellow) {
+                            getString(Res.string.notif_yellow_alert_started_title, decision.point.name)
+                        } else {
+                            getString(Res.string.notif_alert_started_title, decision.point.name)
+                        }
+                        val body = if (isYellow) {
+                            getString(Res.string.notif_yellow_alert_started_body, hromadaLabel)
+                        } else {
+                            getString(Res.string.notif_alert_started_body, hromadaLabel)
+                        }
                         notifier.showAlertNotification(
                             notificationId = notifId,
-                            title = getString(Res.string.notif_alert_started_title, decision.point.name),
-                            body = getString(Res.string.notif_alert_started_body, hromadaLabel),
+                            title = title,
+                            body = body,
                             silent = decision.silent,
                             softPulseOnly = decision.softPulseOnly,
                             preset = updatedSettings.vibrationPreset,
                             channelVersion = updatedSettings.notificationChannelVersion,
-                            isAlertActive = true
+                            isAlertActive = true,
+                            alertLevel = decision.alertLevel
                         )
                     }
 

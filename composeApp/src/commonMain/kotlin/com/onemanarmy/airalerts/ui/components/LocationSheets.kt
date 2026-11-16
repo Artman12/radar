@@ -52,8 +52,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.onemanarmy.airalerts.domain.logic.DurationFormatter
+import com.onemanarmy.airalerts.domain.model.ExplosionWithProximity
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.SavedPoint
 import com.onemanarmy.airalerts.domain.model.ThreatWithProximity
@@ -63,6 +65,15 @@ import com.onemanarmy.airalerts.resources.btn_cancel
 import com.onemanarmy.airalerts.resources.btn_pick_on_map
 import com.onemanarmy.airalerts.resources.btn_save
 import com.onemanarmy.airalerts.resources.btn_search
+import com.onemanarmy.airalerts.resources.explosion_details_age_just_now
+import com.onemanarmy.airalerts.resources.explosion_details_age_minutes
+import com.onemanarmy.airalerts.resources.explosion_details_approx_note
+import com.onemanarmy.airalerts.resources.explosion_details_distance
+import com.onemanarmy.airalerts.resources.explosion_details_district
+import com.onemanarmy.airalerts.resources.explosion_details_source
+import com.onemanarmy.airalerts.resources.explosion_details_source_nextalert
+import com.onemanarmy.airalerts.resources.explosion_details_time
+import com.onemanarmy.airalerts.resources.explosion_details_title_default
 import com.onemanarmy.airalerts.resources.field_location_name
 import com.onemanarmy.airalerts.resources.field_search_address
 import com.onemanarmy.airalerts.resources.just_now
@@ -555,6 +566,127 @@ fun ThreatDetailsBottomSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExplosionDetailsBottomSheet(
+    item: ExplosionWithProximity,
+    onDismiss: () -> Unit
+) {
+    val explosion = item.explosion
+    val accentTint = if (explosion.isRecent) AlertColors.AlertRed else AlertColors.WarningAmber
+
+    val nowMs = Clock.System.now().toEpochMilliseconds()
+    val ageMinutes = ((nowMs - explosion.timestampEpochMs).coerceAtLeast(0L) / 60_000L).toInt()
+    val ageLabel = if (ageMinutes < 1) {
+        stringResource(Res.string.explosion_details_age_just_now)
+    } else {
+        stringResource(Res.string.explosion_details_age_minutes, ageMinutes)
+    }
+    val timeLabel = remember(explosion.timestampEpochMs) {
+        val dt = Instant.fromEpochMilliseconds(explosion.timestampEpochMs)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+        DurationFormatter.formatTimeOfDay(dt.hour, dt.minute)
+    }
+    val districtText = listOf(explosion.raionName, explosion.oblastName)
+        .filter { it.isNotBlank() }
+        .distinct()
+        .joinToString(", ")
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outline) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = androidx.compose.ui.graphics.Color(0xFF1A2535),
+                    border = BorderStroke(1.5.dp, accentTint)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        ExplosionIcon(
+                            modifier = Modifier.size(40.dp),
+                            isRecent = explosion.isRecent
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = explosion.title.ifBlank {
+                            stringResource(Res.string.explosion_details_title_default)
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (explosion.localityName.isNotBlank()) {
+                        Text(
+                            text = explosion.localityName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    DetailRow(
+                        label = stringResource(Res.string.explosion_details_time),
+                        value = "$timeLabel ($ageLabel)",
+                        valueColor = accentTint
+                    )
+                    if (districtText.isNotBlank()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        DetailRow(
+                            label = stringResource(Res.string.explosion_details_district),
+                            value = districtText
+                        )
+                    }
+                    if (item.nearestPointName != null && item.distanceKm != null) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        DetailRow(
+                            label = stringResource(Res.string.explosion_details_distance, item.nearestPointName),
+                            value = stringResource(Res.string.threat_details_distance_value, item.distanceKm.roundToInt())
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    DetailRow(
+                        label = stringResource(Res.string.explosion_details_source),
+                        value = stringResource(Res.string.explosion_details_source_nextalert)
+                    )
+                }
+            }
+
+            Text(
+                text = stringResource(Res.string.explosion_details_approx_note),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 @Composable
 fun RenameLocationDialog(
     point: SavedPoint,
@@ -598,7 +730,7 @@ private fun DetailRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -610,7 +742,9 @@ private fun DetailRow(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = valueColor
+            color = valueColor,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }

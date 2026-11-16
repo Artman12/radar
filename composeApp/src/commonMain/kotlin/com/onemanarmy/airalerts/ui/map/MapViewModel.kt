@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
 import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
 import com.onemanarmy.airalerts.data.repository.AlertMonitoringRepository
+import com.onemanarmy.airalerts.data.repository.NextAlertExplosionsRepository
 import com.onemanarmy.airalerts.data.repository.OccupiedTerritoriesRepository
 import com.onemanarmy.airalerts.data.repository.RadarRepository
 import com.onemanarmy.airalerts.domain.logic.RegionThreatEvaluator
@@ -12,6 +13,8 @@ import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AppSettings
+import com.onemanarmy.airalerts.domain.model.ExplosionEvent
+import com.onemanarmy.airalerts.domain.model.ExplosionWithProximity
 import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
@@ -49,6 +52,7 @@ data class SelectedRegionDetails(
 data class MapUiState(
     val pointStatuses: List<PointStatus> = emptyList(),
     val threats: List<ThreatWithProximity> = emptyList(),
+    val explosions: List<ExplosionWithProximity> = emptyList(),
     val activeAlerts: List<ActiveAlertInfo> = emptyList(),
     val boundaries: UkraineMapBoundaries? = null,
     val regionThreats: RegionThreatSnapshot? = null,
@@ -63,6 +67,7 @@ data class MapUiState(
     val focusVersion: Int = 0,
     val selectedPointDetails: PointStatus? = null,
     val selectedThreatDetails: ThreatWithProximity? = null,
+    val selectedExplosionDetails: ExplosionWithProximity? = null,
     val isAddLocationSheetOpen: Boolean = false,
     val isCrosshairMode: Boolean = false,
     val searchQuery: String = "",
@@ -91,12 +96,15 @@ class MapViewModel(
     private val diagnosticsProvider: SystemDiagnosticsProvider,
     private val boundaryRepo: UkraineBoundaryRepository,
     private val regionThreatEvaluator: RegionThreatEvaluator,
-    private val occupiedRepo: OccupiedTerritoriesRepository
+    private val occupiedRepo: OccupiedTerritoriesRepository,
+    private val explosionsRepo: NextAlertExplosionsRepository
 ) : ViewModel() {
 
     private val _localState = MutableStateFlow(MapUiState())
     private val _rawThreats = MutableStateFlow<List<AirThreat>>(emptyList())
+    private val _liveExplosions = MutableStateFlow<List<ExplosionEvent>>(emptyList())
     private var radarPollingJob: Job? = null
+    private var explosionsPollingJob: Job? = null
     private var searchJob: Job? = null
     private var latestMapCenterLat = UkraineBounds.CENTER_LAT
     private var latestMapCenterLon = UkraineBounds.CENTER_LON
@@ -117,6 +125,19 @@ class MapViewModel(
                 points,
                 ThreatRadiusEvaluator.effectiveRadiusKm(settings.threatNotificationRadiusKm)
             )
+        }
+    }.flowOn(Dispatchers.Default)
+
+    private val enrichedExplosionsFlow = combine(
+        _liveExplosions,
+        monitoringRepo.trackedPointStatusesFlow,
+        prefsRepo.settingsFlow
+    ) { liveExplosions, statuses, settings ->
+        if (!settings.explosionsLayerEnabled || liveExplosions.isEmpty()) {
+            emptyList()
+        } else {
+            val points = buildProximityPoints(statuses, settings)
+            explosionsRepo.enrichProximity(liveExplosions, points)
         }
     }.flowOn(Dispatchers.Default)
 
@@ -154,8 +175,9 @@ class MapViewModel(
     val uiState: StateFlow<MapUiState> = combine(
         _localState,
         enrichedThreatsFlow,
+        enrichedExplosionsFlow,
         mapDomainFlow
-    ) { local, threats, domain ->
+    ) { local, threats, explosions, domain ->
         val safeIndex = if (domain.statuses.isEmpty()) 0 else local.selectedPointIndex.coerceIn(0, domain.statuses.lastIndex)
         val nearby = if (domain.settings.radarLayerEnabled && domain.settings.threatRadiusNotificationEnabled) {
             threats
@@ -166,6 +188,9 @@ class MapViewModel(
         }
         val refreshedSelectedThreat = local.selectedThreatDetails?.let { selected ->
             threats.firstOrNull { it.threat.id == selected.threat.id } ?: selected
+        }
+        val refreshedSelectedExplosion = local.selectedExplosionDetails?.let { selected ->
+            explosions.firstOrNull { it.explosion.id == selected.explosion.id } ?: selected
         }
         val refreshedSelectedRegion = local.selectedRegion?.let { sel ->
             val regionThreats = domain.regionThreats
@@ -186,6 +211,7 @@ class MapViewModel(
         local.copy(
             pointStatuses = domain.statuses,
             threats = threats,
+            explosions = explosions,
             settings = domain.settings,
             activeAlerts = domain.activeAlerts,
             boundaries = domain.boundaries,
@@ -193,6 +219,7 @@ class MapViewModel(
             occupiedTerritories = domain.occupiedTerritories,
             selectedRegion = refreshedSelectedRegion,
             selectedThreatDetails = refreshedSelectedThreat,
+            selectedExplosionDetails = refreshedSelectedExplosion,
             selectedPointIndex = safeIndex,
             nearbyThreat = nearby
         )
@@ -259,24 +286,38 @@ class MapViewModel(
      * Starts NEPTUN radar polling strictly while the Map screen is visible in STARTED/RESUMED lifecycle.
      */
     fun startRadarPolling() {
-        if (radarPollingJob?.isActive == true) return
-        radarPollingJob = viewModelScope.launch {
-            while (isActive) {
-                val settings = prefsRepo.settingsFlow.first()
-                if (settings.radarLayerEnabled) {
-                    refreshRadarOnce()
-                    val nextAt = Clock.System.now().toEpochMilliseconds() + RADAR_POLL_INTERVAL_MS
-                    _localState.update { it.copy(nextRadarRefreshEpochMs = nextAt) }
-                } else {
-                    _rawThreats.value = emptyList()
-                    _localState.update {
-                        it.copy(
-                            isRadarLoading = false,
-                            nextRadarRefreshEpochMs = null
-                        )
+        if (radarPollingJob?.isActive != true) {
+            radarPollingJob = viewModelScope.launch {
+                while (isActive) {
+                    val settings = prefsRepo.settingsFlow.first()
+                    if (settings.radarLayerEnabled) {
+                        refreshRadarOnce()
+                        val nextAt = Clock.System.now().toEpochMilliseconds() + RADAR_POLL_INTERVAL_MS
+                        _localState.update { it.copy(nextRadarRefreshEpochMs = nextAt) }
+                    } else {
+                        _rawThreats.value = emptyList()
+                        _localState.update {
+                            it.copy(
+                                isRadarLoading = false,
+                                nextRadarRefreshEpochMs = null
+                            )
+                        }
                     }
+                    delay(RADAR_POLL_INTERVAL_MS)
                 }
-                delay(RADAR_POLL_INTERVAL_MS)
+            }
+        }
+        if (explosionsPollingJob?.isActive != true) {
+            explosionsPollingJob = viewModelScope.launch {
+                while (isActive) {
+                    val settings = prefsRepo.settingsFlow.first()
+                    if (settings.explosionsLayerEnabled) {
+                        refreshExplosionsOnce()
+                    } else {
+                        _liveExplosions.value = emptyList()
+                    }
+                    delay(EXPLOSIONS_POLL_INTERVAL_MS)
+                }
             }
         }
     }
@@ -284,16 +325,34 @@ class MapViewModel(
     companion object {
         const val RADAR_POLL_INTERVAL_MS = 10_000L
         const val ALERT_POLL_INTERVAL_MS = 15_000L
+        const val EXPLOSIONS_POLL_INTERVAL_MS = 30_000L
     }
 
     fun stopRadarPolling() {
         radarPollingJob?.cancel()
         radarPollingJob = null
+        explosionsPollingJob?.cancel()
+        explosionsPollingJob = null
         _localState.update {
             it.copy(
                 isRadarLoading = false,
                 nextRadarRefreshEpochMs = null
             )
+        }
+    }
+
+    private suspend fun refreshExplosionsOnce() {
+        val boundaries = boundaryRepo.boundariesFlow.value ?: boundaryRepo.loadIfNeeded()
+        val alerts = monitoringRepo.activeAlertsFlow.first()
+        val statuses = monitoringRepo.trackedPointStatusesFlow.first()
+        val settings = prefsRepo.settingsFlow.first()
+        val points = buildProximityPoints(statuses, settings)
+        explosionsRepo.fetchLiveExplosions(
+            activeAlerts = alerts,
+            trackedPoints = points,
+            boundaries = boundaries
+        ).onSuccess { events ->
+            _liveExplosions.value = events
         }
     }
 
@@ -426,6 +485,7 @@ class MapViewModel(
             it.copy(
                 selectedPointDetails = status,
                 selectedThreatDetails = null,
+                selectedExplosionDetails = null,
                 selectedRegion = null
             )
         }
@@ -436,6 +496,18 @@ class MapViewModel(
             it.copy(
                 selectedThreatDetails = threat,
                 selectedPointDetails = null,
+                selectedExplosionDetails = null,
+                selectedRegion = null
+            )
+        }
+    }
+
+    fun onExplosionClicked(explosion: ExplosionWithProximity) {
+        _localState.update {
+            it.copy(
+                selectedExplosionDetails = explosion,
+                selectedPointDetails = null,
+                selectedThreatDetails = null,
                 selectedRegion = null
             )
         }
@@ -449,7 +521,8 @@ class MapViewModel(
             it.copy(
                 selectedRegion = SelectedRegionDetails(polygon = polygon, threatInfo = info),
                 selectedPointDetails = null,
-                selectedThreatDetails = null
+                selectedThreatDetails = null,
+                selectedExplosionDetails = null
             )
         }
     }
@@ -463,6 +536,7 @@ class MapViewModel(
             it.copy(
                 selectedPointDetails = null,
                 selectedThreatDetails = null,
+                selectedExplosionDetails = null,
                 selectedRegion = null
             )
         }

@@ -47,9 +47,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.onemanarmy.airalerts.domain.logic.DurationFormatter
+import com.onemanarmy.airalerts.domain.model.ExplosionWithProximity
 import com.onemanarmy.airalerts.domain.model.ThreatType
 import com.onemanarmy.airalerts.domain.model.ThreatWithProximity
 import com.onemanarmy.airalerts.resources.Res
+import com.onemanarmy.airalerts.resources.explosion_details_age_just_now
+import com.onemanarmy.airalerts.resources.explosion_details_age_minutes
+import com.onemanarmy.airalerts.resources.explosions_list_empty
+import com.onemanarmy.airalerts.resources.explosions_list_title
+import com.onemanarmy.airalerts.resources.explosions_list_total
 import com.onemanarmy.airalerts.resources.map_next_refresh_cd
 import com.onemanarmy.airalerts.resources.threats_list_distance_from
 import com.onemanarmy.airalerts.resources.threats_list_empty
@@ -63,6 +70,9 @@ import com.onemanarmy.airalerts.ui.theme.AlertColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
@@ -605,6 +615,248 @@ private fun ThreatListRowCard(
                         }
                     }
                 }
+            }
+
+            Icon(
+                imageVector = Icons.Default.MyLocation,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ExplosionsSummaryPill(
+    explosions: List<ExplosionWithProximity>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasRecent = explosions.any { it.explosion.isRecent }
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+        border = BorderStroke(
+            width = if (hasRecent) 1.dp else 0.5.dp,
+            color = if (hasRecent) {
+                AlertColors.AlertRed.copy(alpha = 0.70f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            }
+        ),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ExplosionIcon(
+                modifier = Modifier.size(18.dp),
+                isRecent = hasRecent
+            )
+            Text(
+                text = explosions.size.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = if (hasRecent) AlertColors.AlertRed else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AllExplosionsBottomSheet(
+    explosions: List<ExplosionWithProximity>,
+    onExplosionSelected: (ExplosionWithProximity) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sorted = remember(explosions) {
+        explosions.sortedByDescending { it.explosion.timestampEpochMs }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.outline) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.explosions_list_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = stringResource(Res.string.explosions_list_total, sorted.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null
+                    )
+                }
+            }
+
+            if (sorted.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.explosions_list_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 28.dp)
+                ) {
+                    items(sorted, key = { it.explosion.id }) { item ->
+                        ExplosionListRowCard(
+                            item = item,
+                            onClick = { onExplosionSelected(item) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExplosionListRowCard(
+    item: ExplosionWithProximity,
+    onClick: () -> Unit
+) {
+    val explosion = item.explosion
+    val nowMs = Clock.System.now().toEpochMilliseconds()
+    val ageMinutes = ((nowMs - explosion.timestampEpochMs).coerceAtLeast(0L) / 60_000L).toInt()
+    val ageText = if (ageMinutes < 1) {
+        stringResource(Res.string.explosion_details_age_just_now)
+    } else {
+        stringResource(Res.string.explosion_details_age_minutes, ageMinutes)
+    }
+    val timeText = remember(explosion.timestampEpochMs) {
+        val dt = Instant.fromEpochMilliseconds(explosion.timestampEpochMs)
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+        DurationFormatter.formatTimeOfDay(dt.hour, dt.minute)
+    }
+    val locationText = listOf(explosion.raionName, explosion.oblastName)
+        .filter { it.isNotBlank() }
+        .distinct()
+        .joinToString(", ")
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (explosion.isRecent) {
+                AlertColors.AlertRedContainerDark.copy(alpha = 0.30f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainer
+            }
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (explosion.isRecent) {
+                AlertColors.AlertRed.copy(alpha = 0.60f)
+            } else {
+                MaterialTheme.colorScheme.outlineVariant
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = RoundedCornerShape(11.dp),
+                color = Color(0xFF1A2535),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (explosion.isRecent) AlertColors.AlertRed else AlertColors.WarningAmber
+                )
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    ExplosionIcon(
+                        modifier = Modifier.size(32.dp),
+                        isRecent = explosion.isRecent
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = explosion.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (locationText.isNotBlank()) {
+                    Text(
+                        text = locationText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                val distText = if (item.distanceKm != null && item.nearestPointName != null) {
+                    stringResource(
+                        Res.string.threats_list_distance_from,
+                        item.distanceKm.roundToInt(),
+                        item.nearestPointName
+                    )
+                } else {
+                    null
+                }
+
+                Text(
+                    text = listOfNotNull("$timeText ($ageText)", distText).joinToString(" • "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (explosion.isRecent) AlertColors.AlertRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Icon(

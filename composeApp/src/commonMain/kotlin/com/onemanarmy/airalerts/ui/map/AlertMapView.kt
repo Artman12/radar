@@ -3,6 +3,7 @@ package com.onemanarmy.airalerts.ui.map
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
+import com.onemanarmy.airalerts.domain.model.ExplosionWithProximity
 import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
@@ -26,12 +27,14 @@ expect fun AlertMapView(
     zoomOutVersion: Int = 0,
     trackedPoints: List<PointStatus>,
     threats: List<ThreatWithProximity>,
+    explosions: List<ExplosionWithProximity> = emptyList(),
     activeAlerts: List<ActiveAlertInfo> = emptyList(),
     boundaries: UkraineMapBoundaries? = null,
     regionThreats: RegionThreatSnapshot? = null,
     occupiedTerritories: OccupiedTerritoriesSnapshot? = null,
     selectedRegionId: String? = null,
     showThreatsLayer: Boolean,
+    showExplosionsLayer: Boolean = false,
     showOccupiedLayer: Boolean = false,
     warningRadiusKm: Int,
     highlightNearbyThreats: Boolean = true,
@@ -39,6 +42,7 @@ expect fun AlertMapView(
     isCrosshairPickerMode: Boolean = false,
     onPointClicked: (PointStatus) -> Unit = {},
     onThreatClicked: (ThreatWithProximity) -> Unit = {},
+    onExplosionClicked: (ExplosionWithProximity) -> Unit = {},
     onRegionClicked: (RegionPolygon, RegionThreatInfo?) -> Unit = { _, _ -> },
     onMapCenterChanged: (Double, Double) -> Unit = { _, _ -> },
     onMapViewportChanged: (Double, Double, Double) -> Unit = { _, _, _ -> },

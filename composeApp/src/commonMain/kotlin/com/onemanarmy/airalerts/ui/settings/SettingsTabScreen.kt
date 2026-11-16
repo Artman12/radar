@@ -103,6 +103,7 @@ import com.onemanarmy.airalerts.resources.Res
 import com.onemanarmy.airalerts.resources.about_deepstate
 import com.onemanarmy.airalerts.resources.about_disclaimer
 import com.onemanarmy.airalerts.resources.about_neptun
+import com.onemanarmy.airalerts.resources.about_nextalert
 import com.onemanarmy.airalerts.resources.about_ukraine_alarm
 import com.onemanarmy.airalerts.resources.btn_cancel
 import com.onemanarmy.airalerts.resources.btn_save
@@ -127,6 +128,8 @@ import com.onemanarmy.airalerts.resources.diag_service_stopped
 import com.onemanarmy.airalerts.resources.diag_service_title
 import com.onemanarmy.airalerts.resources.settings_about_section
 import com.onemanarmy.airalerts.resources.settings_diagnostics_section
+import com.onemanarmy.airalerts.resources.settings_explosions_layer_desc
+import com.onemanarmy.airalerts.resources.settings_explosions_layer_title
 import com.onemanarmy.airalerts.resources.settings_hromada_notif_desc
 import com.onemanarmy.airalerts.resources.settings_hromada_notif_enable
 import com.onemanarmy.airalerts.resources.settings_kb_subtitle
@@ -744,6 +747,34 @@ fun SettingsTabScreen(
                         onCheckedChange = viewModel::setOccupiedLayerEnabled
                     )
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f).padding(end = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_explosions_layer_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(Res.string.settings_explosions_layer_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = settings.explosionsLayerEnabled,
+                        onCheckedChange = viewModel::setExplosionsLayerEnabled
+                    )
+                }
             }
         }
 
@@ -906,6 +937,27 @@ fun SettingsTabScreen(
                 ) {
                     Text(
                         text = stringResource(Res.string.about_deepstate),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = viewModel::openNextAlertSite)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(Res.string.about_nextalert),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

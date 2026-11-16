@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
 import com.onemanarmy.airalerts.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
+import com.onemanarmy.airalerts.data.remote.NextAlertExplosionsApi
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.NightModeBehavior
@@ -146,6 +147,12 @@ class SettingsViewModel(
         }
     }
 
+    fun setExplosionsLayerEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(explosionsLayerEnabled = enabled) }
+        }
+    }
+
     fun setThreatRadiusNotificationEnabled(enabled: Boolean) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(threatRadiusNotificationEnabled = enabled) }
@@ -228,5 +235,9 @@ class SettingsViewModel(
 
     fun openDeepStateSite() {
         diagnosticsProvider.openUrl(DeepStateOccupiedApi.DEEPSTATE_BASE_URL)
+    }
+
+    fun openNextAlertSite() {
+        diagnosticsProvider.openUrl(NextAlertExplosionsApi.NEXTALERT_BASE_URL)
     }
 }

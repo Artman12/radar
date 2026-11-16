@@ -49,6 +49,10 @@ import com.onemanarmy.airalerts.resources.kb_ballistic_safety
 import com.onemanarmy.airalerts.resources.kb_cruise_desc
 import com.onemanarmy.airalerts.resources.kb_cruise_profile
 import com.onemanarmy.airalerts.resources.kb_cruise_safety
+import com.onemanarmy.airalerts.resources.kb_explosion_desc
+import com.onemanarmy.airalerts.resources.kb_explosion_profile
+import com.onemanarmy.airalerts.resources.kb_explosion_safety
+import com.onemanarmy.airalerts.resources.kb_explosion_title
 import com.onemanarmy.airalerts.resources.kb_fpv_desc
 import com.onemanarmy.airalerts.resources.kb_fpv_profile
 import com.onemanarmy.airalerts.resources.kb_fpv_safety
@@ -238,6 +242,108 @@ fun ThreatKnowledgeBaseSheet(
 
                 items(threatKnowledgeEntries, key = { it.type.name }) { entry ->
                     ThreatKnowledgeCard(entry = entry)
+                }
+
+                item(key = "explosion_marker") {
+                    ExplosionKnowledgeCard()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExplosionKnowledgeCard() {
+    val accentColor = AlertColors.AlertRed
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(56.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFF1A2535),
+                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.55f))
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        ExplosionIcon(
+                            modifier = Modifier.size(44.dp),
+                            isRecent = true
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.kb_explosion_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = accentColor.copy(alpha = 0.14f),
+                        border = BorderStroke(0.5.dp, accentColor.copy(alpha = 0.45f))
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.kb_explosion_profile),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = accentColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+            }
+
+            Text(
+                text = stringResource(Res.string.kb_explosion_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.HealthAndSafety,
+                        contentDescription = null,
+                        tint = AlertColors.SafeGreen,
+                        modifier = Modifier.size(18.dp).padding(top = 1.dp)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(Res.string.kb_safety_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = AlertColors.SafeGreen
+                        )
+                        Text(
+                            text = stringResource(Res.string.kb_explosion_safety),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

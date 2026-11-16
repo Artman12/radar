@@ -68,9 +68,10 @@
     <string name="map_toggle_occupied_off">Show occupied territories</string>
     <string name="map_center_gps">Center on my location</string>
     <string name="map_add_point">Add point</string>
-    <string name="map_disclaimer_prefix">Target positions are approximate • Source: </string>
+    <string name="map_disclaimer_prefix">Approx. positions • Source: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
     <string name="map_disclaimer_deepstate_link">DeepState</string>
+    <string name="map_disclaimer_nextalert_link">NextAlert</string>
     <string name="map_nearby_threat_banner">Threat within %1$d km of %2$s (%3$d km away)</string>
     <string name="map_nearby_threat_banner_zero">Threat within 500 m of %1$s (%2$d km away)</string>
     <string name="map_crosshair_hint">Move the map to place the crosshair</string>
@@ -95,6 +96,9 @@
     <string name="region_threat_high">Active air alert</string>
     <string name="region_threat_critical">Critical: Air alert + Radar target nearby</string>
     <string name="region_nearby_targets_count">%1$d radar target(s) nearby</string>
+    <string name="explosions_list_title">Reported Explosions</string>
+    <string name="explosions_list_total">Total: %1$d</string>
+    <string name="explosions_list_empty">No recent explosions reported</string>
 
     <!-- My Points Tab -->
     <string name="points_gps_title">My Geolocation</string>
@@ -141,6 +145,17 @@
     <string name="threat_details_inside_radius">Inside %1$d km threat radius</string>
     <string name="threat_details_inside_radius_zero">Inside 500 m threat radius</string>
     <string name="threat_details_open_kb">About threat types &amp; icons</string>
+
+    <!-- Explosion Details BottomSheet -->
+    <string name="explosion_details_title_default">Reported Explosion</string>
+    <string name="explosion_details_district">District / Oblast</string>
+    <string name="explosion_details_time">Reported time</string>
+    <string name="explosion_details_distance">Distance to %1$s</string>
+    <string name="explosion_details_age_minutes">%1$d min ago</string>
+    <string name="explosion_details_age_just_now">Just now</string>
+    <string name="explosion_details_source">Data source</string>
+    <string name="explosion_details_source_nextalert">NextAlert (district blast reports)</string>
+    <string name="explosion_details_approx_note">NextAlert reports blasts at district level; marker coordinates are placed at the matching city or district center.</string>
 
     <!-- Threat Types -->
     <string name="threat_type_uav">Attack UAV (Shahed-136)</string>
@@ -195,6 +210,11 @@
     <string name="kb_unknown_profile">Unclassified radar track</string>
     <string name="kb_unknown_desc">Aerial target detected on OSINT radar whose exact type, speed, or altitude has not yet been confirmed by monitoring channels.</string>
     <string name="kb_unknown_safety">Treat as an active air threat until classified or cleared, and follow official regional alert status.</string>
+
+    <string name="kb_explosion_title">Reported Explosion</string>
+    <string name="kb_explosion_profile">Last 2 hours • Shockwave ring = &lt; 30 min</string>
+    <string name="kb_explosion_desc">Blast or air-defense interception reported at the district level by NextAlert. Bright red-orange burst with a shockwave ring indicates a blast within the last 30 minutes; amber burst indicates 30–120 minutes ago.</string>
+    <string name="kb_explosion_safety">Stay away from windows until the alert ends and never film or share air-defense positions or impact locations.</string>
 
     <!-- Alert Types -->
     <string name="alert_type_air">Air Raid Alert</string>
@@ -277,6 +297,8 @@
     <string name="settings_map_section">Map Display</string>
     <string name="settings_occupied_layer_title">Occupied territories</string>
     <string name="settings_occupied_layer_desc">Show DeepState occupied zones overlay on the map</string>
+    <string name="settings_explosions_layer_title">Explosions layer</string>
+    <string name="settings_explosions_layer_desc">Show recent district blast reports from NextAlert on the map</string>
 
     <string name="settings_diagnostics_section">Background Diagnostics</string>
     <string name="diag_service_title">Foreground Monitoring Service</string>
@@ -295,15 +317,18 @@
     <string name="about_ukraine_alarm">Alerts: NEPTUN Alerts API</string>
     <string name="about_neptun">Aerial Threats Layer: NEPTUN OSINT Radar</string>
     <string name="about_deepstate">Occupied Territories Layer: DeepStateMap</string>
+    <string name="about_nextalert">Explosions Layer: NextAlert</string>
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
 
     <!-- Background Notification Strings -->
     <string name="notif_alert_started_title">🔴 Alert ACTIVE — %1$s</string>
     <string name="notif_alert_started_body">Alert is active in %1$s</string>
+    <string name="notif_yellow_alert_started_title">🟡 Elevated Threat — %1$s</string>
+    <string name="notif_yellow_alert_started_body">Elevated threat (yellow level) in %1$s</string>
     <string name="notif_all_clear_title">🟢 Alert OFF — %1$s</string>
     <string name="notif_all_clear_body">Alert is off in %1$s</string>
     <string name="notif_hromada_suffix">%1$s hromada</string>
-    <string name="notif_threat_radius_title">⚠️ THREAT IN RADIUS — %1$s</string>
+    <string name="notif_threat_radius_title">⚠️⚠️ THREAT IN RADIUS — %1$s</string>
     <string name="notif_threat_radius_body">%1$s (~%2$d km away) — seek cover!</string>
     <string name="notif_nearby_threat_title">Threat Near %1$s</string>
     <string name="notif_nearby_threat_body">%1$s detected ~%2$d km away</string>

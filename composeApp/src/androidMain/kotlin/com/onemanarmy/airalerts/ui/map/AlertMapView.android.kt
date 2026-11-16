@@ -39,6 +39,7 @@ import com.onemanarmy.airalerts.domain.logic.GeoUtils
 import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AlertLevel
+import com.onemanarmy.airalerts.domain.model.ExplosionWithProximity
 import com.onemanarmy.airalerts.domain.model.OccupiedTerritoriesSnapshot
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
@@ -49,6 +50,7 @@ import com.onemanarmy.airalerts.domain.model.ThreatType
 import com.onemanarmy.airalerts.domain.model.ThreatWithProximity
 import com.onemanarmy.airalerts.domain.model.UkraineBounds
 import com.onemanarmy.airalerts.domain.model.UkraineMapBoundaries
+import com.onemanarmy.airalerts.ui.components.drawExplosionVector
 import com.onemanarmy.airalerts.ui.components.drawThreatVector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -79,12 +81,14 @@ actual fun AlertMapView(
     zoomOutVersion: Int,
     trackedPoints: List<PointStatus>,
     threats: List<ThreatWithProximity>,
+    explosions: List<ExplosionWithProximity>,
     activeAlerts: List<ActiveAlertInfo>,
     boundaries: UkraineMapBoundaries?,
     regionThreats: RegionThreatSnapshot?,
     occupiedTerritories: OccupiedTerritoriesSnapshot?,
     selectedRegionId: String?,
     showThreatsLayer: Boolean,
+    showExplosionsLayer: Boolean,
     showOccupiedLayer: Boolean,
     warningRadiusKm: Int,
     highlightNearbyThreats: Boolean,
@@ -92,6 +96,7 @@ actual fun AlertMapView(
     isCrosshairPickerMode: Boolean,
     onPointClicked: (PointStatus) -> Unit,
     onThreatClicked: (ThreatWithProximity) -> Unit,
+    onExplosionClicked: (ExplosionWithProximity) -> Unit,
     onRegionClicked: (RegionPolygon, RegionThreatInfo?) -> Unit,
     onMapCenterChanged: (Double, Double) -> Unit,
     onMapViewportChanged: (Double, Double, Double) -> Unit,
@@ -184,6 +189,7 @@ actual fun AlertMapView(
 
     val currentOnPointClicked by rememberUpdatedState(onPointClicked)
     val currentOnThreatClicked by rememberUpdatedState(onThreatClicked)
+    val currentOnExplosionClicked by rememberUpdatedState(onExplosionClicked)
     val currentOnRegionClicked by rememberUpdatedState(onRegionClicked)
     val currentOnMapCenterChanged by rememberUpdatedState(onMapCenterChanged)
     val currentOnMapViewportChanged by rememberUpdatedState(onMapViewportChanged)
@@ -349,7 +355,9 @@ actual fun AlertMapView(
             val overlayKey = DynamicOverlayKey(
                 trackedPoints = trackedPoints,
                 threats = threats,
+                explosions = explosions,
                 showThreatsLayer = showThreatsLayer,
+                showExplosionsLayer = showExplosionsLayer,
                 warningRadiusKm = warningRadiusKm,
                 highlightNearbyThreats = highlightNearbyThreats,
                 gpsCoordinates = gpsCoordinates,
@@ -442,6 +450,27 @@ actual fun AlertMapView(
                         view.overlays.add(marker)
                     }
 
+                    if (showExplosionsLayer) {
+                        explosions.forEach { item ->
+                            val explosion = item.explosion
+                            val explosionMarker = Marker(view).apply {
+                                position = GeoPoint(explosion.latitude, explosion.longitude)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                icon = createExplosionDrawable(
+                                    context = context,
+                                    isRecent = explosion.isRecent
+                                )
+                                title = explosion.title
+                                setInfoWindow(null)
+                                setOnMarkerClickListener { _, _ ->
+                                    currentOnExplosionClicked(item)
+                                    true
+                                }
+                            }
+                            view.overlays.add(explosionMarker)
+                        }
+                    }
+
                     if (showThreatsLayer) {
                         threats.forEach { item ->
                             val threat = item.threat
@@ -508,7 +537,9 @@ actual fun AlertMapView(
 private data class DynamicOverlayKey(
     val trackedPoints: List<PointStatus>,
     val threats: List<ThreatWithProximity>,
+    val explosions: List<ExplosionWithProximity>,
     val showThreatsLayer: Boolean,
+    val showExplosionsLayer: Boolean,
     val warningRadiusKm: Int,
     val highlightNearbyThreats: Boolean,
     val gpsCoordinates: Pair<Double, Double>?,
@@ -1164,6 +1195,51 @@ private fun createThreatDrawable(
         size = Size(80f, 80f)
     ) {
         drawThreatVector(type = type, isHighlighted = isNearbyWarning)
+    }
+
+    return BitmapDrawable(context.resources, bitmap)
+}
+
+private fun createExplosionDrawable(
+    context: Context,
+    isRecent: Boolean
+): Drawable {
+    val size = if (isRecent) 104 else 80
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    if (isRecent) {
+        val half = size / 2f
+        val shockwaveGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(72, 255, 87, 34)
+            style = Paint.Style.FILL
+        }
+        canvas.drawCircle(half, half, 46f, shockwaveGlow)
+
+        val whiteRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(220, 255, 255, 255)
+            style = Paint.Style.STROKE
+            strokeWidth = 5.0f
+        }
+        canvas.drawCircle(half, half, 42f, whiteRing)
+
+        val shockwaveRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(255, 69, 0)
+            style = Paint.Style.STROKE
+            strokeWidth = 2.8f
+        }
+        canvas.drawCircle(half, half, 42f, shockwaveRing)
+
+        canvas.translate((size - 80f) / 2f, (size - 80f) / 2f)
+    }
+
+    CanvasDrawScope().draw(
+        density = Density(1f),
+        layoutDirection = LayoutDirection.Ltr,
+        canvas = ComposeCanvas(canvas),
+        size = Size(80f, 80f)
+    ) {
+        drawExplosionVector(isRecent = isRecent)
     }
 
     return BitmapDrawable(context.resources, bitmap)

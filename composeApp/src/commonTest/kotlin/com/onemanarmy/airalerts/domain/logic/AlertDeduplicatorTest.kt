@@ -157,13 +157,13 @@ class AlertDeduplicatorTest {
     }
 
     @Test
-    fun raionToOblastUpgradeForSameAlertTypeDoesNotDuplicateNotification() {
+    fun raionToOblastUpgradeForSameAlertTypeAndLevelDoesNotDuplicateNotification() {
         val hromadaPoint = homePoint.copy(hromadaName = "Кам'янська")
         val raionAlert = ActiveAlertInfo(
             regionId = "neptun_raion:кам'янський",
             regionName = "Кам'янський район",
             type = AlertType.AIR,
-            level = AlertLevel.YELLOW,
+            level = AlertLevel.RED,
             startedAtIso = "2026-11-15T18:00:00Z"
         )
         val first = AlertDeduplicator.evaluateTransition(
@@ -176,6 +176,7 @@ class AlertDeduplicatorTest {
         )
         val started = assertIs<NotificationDecision.AlertStarted>(first.decision)
         assertEquals("Кам'янська", started.regionName)
+        assertEquals(AlertLevel.RED, started.alertLevel)
 
         val upgraded = AlertDeduplicator.evaluateTransition(
             point = hromadaPoint,
@@ -197,5 +198,60 @@ class AlertDeduplicatorTest {
         )
         val allClear = assertIs<NotificationDecision.AllClear>(cleared.decision)
         assertEquals("Кам'янська", allClear.regionName)
+    }
+
+    @Test
+    fun inactiveToYellowActiveEmitsYellowAlertStarted() {
+        val yellowAlert = ActiveAlertInfo(
+            regionId = "neptun_raion:кам'янський",
+            regionName = "Кам'янський район",
+            type = AlertType.AIR,
+            level = AlertLevel.YELLOW,
+            startedAtIso = "2026-11-15T18:00:00Z"
+        )
+        val result = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(yellowAlert),
+            previousState = null,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 1000L
+        )
+        val decision = assertIs<NotificationDecision.AlertStarted>(result.decision)
+        assertEquals(AlertLevel.YELLOW, decision.alertLevel)
+        assertEquals(AlertLevel.YELLOW, result.updatedState.highestLevel)
+    }
+
+    @Test
+    fun yellowToRedEscalationEmitsRedAlertNotification() {
+        val yellowAlert = ActiveAlertInfo(
+            regionId = "neptun_raion:кам'янський",
+            regionName = "Кам'янський район",
+            type = AlertType.AIR,
+            level = AlertLevel.YELLOW,
+            startedAtIso = "2026-11-15T18:00:00Z"
+        )
+        val first = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(yellowAlert),
+            previousState = null,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 1000L
+        )
+        val firstDecision = assertIs<NotificationDecision.AlertStarted>(first.decision)
+        assertEquals(AlertLevel.YELLOW, firstDecision.alertLevel)
+
+        val escalated = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = first.updatedState,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = 2000L
+        )
+        val redDecision = assertIs<NotificationDecision.AlertStarted>(escalated.decision)
+        assertEquals(AlertLevel.RED, redDecision.alertLevel)
+        assertEquals(AlertLevel.RED, escalated.updatedState.highestLevel)
     }
 }
