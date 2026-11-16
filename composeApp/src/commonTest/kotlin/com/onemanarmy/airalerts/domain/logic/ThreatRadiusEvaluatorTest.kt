@@ -134,26 +134,42 @@ class ThreatRadiusEvaluatorTest {
     }
 
     @Test
-    fun supportsExtended50KmRadiusAndClampsAboveMax() {
-        // ~45 km north of Kyiv center
-        val threat45Km = threatAt("t_45km", 50.855, 30.5234)
-        // ~56 km north of Kyiv center
-        val threat56Km = threatAt("t_56km", 50.955, 30.5234)
+    fun supportsExtended100KmRadiusAndClampsAboveMax() {
+        // ~90 km north of Kyiv center
+        val threat90Km = threatAt("t_90km", 51.260, 30.5234)
+        // ~112 km north of Kyiv center
+        val threat112Km = threatAt("t_112km", 51.458, 30.5234)
 
-        val at50Km = AppSettings(
+        val at100Km = AppSettings(
             threatRadiusNotificationEnabled = true,
-            threatNotificationRadiusKm = 50
+            threatNotificationRadiusKm = 100
         )
-        val res50 = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat45Km), emptyMap(), at50Km)
-        assertEquals(1, res50.notifications.size)
-        assertEquals("t_45km", res50.notifications.first().threat.id)
+        val res100 = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat90Km), emptyMap(), at100Km)
+        assertEquals(1, res100.notifications.size)
+        assertEquals("t_90km", res100.notifications.first().threat.id)
 
-        // Values above MAX_RADIUS_KM (50) must clamp to 50 km
+        // Values above MAX_RADIUS_KM (100) must clamp to 100 km
         val aboveMax = AppSettings(
             threatRadiusNotificationEnabled = true,
-            threatNotificationRadiusKm = 75
+            threatNotificationRadiusKm = 150
         )
-        val resClamped = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat56Km), emptyMap(), aboveMax)
+        val resClamped = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat112Km), emptyMap(), aboveMax)
         assertTrue(resClamped.notifications.isEmpty())
+    }
+
+    @Test
+    fun nonLinearRadiusStopsMapRoundTripsAndIntermediateValues() {
+        assertEquals(0, ThreatRadiusEvaluator.radiusKmForStopIndex(0))
+        assertEquals(10, ThreatRadiusEvaluator.radiusKmForStopIndex(10))
+        assertEquals(100, ThreatRadiusEvaluator.radiusKmForStopIndex(99))
+
+        assertEquals(0, ThreatRadiusEvaluator.nearestRadiusStopIndex(-5))
+        assertEquals(1, ThreatRadiusEvaluator.nearestRadiusStopIndex(1))
+        assertEquals(10, ThreatRadiusEvaluator.nearestRadiusStopIndex(10))
+        // 17 is closer to 15 (diff 2) than 20 (diff 3)
+        assertEquals(15, ThreatRadiusEvaluator.radiusKmForStopIndex(ThreatRadiusEvaluator.nearestRadiusStopIndex(17)))
+        // 68 is closer to 75 (diff 7) than 60 (diff 8)
+        assertEquals(75, ThreatRadiusEvaluator.radiusKmForStopIndex(ThreatRadiusEvaluator.nearestRadiusStopIndex(68)))
+        assertEquals(20, ThreatRadiusEvaluator.nearestRadiusStopIndex(150))
     }
 }

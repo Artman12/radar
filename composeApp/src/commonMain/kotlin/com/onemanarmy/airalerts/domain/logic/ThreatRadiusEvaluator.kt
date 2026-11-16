@@ -4,6 +4,7 @@ import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.PointAlertState
 import com.onemanarmy.airalerts.domain.model.SavedPoint
+import kotlin.math.abs
 
 data class ThreatRadiusNotification(
     val point: SavedPoint,
@@ -17,7 +18,7 @@ data class ThreatRadiusEvaluationResult(
 )
 
 /**
- * Evaluates threat-in-radius entry notifications (0..50 km).
+ * Evaluates threat-in-radius entry notifications (0..100 km).
  *
  * Rules:
  * - Notifies ONLY on the transition from 0 threats inside radius -> >= 1 threat inside radius
@@ -27,8 +28,26 @@ data class ThreatRadiusEvaluationResult(
  */
 object ThreatRadiusEvaluator {
 
-    const val MAX_RADIUS_KM = 50
+    const val MAX_RADIUS_KM = 100
     private const val ZERO_KM_EFFECTIVE_THRESHOLD_KM = 0.5
+
+    /**
+     * Non-linear discrete radius stops (km): fine 1 km precision near the target (0..10 km),
+     * coarser steps at medium/long range (12..100 km), placing 10 km at the exact midpoint.
+     */
+    val RADIUS_SLIDER_STOPS: List<Int> = listOf(
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        12, 15, 20, 25, 30, 40, 50, 60, 75, 100
+    )
+
+    fun nearestRadiusStopIndex(radiusKm: Int): Int {
+        val clamped = radiusKm.coerceIn(0, MAX_RADIUS_KM)
+        return RADIUS_SLIDER_STOPS.indices.minByOrNull { abs(RADIUS_SLIDER_STOPS[it] - clamped) } ?: 0
+    }
+
+    fun radiusKmForStopIndex(index: Int): Int {
+        return RADIUS_SLIDER_STOPS[index.coerceIn(0, RADIUS_SLIDER_STOPS.lastIndex)]
+    }
 
     fun effectiveRadiusKm(radiusKm: Int): Double {
         return if (radiusKm <= 0) {

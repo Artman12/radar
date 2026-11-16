@@ -9,7 +9,7 @@
     <!-- Onboarding -->
     <string name="onboarding_step_indicator">Step %1$d of 4</string>
     <string name="onboarding_welcome_title">Autonomous Air Alert Monitor</string>
-    <string name="onboarding_welcome_desc">AirAlerts works directly from your device without third-party servers. It combines official UkraineAlarm alerts with open-source radar data.</string>
+    <string name="onboarding_welcome_desc">AirAlerts works directly from your device without third-party servers. It combines regional air-raid alerts with live open-source radar data from NEPTUN.</string>
     <string name="onboarding_disclaimer_card_title">Important Notice</string>
     <string name="onboarding_disclaimer_card_body">Aerial target positions on the radar map are approximate and based on open OSINT monitoring feeds. Always rely on official alerts and seek shelter immediately during a siren.</string>
     <string name="onboarding_btn_start">Start Setup</string>
@@ -211,7 +211,7 @@
     <string name="settings_radius_badge_km">%1$d km</string>
     <string name="settings_radius_badge_zero">&lt; 500 m</string>
     <string name="settings_radius_scale_min">&lt; 500 m</string>
-    <string name="settings_radius_scale_max">50 km</string>
+    <string name="settings_radius_scale_max">100 km</string>
     <string name="settings_threat_tone_and_vibration">Alert tone &amp; vibration</string>
     <string name="settings_threat_vibration_pattern">Vibration</string>
     <string name="threat_vibration_off">Off</string>
@@ -223,7 +223,7 @@
     <string name="threat_sound_buzzer">Buzzer</string>
     <string name="threat_sound_siren">Siren</string>
     <string name="threat_sound_alarm">Alarm</string>
-    <string name="settings_threat_sound_volume">Volume: %1$d%%</string>
+    <string name="settings_threat_sound_volume">Volume: %1$d%</string>
     <string name="test_threat_notification_title">⚠️ THREAT IN RADIUS — Test</string>
     <string name="test_threat_notification_body">Attack UAV (Shahed-136) (~2 km away) — seek cover!</string>
 
@@ -264,7 +264,7 @@
     <string name="diag_bg_location_title">Background Location Permission</string>
 
     <string name="settings_about_section">Reference &amp; Data Sources</string>
-    <string name="about_ukraine_alarm">Alerts: NEPTUN API (or UkraineAlarm API v3 with key)</string>
+    <string name="about_ukraine_alarm">Alerts: NEPTUN Alerts API</string>
     <string name="about_neptun">Aerial Threats Layer: NEPTUN OSINT Radar</string>
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
 

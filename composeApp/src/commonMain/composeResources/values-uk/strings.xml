@@ -9,7 +9,7 @@
     <!-- Onboarding -->
     <string name="onboarding_step_indicator">Крок %1$d з 4</string>
     <string name="onboarding_welcome_title">Автономний моніторинг тривог</string>
-    <string name="onboarding_welcome_desc">AirAlerts працює безпосередньо з вашого пристрою без проміжних серверів, поєднуючи офіційні сповіщення UkraineAlarm та відкритий радар цілей.</string>
+    <string name="onboarding_welcome_desc">AirAlerts працює безпосередньо з вашого пристрою без проміжних серверів, поєднуючи сповіщення про тривоги та живий радар цілей від NEPTUN.</string>
     <string name="onboarding_disclaimer_card_title">Важливе попередження</string>
     <string name="onboarding_disclaimer_card_body">Положення повітряних цілей на карті є орієнтовним і базується на відкритих OSINT-джерелах. Завжди орієнтуйтеся на офіційні тривоги та прямуйте в укриття.</string>
     <string name="onboarding_btn_start">Почати налаштування</string>
@@ -211,7 +211,7 @@
     <string name="settings_radius_badge_km">%1$d км</string>
     <string name="settings_radius_badge_zero">&lt; 500 м</string>
     <string name="settings_radius_scale_min">&lt; 500 м</string>
-    <string name="settings_radius_scale_max">50 км</string>
+    <string name="settings_radius_scale_max">100 км</string>
     <string name="settings_threat_tone_and_vibration">Звук і вібрація сигналу</string>
     <string name="settings_threat_vibration_pattern">Вібрація</string>
     <string name="threat_vibration_off">Вимк</string>
@@ -223,7 +223,7 @@
     <string name="threat_sound_buzzer">Зумер</string>
     <string name="threat_sound_siren">Сирена</string>
     <string name="threat_sound_alarm">Тривога</string>
-    <string name="settings_threat_sound_volume">Гучність: %1$d%%</string>
+    <string name="settings_threat_sound_volume">Гучність: %1$d%</string>
     <string name="test_threat_notification_title">⚠️ ЦІЛЬ У РАДІУСІ — Тест</string>
     <string name="test_threat_notification_body">Ударний БпЛА (Shahed-136) (~2 км) — прямуйте в укриття!</string>
 
@@ -264,7 +264,7 @@
     <string name="diag_bg_location_title">Фоновий доступ до геолокації</string>
 
     <string name="settings_about_section">Довідник та джерела даних</string>
-    <string name="about_ukraine_alarm">Тривоги: NEPTUN API (або UkraineAlarm API v3 з ключем)</string>
+    <string name="about_ukraine_alarm">Тривоги: NEPTUN Alerts API</string>
     <string name="about_neptun">Шар повітряних цілей: Радар OSINT NEPTUN</string>
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>
 

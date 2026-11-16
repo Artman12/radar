@@ -297,36 +297,48 @@ private fun DrawScope.drawThreatVector(
         }
 
         ThreatType.CRUISE_MISSILE -> {
+            // Streamlined cruise missile: needle nose, ultra-thin fuselage (diameter 6 units),
+            // straight rectangular pop-out wings (span 16..64), cruciform tail fin cross (+ shape).
+            val bodyWidth = 3.2f
             val path = Path().apply {
-                moveTo(cx, 10f)
-                lineTo(cx + 4.8f, 21f)
-                lineTo(cx + 4.8f, 33f)
-                lineTo(64f, 44f)
-                lineTo(64f, 49f)
-                lineTo(cx + 4.8f, 43f)
-                lineTo(cx + 4.8f, 57f)
-                lineTo(cx + 13f, 64f)
-                lineTo(cx + 13f, 67f)
-                lineTo(cx + 3.5f, 64f)
-                lineTo(cx, 66f)
-                lineTo(cx - 3.5f, 64f)
-                lineTo(cx - 13f, 67f)
-                lineTo(cx - 13f, 64f)
-                lineTo(cx - 4.8f, 57f)
-                lineTo(cx - 4.8f, 43f)
-                lineTo(16f, 49f)
-                lineTo(16f, 44f)
-                lineTo(cx - 4.8f, 33f)
-                lineTo(cx - 4.8f, 21f)
+                moveTo(cx, 8f) // Sharp needle radome
+                lineTo(cx + bodyWidth, 18f)
+                lineTo(cx + bodyWidth, 34f)
+                lineTo(65f, 35f) // Straight planar wing leading edge
+                lineTo(65f, 39.5f)
+                lineTo(cx + bodyWidth, 39f)
+                lineTo(cx + bodyWidth, 61f)
+                lineTo(cx + 9f, 66f) // Tail fin
+                lineTo(cx + 8f, 68f)
+                lineTo(cx + bodyWidth, 66.5f)
+                lineTo(cx + bodyWidth, 69f) // Rocket booster exhaust nozzle
+                lineTo(cx - bodyWidth, 69f)
+                lineTo(cx - bodyWidth, 66.5f)
+                lineTo(cx - 8f, 68f)
+                lineTo(cx - 9f, 66f)
+                lineTo(cx - bodyWidth, 61f)
+                lineTo(cx - bodyWidth, 39f)
+                lineTo(15f, 39.5f)
+                lineTo(15f, 35f)
+                lineTo(cx - bodyWidth, 34f)
+                lineTo(cx - bodyWidth, 18f)
                 close()
             }
             drawPath(path, color = Color.White, style = whiteOuterStroke)
             drawPath(path, color = blackFill)
+            // Centerline spine + horizontal wing hinge line across body
             drawLine(
                 color = detailWhite,
-                start = Offset(cx, 22f),
-                end = Offset(cx, 55f),
-                strokeWidth = 2.0f,
+                start = Offset(cx, 16f),
+                end = Offset(cx, 63f),
+                strokeWidth = 1.8f,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = detailWhite,
+                start = Offset(cx - bodyWidth, 37f),
+                end = Offset(cx + bodyWidth, 37f),
+                strokeWidth = 1.6f,
                 cap = StrokeCap.Round
             )
         }
@@ -361,65 +373,107 @@ private fun DrawScope.drawThreatVector(
         }
 
         ThreatType.KAB -> {
+            // Guided aerial bomb (KAB): stubby blunt teardrop bomb body with folding dorsal glide wings (UMPK)
+            // and cross-shaped empennage tail fins with rear ring/box stabilizer.
+            val bodyHalf = 7.5f
             val path = Path().apply {
-                moveTo(cx, 14f)
-                lineTo(cx + 6.5f, 22f)
-                lineTo(cx + 6.5f, 31f)
-                lineTo(63f, 41f)
-                lineTo(61f, 46f)
-                lineTo(cx + 6.5f, 42f)
-                lineTo(cx + 6f, 55f)
-                lineTo(cx + 12f, 62f)
-                lineTo(cx + 10f, 65f)
-                lineTo(cx, 62f)
-                lineTo(cx - 10f, 65f)
-                lineTo(cx - 12f, 62f)
-                lineTo(cx - 6f, 55f)
-                lineTo(cx - 6.5f, 42f)
-                lineTo(19f, 46f)
-                lineTo(17f, 41f)
-                lineTo(cx - 6.5f, 31f)
-                lineTo(cx - 6.5f, 22f)
+                // Rounded blunt warhead nose
+                moveTo(cx, 16f)
+                cubicTo(cx + 6f, 16f, cx + bodyHalf, 21f, cx + bodyHalf, 27f)
+                // Wing roots (diamond glide kit with distinctive swept forward-rear wings)
+                lineTo(cx + bodyHalf, 34f)
+                lineTo(63f, 40f)
+                lineTo(61f, 44.5f)
+                lineTo(cx + bodyHalf, 41f)
+                // Tapering bomb casing
+                lineTo(cx + 5.5f, 54f)
+                // Tail stabilizing fins (wide cruciform box fins)
+                lineTo(cx + 13f, 60f)
+                lineTo(cx + 13f, 64f)
+                lineTo(cx + 4.5f, 62.5f)
+                lineTo(cx + 3.5f, 65f)
+                lineTo(cx - 3.5f, 65f)
+                lineTo(cx - 4.5f, 62.5f)
+                lineTo(cx - 13f, 64f)
+                lineTo(cx - 13f, 60f)
+                lineTo(cx - 5.5f, 54f)
+                lineTo(cx - bodyHalf, 41f)
+                lineTo(19f, 44.5f)
+                lineTo(17f, 40f)
+                lineTo(cx - bodyHalf, 34f)
+                lineTo(cx - bodyHalf, 27f)
+                cubicTo(cx - bodyHalf, 21f, cx - 6f, 16f, cx, 16f)
                 close()
             }
             drawPath(path, color = Color.White, style = whiteOuterStroke)
             drawPath(path, color = blackFill)
-            drawCircle(color = detailAccent, radius = 2.8f, center = Offset(cx, 28f))
+            // Bomb nose fuze band + payload accent circle
+            drawLine(
+                color = detailWhite,
+                start = Offset(cx - 5.5f, 23f),
+                end = Offset(cx + 5.5f, 23f),
+                strokeWidth = 1.8f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(color = detailAccent, radius = 3.2f, center = Offset(cx, 32f))
+            // Rear tail ring band
+            drawLine(
+                color = detailWhite,
+                start = Offset(cx - 3.5f, 57f),
+                end = Offset(cx + 3.5f, 57f),
+                strokeWidth = 1.6f,
+                cap = StrokeCap.Round
+            )
         }
 
         ThreatType.AVIATION -> {
+            // Tactical aviation (Su-34/Su-35 / MiG-31K): long needle radome, wide blended wing-body (LERX),
+            // broad swept delta wings, distinct twin engine nacelles, and protruding tail boom / stinger.
             val path = Path().apply {
-                moveTo(cx, 11f)
-                lineTo(cx + 4.5f, 24f)
-                lineTo(cx + 7.5f, 32f)
-                lineTo(67f, 47f)
-                lineTo(65f, 52f)
-                lineTo(cx + 7f, 47f)
-                lineTo(cx + 6f, 55f)
-                lineTo(cx + 16f, 63f)
-                lineTo(cx + 14f, 67f)
-                lineTo(cx + 4.5f, 63f)
-                lineTo(cx + 2.5f, 66f)
-                lineTo(cx, 63f)
-                lineTo(cx - 2.5f, 66f)
-                lineTo(cx - 4.5f, 63f)
-                lineTo(cx - 14f, 67f)
-                lineTo(cx - 16f, 63f)
-                lineTo(cx - 6f, 55f)
-                lineTo(cx - 7f, 47f)
-                lineTo(15f, 52f)
-                lineTo(13f, 47f)
-                lineTo(cx - 7.5f, 32f)
-                lineTo(cx - 4.5f, 24f)
+                moveTo(cx, 9f) // Sharp nose probe
+                lineTo(cx + 3f, 18f)
+                lineTo(cx + 6f, 26f) // Leading-edge root extension (LERX / chine)
+                lineTo(cx + 8.5f, 34f)
+                lineTo(69f, 49f) // Swept main wingtip
+                lineTo(67f, 53.5f)
+                lineTo(cx + 9.5f, 48f)
+                lineTo(cx + 9f, 55f) // Twin engine fuselage flare
+                lineTo(cx + 17f, 64f) // Horizontal taileron
+                lineTo(cx + 15f, 68f)
+                lineTo(cx + 6f, 64f)
+                lineTo(cx + 4.5f, 67f) // Right engine exhaust nozzle
+                lineTo(cx + 2f, 67f)
+                lineTo(cx + 1.2f, 72f) // Center tail boom / MAD stinger
+                lineTo(cx - 1.2f, 72f)
+                lineTo(cx - 2f, 67f)
+                lineTo(cx - 4.5f, 67f) // Left engine exhaust nozzle
+                lineTo(cx - 6f, 64f)
+                lineTo(cx - 15f, 68f)
+                lineTo(cx - 17f, 64f)
+                lineTo(cx - 9f, 55f)
+                lineTo(cx - 9.5f, 48f)
+                lineTo(13f, 53.5f)
+                lineTo(11f, 49f)
+                lineTo(cx - 8.5f, 34f)
+                lineTo(cx - 6f, 26f)
+                lineTo(cx - 3f, 18f)
                 close()
             }
             drawPath(path, color = Color.White, style = whiteOuterStroke)
             drawPath(path, color = blackFill)
+            // Cockpit glass line + twin engine separator line
             drawLine(
                 color = detailWhite,
-                start = Offset(cx, 19f),
+                start = Offset(cx, 17f),
                 end = Offset(cx, 28f),
                 strokeWidth = 2.0f,
+                cap = StrokeCap.Round
+            )
+            drawLine(
+                color = detailWhite,
+                start = Offset(cx, 44f),
+                end = Offset(cx, 63f),
+                strokeWidth = 1.6f,
                 cap = StrokeCap.Round
             )
         }

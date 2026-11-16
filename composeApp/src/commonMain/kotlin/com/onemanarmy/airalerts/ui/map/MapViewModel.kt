@@ -239,9 +239,13 @@ class MapViewModel(
                     _rawThreats.value = emptyList()
                     _localState.update { it.copy(isRadarLoading = false) }
                 }
-                delay(20_000L)
+                delay(RADAR_POLL_INTERVAL_MS)
             }
         }
+    }
+
+    companion object {
+        private const val RADAR_POLL_INTERVAL_MS = 10_000L
     }
 
     fun stopRadarPolling() {

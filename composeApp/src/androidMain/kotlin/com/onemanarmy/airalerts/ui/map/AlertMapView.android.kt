@@ -1253,33 +1253,37 @@ private fun createThreatDrawable(
         }
 
         ThreatType.CRUISE_MISSILE -> {
-            // Streamlined cruise missile with mid-body swept wings & cruciform tail fins.
+            // Streamlined cruise missile: needle nose, ultra-thin fuselage (diameter 6 units),
+            // straight rectangular pop-out wings (span 16..64), cruciform tail fin cross (+ shape).
+            val bodyWidth = 3.2f
             val path = Path().apply {
-                moveTo(cx, 10f)
-                lineTo(cx + 4.8f, 21f)
-                lineTo(cx + 4.8f, 33f)
-                lineTo(64f, 44f)
-                lineTo(64f, 49f)
-                lineTo(cx + 4.8f, 43f)
-                lineTo(cx + 4.8f, 57f)
-                lineTo(cx + 13f, 64f)
-                lineTo(cx + 13f, 67f)
-                lineTo(cx + 3.5f, 64f)
-                lineTo(cx, 66f)
-                lineTo(cx - 3.5f, 64f)
-                lineTo(cx - 13f, 67f)
-                lineTo(cx - 13f, 64f)
-                lineTo(cx - 4.8f, 57f)
-                lineTo(cx - 4.8f, 43f)
-                lineTo(16f, 49f)
-                lineTo(16f, 44f)
-                lineTo(cx - 4.8f, 33f)
-                lineTo(cx - 4.8f, 21f)
+                moveTo(cx, 8f)
+                lineTo(cx + bodyWidth, 18f)
+                lineTo(cx + bodyWidth, 34f)
+                lineTo(65f, 35f)
+                lineTo(65f, 39.5f)
+                lineTo(cx + bodyWidth, 39f)
+                lineTo(cx + bodyWidth, 61f)
+                lineTo(cx + 9f, 66f)
+                lineTo(cx + 8f, 68f)
+                lineTo(cx + bodyWidth, 66.5f)
+                lineTo(cx + bodyWidth, 69f)
+                lineTo(cx - bodyWidth, 69f)
+                lineTo(cx - bodyWidth, 66.5f)
+                lineTo(cx - 8f, 68f)
+                lineTo(cx - 9f, 66f)
+                lineTo(cx - bodyWidth, 61f)
+                lineTo(cx - bodyWidth, 39f)
+                lineTo(15f, 39.5f)
+                lineTo(15f, 35f)
+                lineTo(cx - bodyWidth, 34f)
+                lineTo(cx - bodyWidth, 18f)
                 close()
             }
             canvas.drawPath(path, whiteOuterPaint)
             canvas.drawPath(path, blackFillPaint)
-            canvas.drawLine(cx, 22f, cx, 55f, detailStrokePaint)
+            canvas.drawLine(cx, 16f, cx, 63f, detailStrokePaint)
+            canvas.drawLine(cx - bodyWidth, 37f, cx + bodyWidth, 37f, detailStrokePaint)
         }
 
         ThreatType.BALLISTIC -> {
@@ -1308,35 +1312,44 @@ private fun createThreatDrawable(
         }
 
         ThreatType.KAB -> {
-            // Guided aerial bomb: heavy warhead casing with pop-out diamond glide wing kit.
+            // Guided aerial bomb (KAB): stubby blunt teardrop bomb body with folding dorsal glide wings (UMPK)
+            // and cross-shaped empennage tail fins with rear ring/box stabilizer.
+            val bodyHalf = 7.5f
             val path = Path().apply {
-                moveTo(cx, 14f)
-                lineTo(cx + 6.5f, 22f)
-                lineTo(cx + 6.5f, 31f)
-                lineTo(63f, 41f)
-                lineTo(61f, 46f)
-                lineTo(cx + 6.5f, 42f)
-                lineTo(cx + 6f, 55f)
-                lineTo(cx + 12f, 62f)
-                lineTo(cx + 10f, 65f)
-                lineTo(cx, 62f)
-                lineTo(cx - 10f, 65f)
-                lineTo(cx - 12f, 62f)
-                lineTo(cx - 6f, 55f)
-                lineTo(cx - 6.5f, 42f)
-                lineTo(19f, 46f)
-                lineTo(17f, 41f)
-                lineTo(cx - 6.5f, 31f)
-                lineTo(cx - 6.5f, 22f)
+                moveTo(cx, 16f)
+                cubicTo(cx + 6f, 16f, cx + bodyHalf, 21f, cx + bodyHalf, 27f)
+                lineTo(cx + bodyHalf, 34f)
+                lineTo(63f, 40f)
+                lineTo(61f, 44.5f)
+                lineTo(cx + bodyHalf, 41f)
+                lineTo(cx + 5.5f, 54f)
+                lineTo(cx + 13f, 60f)
+                lineTo(cx + 13f, 64f)
+                lineTo(cx + 4.5f, 62.5f)
+                lineTo(cx + 3.5f, 65f)
+                lineTo(cx - 3.5f, 65f)
+                lineTo(cx - 4.5f, 62.5f)
+                lineTo(cx - 13f, 64f)
+                lineTo(cx - 13f, 60f)
+                lineTo(cx - 5.5f, 54f)
+                lineTo(cx - bodyHalf, 41f)
+                lineTo(19f, 44.5f)
+                lineTo(17f, 40f)
+                lineTo(cx - bodyHalf, 34f)
+                lineTo(cx - bodyHalf, 27f)
+                cubicTo(cx - bodyHalf, 21f, cx - 6f, 16f, cx, 16f)
                 close()
             }
             canvas.drawPath(path, whiteOuterPaint)
             canvas.drawPath(path, blackFillPaint)
-            canvas.drawCircle(cx, 28f, 2.8f, detailAccentPaint)
+            canvas.drawLine(cx - 5.5f, 23f, cx + 5.5f, 23f, detailStrokePaint)
+            canvas.drawCircle(cx, 32f, 3.2f, detailAccentPaint)
+            canvas.drawLine(cx - 3.5f, 57f, cx + 3.5f, 57f, detailStrokePaint)
         }
 
         ThreatType.AVIATION -> {
-            // Swept-wing tactical fighter jet silhouette with twin stabilizers.
+            // Tactical aviation (Su-34/Su-35 / MiG-31K): long needle radome, wide blended wing-body (LERX),
+            // broad swept delta wings, distinct twin engine nacelles, and protruding tail boom / stinger.
             val path = Path().apply {
                 moveTo(cx, 11f)
                 lineTo(cx + 4.5f, 24f)

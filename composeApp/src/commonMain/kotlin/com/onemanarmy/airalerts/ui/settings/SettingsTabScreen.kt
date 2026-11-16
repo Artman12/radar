@@ -92,6 +92,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.airalerts.domain.logic.DurationFormatter
+import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.NightModeBehavior
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
 import com.onemanarmy.airalerts.domain.model.ThreatSoundPattern
@@ -335,7 +336,7 @@ fun SettingsTabScreen(
                         }
                     }
 
-                    // Card 2: Threat in Radius (0–50 km) Urgent Notification
+                    // Card 2: Threat in Radius (0–100 km) Urgent Notification
                     val threatBorderColor by animateColorAsState(
                         targetValue = if (settings.threatRadiusNotificationEnabled) {
                             AlertColors.AlertRed.copy(alpha = 0.45f)
@@ -390,12 +391,7 @@ fun SettingsTabScreen(
                                 enter = expandVertically() + fadeIn(),
                                 exit = shrinkVertically() + fadeOut()
                             ) {
-                                val soundSummary = if (settings.threatSoundPattern == ThreatSoundPattern.OFF) {
-                                    threatSoundPatternLabel(ThreatSoundPattern.OFF)
-                                } else {
-                                    "${threatSoundPatternLabel(settings.threatSoundPattern)} (${settings.threatSoundVolumePercent}%)"
-                                }
-                                val threatSummary = "$soundSummary · ${
+                                val threatSummary = "${threatSoundPatternLabel(settings.threatSoundPattern)} · ${
                                     threatVibrationPatternLabel(settings.threatVibrationPattern)
                                 }"
                                 val radiusBadgeText = if (settings.threatNotificationRadiusKm == 0) {
@@ -435,11 +431,17 @@ fun SettingsTabScreen(
                                                 )
                                             }
                                         }
+                                        val radiusStopIndex = ThreatRadiusEvaluator.nearestRadiusStopIndex(
+                                            settings.threatNotificationRadiusKm
+                                        )
                                         Slider(
-                                            value = settings.threatNotificationRadiusKm.toFloat(),
-                                            onValueChange = { viewModel.setThreatNotificationRadiusKm(it.roundToInt()) },
-                                            valueRange = 0f..50f,
-                                            steps = 49
+                                            value = radiusStopIndex.toFloat(),
+                                            onValueChange = {
+                                                val newKm = ThreatRadiusEvaluator.radiusKmForStopIndex(it.roundToInt())
+                                                viewModel.setThreatNotificationRadiusKm(newKm)
+                                            },
+                                            valueRange = 0f..ThreatRadiusEvaluator.RADIUS_SLIDER_STOPS.lastIndex.toFloat(),
+                                            steps = ThreatRadiusEvaluator.RADIUS_SLIDER_STOPS.size - 2
                                         )
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -447,6 +449,11 @@ fun SettingsTabScreen(
                                         ) {
                                             Text(
                                                 text = stringResource(Res.string.settings_radius_scale_min),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = stringResource(Res.string.settings_radius_badge_km, 10),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -475,6 +482,7 @@ fun SettingsTabScreen(
                                         enter = expandVertically() + fadeIn(),
                                         exit = shrinkVertically() + fadeOut()
                                     ) {
+                                        val isThreatSoundActive = settings.threatSoundPattern != ThreatSoundPattern.OFF
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(10.dp)
                                         ) {
@@ -506,38 +514,46 @@ fun SettingsTabScreen(
                                                 isNeutralSelection = { it == ThreatSoundPattern.OFF }
                                             )
 
-                                            AnimatedVisibility(
-                                                visible = settings.threatSoundPattern != ThreatSoundPattern.OFF,
-                                                enter = expandVertically() + fadeIn(),
-                                                exit = shrinkVertically() + fadeOut()
-                                            ) {
-                                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(18.dp),
-                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                        Text(
-                                                            text = stringResource(
-                                                                Res.string.settings_threat_sound_volume,
-                                                                settings.threatSoundVolumePercent
-                                                            ),
-                                                            style = MaterialTheme.typography.labelLarge,
-                                                            fontWeight = FontWeight.SemiBold
-                                                        )
-                                                    }
-                                                    Slider(
-                                                        value = settings.threatSoundVolumePercent.toFloat(),
-                                                        onValueChange = { viewModel.setThreatSoundVolumePercent(it.roundToInt()) },
-                                                        onValueChangeFinished = { viewModel.previewThreatSoundVolume() },
-                                                        valueRange = 0f..100f
+                                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp),
+                                                        tint = if (isThreatSoundActive) {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                                        }
+                                                    )
+                                                    Text(
+                                                        text = stringResource(
+                                                            Res.string.settings_threat_sound_volume,
+                                                            settings.threatSoundVolumePercent
+                                                        ),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (isThreatSoundActive) {
+                                                            MaterialTheme.colorScheme.onSurface
+                                                        } else {
+                                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                        }
                                                     )
                                                 }
+                                                Slider(
+                                                    value = settings.threatSoundVolumePercent.toFloat(),
+                                                    onValueChange = { viewModel.setThreatSoundVolumePercent(it.roundToInt()) },
+                                                    onValueChangeFinished = {
+                                                        if (isThreatSoundActive) {
+                                                            viewModel.previewThreatSoundVolume()
+                                                        }
+                                                    },
+                                                    enabled = isThreatSoundActive,
+                                                    valueRange = 0f..100f
+                                                )
                                             }
                                         }
                                     }
