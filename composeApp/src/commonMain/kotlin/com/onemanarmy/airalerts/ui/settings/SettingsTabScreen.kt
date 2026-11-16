@@ -43,6 +43,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.Notifications
@@ -101,8 +103,7 @@ import com.onemanarmy.airalerts.resources.about_neptun
 import com.onemanarmy.airalerts.resources.about_ukraine_alarm
 import com.onemanarmy.airalerts.resources.btn_cancel
 import com.onemanarmy.airalerts.resources.btn_save
-import com.onemanarmy.airalerts.resources.btn_test_notification
-import com.onemanarmy.airalerts.resources.btn_test_threat_notification
+import com.onemanarmy.airalerts.resources.btn_test_short
 import com.onemanarmy.airalerts.resources.day_fri
 import com.onemanarmy.airalerts.resources.day_mon
 import com.onemanarmy.airalerts.resources.day_sat
@@ -136,13 +137,18 @@ import com.onemanarmy.airalerts.resources.settings_night_mode_section
 import com.onemanarmy.airalerts.resources.settings_night_scope_note
 import com.onemanarmy.airalerts.resources.settings_night_start
 import com.onemanarmy.airalerts.resources.settings_notifications_section
+import com.onemanarmy.airalerts.resources.settings_radius_badge_km
+import com.onemanarmy.airalerts.resources.settings_radius_badge_zero
+import com.onemanarmy.airalerts.resources.settings_radius_label
+import com.onemanarmy.airalerts.resources.settings_radius_scale_max
+import com.onemanarmy.airalerts.resources.settings_radius_scale_min
+import com.onemanarmy.airalerts.resources.settings_sound_and_vibration
 import com.onemanarmy.airalerts.resources.settings_sound_preset
 import com.onemanarmy.airalerts.resources.settings_threat_radius_desc
 import com.onemanarmy.airalerts.resources.settings_threat_radius_enable
-import com.onemanarmy.airalerts.resources.settings_threat_radius_value
-import com.onemanarmy.airalerts.resources.settings_threat_radius_zero_hint
 import com.onemanarmy.airalerts.resources.settings_threat_sound_pattern
 import com.onemanarmy.airalerts.resources.settings_threat_sound_volume
+import com.onemanarmy.airalerts.resources.settings_threat_tone_and_vibration
 import com.onemanarmy.airalerts.resources.settings_threat_vibration_pattern
 import com.onemanarmy.airalerts.resources.settings_vibration_preset
 import com.onemanarmy.airalerts.resources.status_granted
@@ -174,6 +180,8 @@ fun SettingsTabScreen(
     var editingStartTime by remember { mutableStateOf(false) }
     var editingEndTime by remember { mutableStateOf(false) }
     var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
+    var hromadaStyleExpanded by remember { mutableStateOf(false) }
+    var threatStyleExpanded by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -196,267 +204,349 @@ fun SettingsTabScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section 1: Unified Notifications (Hromada Alerts + Threat in Radius)
+        // Section 1: Notifications (Segmented Card Group)
         item {
-            SettingsSectionCard(
-                icon = Icons.Default.Notifications,
-                title = stringResource(Res.string.settings_notifications_section)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                // Block 1: Hromada Alert Notifications
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
+                // Card 1: Notifications Header + Hromada Alert Notifications
+                Card(
+                    shape = RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 16.dp,
+                        bottomStart = 4.dp,
+                        bottomEnd = 4.dp
+                    ),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.weight(1f).padding(end = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(Res.string.settings_hromada_notif_enable),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = stringResource(Res.string.settings_hromada_notif_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = settings.hromadaAlertNotificationsEnabled,
-                                onCheckedChange = viewModel::setHromadaAlertNotificationsEnabled
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = stringResource(Res.string.settings_notifications_section),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
 
-                        AnimatedVisibility(
-                            visible = settings.hromadaAlertNotificationsEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                        Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                HorizontalDivider(
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-
-                                Text(
-                                    text = stringResource(Res.string.settings_vibration_preset),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                IosSegmentedControl(
-                                    items = VibrationPreset.entries,
-                                    selectedItem = settings.vibrationPreset,
-                                    onItemSelected = viewModel::selectVibrationPreset,
-                                    labelProvider = { vibrationPresetShortLabel(it) },
-                                    isNeutralSelection = { it == VibrationPreset.NONE }
-                                )
-
-                                Text(
-                                    text = stringResource(Res.string.settings_sound_preset),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                IosSegmentedControl(
-                                    items = listOf(
-                                        NotificationSoundPreset.SILENT,
-                                        NotificationSoundPreset.SOFT_CHIME,
-                                        NotificationSoundPreset.DEFAULT
-                                    ),
-                                    selectedItem = settings.soundPreset,
-                                    onItemSelected = viewModel::selectSoundPreset,
-                                    labelProvider = { soundPresetShortLabel(it) },
-                                    isNeutralSelection = { it == NotificationSoundPreset.SILENT }
-                                )
-
-                                Spacer(modifier = Modifier.height(2.dp))
-
-                                Button(
-                                    onClick = { viewModel.sendTestNotification(testTitle, testBody) },
-                                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                                    shape = RoundedCornerShape(12.dp)
+                                Column(
+                                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
                                 ) {
-                                    Text(stringResource(Res.string.btn_test_notification))
+                                    Text(
+                                        text = stringResource(Res.string.settings_hromada_notif_enable),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = stringResource(Res.string.settings_hromada_notif_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.hromadaAlertNotificationsEnabled,
+                                    onCheckedChange = viewModel::setHromadaAlertNotificationsEnabled
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = settings.hromadaAlertNotificationsEnabled,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val hromadaSummary = "${soundPresetShortLabel(settings.soundPreset)} · ${
+                                    vibrationPresetShortLabel(settings.vibrationPreset)
+                                }"
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    NotificationStyleAccordionHeader(
+                                        title = stringResource(Res.string.settings_sound_and_vibration),
+                                        summary = hromadaSummary,
+                                        expanded = hromadaStyleExpanded,
+                                        onToggleExpand = { hromadaStyleExpanded = !hromadaStyleExpanded },
+                                        testLabel = stringResource(Res.string.btn_test_short),
+                                        onTest = { viewModel.sendTestNotification(testTitle, testBody) }
+                                    )
+
+                                    AnimatedVisibility(
+                                        visible = hromadaStyleExpanded,
+                                        enter = expandVertically() + fadeIn(),
+                                        exit = shrinkVertically() + fadeOut()
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.settings_vibration_preset),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            IosSegmentedControl(
+                                                items = VibrationPreset.entries,
+                                                selectedItem = settings.vibrationPreset,
+                                                onItemSelected = viewModel::selectVibrationPreset,
+                                                labelProvider = { vibrationPresetShortLabel(it) },
+                                                isNeutralSelection = { it == VibrationPreset.NONE }
+                                            )
+
+                                            Text(
+                                                text = stringResource(Res.string.settings_sound_preset),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            IosSegmentedControl(
+                                                items = listOf(
+                                                    NotificationSoundPreset.SILENT,
+                                                    NotificationSoundPreset.SOFT_CHIME,
+                                                    NotificationSoundPreset.DEFAULT
+                                                ),
+                                                selectedItem = settings.soundPreset,
+                                                onItemSelected = viewModel::selectSoundPreset,
+                                                labelProvider = { soundPresetShortLabel(it) },
+                                                isNeutralSelection = { it == NotificationSoundPreset.SILENT }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Block 2: Threat in Radius (0–10 km) Urgent Notification
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(
-                        1.dp,
-                        if (settings.threatRadiusNotificationEnabled) {
-                            AlertColors.AlertRed.copy(alpha = 0.5f)
+                    // Card 2: Threat in Radius (0–50 km) Urgent Notification
+                    val threatBorderColor by animateColorAsState(
+                        targetValue = if (settings.threatRadiusNotificationEnabled) {
+                            AlertColors.AlertRed.copy(alpha = 0.45f)
                         } else {
                             MaterialTheme.colorScheme.outlineVariant
                         }
                     )
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Card(
+                        shape = RoundedCornerShape(
+                            topStart = 4.dp,
+                            topEnd = 4.dp,
+                            bottomStart = 16.dp,
+                            bottomEnd = 16.dp
+                        ),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        border = BorderStroke(1.dp, threatBorderColor)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.weight(1f).padding(end = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = stringResource(Res.string.settings_threat_radius_enable),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = stringResource(Res.string.settings_threat_radius_desc),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = settings.threatRadiusNotificationEnabled,
-                                onCheckedChange = viewModel::setThreatRadiusNotificationEnabled
-                            )
-                        }
-
-                        AnimatedVisibility(
-                            visible = settings.threatRadiusNotificationEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                HorizontalDivider(
-                                    thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outlineVariant
-                                )
-
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Column(
+                                    modifier = Modifier.weight(1f).padding(end = 12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
                                     Text(
-                                        text = if (settings.threatNotificationRadiusKm == 0) {
-                                            stringResource(Res.string.settings_threat_radius_zero_hint)
-                                        } else {
-                                            stringResource(
-                                                Res.string.settings_threat_radius_value,
-                                                settings.threatNotificationRadiusKm
-                                            )
-                                        },
-                                        style = MaterialTheme.typography.labelLarge,
+                                        text = stringResource(Res.string.settings_threat_radius_enable),
+                                        style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold
                                     )
-                                    Slider(
-                                        value = settings.threatNotificationRadiusKm.toFloat(),
-                                        onValueChange = { viewModel.setThreatNotificationRadiusKm(it.roundToInt()) },
-                                        valueRange = 0f..50f,
-                                        steps = 49
+                                    Text(
+                                        text = stringResource(Res.string.settings_threat_radius_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.threatRadiusNotificationEnabled,
+                                    onCheckedChange = viewModel::setThreatRadiusNotificationEnabled
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = settings.threatRadiusNotificationEnabled,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val soundSummary = if (settings.threatSoundPattern == ThreatSoundPattern.OFF) {
+                                    threatSoundPatternLabel(ThreatSoundPattern.OFF)
+                                } else {
+                                    "${threatSoundPatternLabel(settings.threatSoundPattern)} (${settings.threatSoundVolumePercent}%)"
+                                }
+                                val threatSummary = "$soundSummary · ${
+                                    threatVibrationPatternLabel(settings.threatVibrationPattern)
+                                }"
+                                val radiusBadgeText = if (settings.threatNotificationRadiusKm == 0) {
+                                    stringResource(Res.string.settings_radius_badge_zero)
+                                } else {
+                                    stringResource(
+                                        Res.string.settings_radius_badge_km,
+                                        settings.threatNotificationRadiusKm
                                     )
                                 }
 
-                                Text(
-                                    text = stringResource(Res.string.settings_threat_vibration_pattern),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                IosSegmentedControl(
-                                    items = ThreatVibrationPattern.entries,
-                                    selectedItem = settings.threatVibrationPattern,
-                                    onItemSelected = viewModel::selectThreatVibrationPattern,
-                                    labelProvider = { threatVibrationPatternLabel(it) },
-                                    activeAccentColor = AlertColors.AlertRed,
-                                    isNeutralSelection = { it == ThreatVibrationPattern.OFF }
-                                )
-
-                                Text(
-                                    text = stringResource(Res.string.settings_threat_sound_pattern),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                IosSegmentedControl(
-                                    items = ThreatSoundPattern.entries,
-                                    selectedItem = settings.threatSoundPattern,
-                                    onItemSelected = viewModel::selectThreatSoundPattern,
-                                    labelProvider = { threatSoundPatternLabel(it) },
-                                    activeAccentColor = AlertColors.AlertRed,
-                                    isNeutralSelection = { it == ThreatSoundPattern.OFF }
-                                )
-
-                                AnimatedVisibility(
-                                    visible = settings.threatSoundPattern != ThreatSoundPattern.OFF,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut()
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Row(
+                                            modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
                                             Text(
-                                                text = stringResource(
-                                                    Res.string.settings_threat_sound_volume,
-                                                    settings.threatSoundVolumePercent
-                                                ),
+                                                text = stringResource(Res.string.settings_radius_label),
                                                 style = MaterialTheme.typography.labelLarge,
                                                 fontWeight = FontWeight.SemiBold
                                             )
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = AlertColors.AlertRed.copy(alpha = 0.14f),
+                                                border = BorderStroke(0.5.dp, AlertColors.AlertRed.copy(alpha = 0.4f))
+                                            ) {
+                                                Text(
+                                                    text = radiusBadgeText,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = AlertColors.AlertRed
+                                                )
+                                            }
                                         }
                                         Slider(
-                                            value = settings.threatSoundVolumePercent.toFloat(),
-                                            onValueChange = { viewModel.setThreatSoundVolumePercent(it.roundToInt()) },
-                                            onValueChangeFinished = { viewModel.previewThreatSoundVolume() },
-                                            valueRange = 0f..100f
+                                            value = settings.threatNotificationRadiusKm.toFloat(),
+                                            onValueChange = { viewModel.setThreatNotificationRadiusKm(it.roundToInt()) },
+                                            valueRange = 0f..50f,
+                                            steps = 49
                                         )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.settings_radius_scale_min),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = stringResource(Res.string.settings_radius_scale_max),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.height(2.dp))
-
-                                Button(
-                                    onClick = {
-                                        viewModel.sendTestThreatNotification(testThreatTitle, testThreatBody)
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = AlertColors.AlertRed,
-                                        contentColor = Color.White
+                                    NotificationStyleAccordionHeader(
+                                        title = stringResource(Res.string.settings_threat_tone_and_vibration),
+                                        summary = threatSummary,
+                                        expanded = threatStyleExpanded,
+                                        onToggleExpand = { threatStyleExpanded = !threatStyleExpanded },
+                                        testLabel = stringResource(Res.string.btn_test_short),
+                                        onTest = {
+                                            viewModel.sendTestThreatNotification(testThreatTitle, testThreatBody)
+                                        },
+                                        isUrgent = true
                                     )
-                                ) {
-                                    Text(stringResource(Res.string.btn_test_threat_notification))
+
+                                    AnimatedVisibility(
+                                        visible = threatStyleExpanded,
+                                        enter = expandVertically() + fadeIn(),
+                                        exit = shrinkVertically() + fadeOut()
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(
+                                                text = stringResource(Res.string.settings_threat_vibration_pattern),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            IosSegmentedControl(
+                                                items = ThreatVibrationPattern.entries,
+                                                selectedItem = settings.threatVibrationPattern,
+                                                onItemSelected = viewModel::selectThreatVibrationPattern,
+                                                labelProvider = { threatVibrationPatternLabel(it) },
+                                                activeAccentColor = AlertColors.AlertRed,
+                                                isNeutralSelection = { it == ThreatVibrationPattern.OFF }
+                                            )
+
+                                            Text(
+                                                text = stringResource(Res.string.settings_threat_sound_pattern),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            IosSegmentedControl(
+                                                items = ThreatSoundPattern.entries,
+                                                selectedItem = settings.threatSoundPattern,
+                                                onItemSelected = viewModel::selectThreatSoundPattern,
+                                                labelProvider = { threatSoundPatternLabel(it) },
+                                                activeAccentColor = AlertColors.AlertRed,
+                                                isNeutralSelection = { it == ThreatSoundPattern.OFF }
+                                            )
+
+                                            AnimatedVisibility(
+                                                visible = settings.threatSoundPattern != ThreatSoundPattern.OFF,
+                                                enter = expandVertically() + fadeIn(),
+                                                exit = shrinkVertically() + fadeOut()
+                                            ) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                                            contentDescription = null,
+                                                            modifier = Modifier.size(18.dp),
+                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                        Text(
+                                                            text = stringResource(
+                                                                Res.string.settings_threat_sound_volume,
+                                                                settings.threatSoundVolumePercent
+                                                            ),
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            fontWeight = FontWeight.SemiBold
+                                                        )
+                                                    }
+                                                    Slider(
+                                                        value = settings.threatSoundVolumePercent.toFloat(),
+                                                        onValueChange = { viewModel.setThreatSoundVolumePercent(it.roundToInt()) },
+                                                        onValueChangeFinished = { viewModel.previewThreatSoundVolume() },
+                                                        valueRange = 0f..100f
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
         // Section 2: Night Mode (Quiet Hours)
         item {
@@ -995,6 +1085,89 @@ private fun <T> IosSegmentedControl(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NotificationStyleAccordionHeader(
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onToggleExpand: () -> Unit,
+    testLabel: String,
+    onTest: () -> Unit,
+    isUrgent: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onToggleExpand)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(1.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = if (expanded) {
+                    Icons.Default.KeyboardArrowUp
+                } else {
+                    Icons.Default.KeyboardArrowDown
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Surface(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onTest),
+            shape = RoundedCornerShape(10.dp),
+            color = if (isUrgent) {
+                AlertColors.AlertRed.copy(alpha = 0.16f)
+            } else {
+                MaterialTheme.colorScheme.primaryContainer
+            },
+            border = BorderStroke(
+                1.dp,
+                if (isUrgent) {
+                    AlertColors.AlertRed.copy(alpha = 0.45f)
+                } else {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                }
+            )
+        ) {
+            Text(
+                text = testLabel,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (isUrgent) AlertColors.AlertRed else MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
