@@ -66,6 +66,13 @@
     <string name="legend_elevated">Elevated</string>
     <string name="legend_high">Alert</string>
     <string name="legend_critical">Target</string>
+    <string name="threats_summary_none">No threats</string>
+    <string name="threats_list_title">Active Air Threats</string>
+    <string name="threats_list_total">Total: %1$d</string>
+    <string name="threats_list_filter_all">All</string>
+    <string name="threats_list_empty">No active aerial targets on radar</string>
+    <string name="threats_list_distance_from">~%1$d km from %2$s</string>
+    <string name="threats_list_speed_kmh">%1$d km/h</string>
     <string name="region_threat_clear">No active alert</string>
     <string name="region_threat_elevated">Elevated threat (Yellow warning)</string>
     <string name="region_threat_high">Active air alert</string>

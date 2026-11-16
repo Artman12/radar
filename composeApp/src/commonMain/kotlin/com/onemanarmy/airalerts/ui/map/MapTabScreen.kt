@@ -93,7 +93,9 @@ import com.onemanarmy.airalerts.resources.status_no_points_subtitle
 import com.onemanarmy.airalerts.resources.status_no_points_title
 import com.onemanarmy.airalerts.resources.status_point_subtitle
 import com.onemanarmy.airalerts.resources.status_yellow_warning
+import com.onemanarmy.airalerts.ui.components.ActiveThreatsSummaryPill
 import com.onemanarmy.airalerts.ui.components.AddLocationBottomSheet
+import com.onemanarmy.airalerts.ui.components.AllThreatsBottomSheet
 import com.onemanarmy.airalerts.ui.components.CrosshairMapPickerOverlay
 import com.onemanarmy.airalerts.ui.components.MapZoomControlsPill
 import com.onemanarmy.airalerts.ui.components.PointDetailsBottomSheet
@@ -145,6 +147,7 @@ fun MapTabScreen(
     var zoomInVersion by remember { mutableIntStateOf(0) }
     var zoomOutVersion by remember { mutableIntStateOf(0) }
     var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
+    var isAllThreatsSheetOpen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (uiState.isCrosshairMode) {
@@ -252,18 +255,26 @@ fun MapTabScreen(
                 }
             }
 
-            // Bottom-left selected region card + threat legend pill.
+            // Bottom-left selected region card + active threats summary + threat legend pill.
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 12.dp, end = 84.dp, bottom = 48.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = Alignment.Start
             ) {
                 uiState.selectedRegion?.let { selected ->
                     SelectedRegionInfoCard(
                         selected = selected,
                         onDismiss = viewModel::dismissSelectedRegion
+                    )
+                }
+
+                if (uiState.settings.radarLayerEnabled) {
+                    ActiveThreatsSummaryPill(
+                        threats = uiState.threats,
+                        highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
+                        onClick = { isAllThreatsSheetOpen = true }
                     )
                 }
 
@@ -470,6 +481,18 @@ fun MapTabScreen(
     if (isKnowledgeBaseOpen) {
         ThreatKnowledgeBaseSheet(
             onDismiss = { isKnowledgeBaseOpen = false }
+        )
+    }
+
+    if (isAllThreatsSheetOpen) {
+        AllThreatsBottomSheet(
+            threats = uiState.threats,
+            highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
+            onThreatSelected = { item ->
+                isAllThreatsSheetOpen = false
+                viewModel.focusMapOn(item.threat.latitude, item.threat.longitude, 10.5)
+            },
+            onDismiss = { isAllThreatsSheetOpen = false }
         )
     }
 
