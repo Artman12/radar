@@ -51,6 +51,32 @@ object RegionMatcher {
         OblastCentroid("9999", "Автономна Республіка Крим", "Crimea", 44.9521, 34.1024, listOf("крим", "crimea", "сімферополь", "севастополь"))
     )
 
+    private data class NormalizedOblastEntry(
+        val centroid: OblastCentroid,
+        val normUk: String,
+        val normEn: String,
+        val normAliases: List<String>
+    )
+
+    private val normalizedOblasts: List<NormalizedOblastEntry> by lazy {
+        oblastCentroids.map { c ->
+            NormalizedOblastEntry(
+                centroid = c,
+                normUk = normalizeName(c.ukName),
+                normEn = normalizeName(c.engName),
+                normAliases = c.aliases.map { normalizeName(it) }
+            )
+        }
+    }
+
+    private val kyivCityCentroid: OblastCentroid? by lazy {
+        oblastCentroids.firstOrNull { it.regionId == "31" }
+    }
+
+    private val kyivOblastCentroid: OblastCentroid? by lazy {
+        oblastCentroids.firstOrNull { it.regionId == "14" }
+    }
+
     fun findOblastByName(rawName: String?): OblastCentroid? {
         if (rawName.isNullOrBlank()) return null
         val normalized = normalizeName(rawName)
@@ -58,21 +84,23 @@ object RegionMatcher {
 
         // Check Kyiv vs Kyivska oblast explicitly first because "київ" is a prefix of "київська".
         if (normalized == "київ" || normalized == "kyiv" || normalized == "kiev") {
-            return oblastCentroids.firstOrNull { it.regionId == "31" }
+            return kyivCityCentroid
         }
         if (normalized.startsWith("київськ") || normalized.startsWith("kyivsk")) {
-            return oblastCentroids.firstOrNull { it.regionId == "14" }
+            return kyivOblastCentroid
         }
 
-        return oblastCentroids.firstOrNull { centroid ->
-            val uk = normalizeName(centroid.ukName)
-            val en = normalizeName(centroid.engName)
-            uk == normalized || en == normalized ||
-                centroid.aliases.any { alias ->
-                    val normAlias = normalizeName(alias)
-                    normalized == normAlias || normalized.contains(normAlias)
+        for (entry in normalizedOblasts) {
+            if (entry.normUk == normalized || entry.normEn == normalized) {
+                return entry.centroid
+            }
+            for (alias in entry.normAliases) {
+                if (normalized == alias || normalized.contains(alias)) {
+                    return entry.centroid
                 }
+            }
         }
+        return null
     }
 
     /**

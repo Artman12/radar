@@ -20,6 +20,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -68,6 +69,7 @@ import com.onemanarmy.airalerts.domain.model.RegionThreatLevel
 import com.onemanarmy.airalerts.resources.Res
 import com.onemanarmy.airalerts.resources.btn_save
 import com.onemanarmy.airalerts.resources.default_home_name
+import com.onemanarmy.airalerts.resources.kb_map_legend_btn
 import com.onemanarmy.airalerts.resources.legend_clear
 import com.onemanarmy.airalerts.resources.legend_critical
 import com.onemanarmy.airalerts.resources.legend_elevated
@@ -95,6 +97,7 @@ import com.onemanarmy.airalerts.ui.components.CrosshairMapPickerOverlay
 import com.onemanarmy.airalerts.ui.components.MapZoomControlsPill
 import com.onemanarmy.airalerts.ui.components.PointDetailsBottomSheet
 import com.onemanarmy.airalerts.ui.components.ThreatDetailsBottomSheet
+import com.onemanarmy.airalerts.ui.components.ThreatKnowledgeBaseSheet
 import com.onemanarmy.airalerts.ui.theme.AlertColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -140,6 +143,7 @@ fun MapTabScreen(
 
     var zoomInVersion by remember { mutableIntStateOf(0) }
     var zoomOutVersion by remember { mutableIntStateOf(0) }
+    var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (uiState.isCrosshairMode) {
@@ -149,7 +153,6 @@ fun MapTabScreen(
                 initialLon = uiState.mapCenterLon,
                 initialZoom = uiState.mapZoom,
                 confirmLabel = stringResource(Res.string.btn_save),
-                onCenterChanged = viewModel::onMapCenterChanged,
                 onCancel = viewModel::cancelCrosshairMode,
                 onConfirm = { lat, lon ->
                     viewModel.saveLocationFromCoordinates("", lat, lon, defaultLabel)
@@ -172,12 +175,15 @@ fun MapTabScreen(
                 selectedRegionId = uiState.selectedRegion?.polygon?.id,
                 showThreatsLayer = uiState.settings.radarLayerEnabled,
                 warningRadiusKm = uiState.settings.warningRadiusKm,
+                highlightNearbyThreats = uiState.settings.radarNearbyAlertsEnabled,
                 gpsCoordinates = gpsPair,
                 isCrosshairPickerMode = false,
                 onPointClicked = viewModel::onPointClicked,
                 onThreatClicked = viewModel::onThreatClicked,
                 onRegionClicked = viewModel::onRegionClicked,
-                onMapCenterChanged = viewModel::onMapCenterChanged
+                onMapCenterChanged = viewModel::onMapCenterChanged,
+                onMapViewportChanged = viewModel::onMapViewportChanged,
+                onUserMapInteraction = viewModel::onUserMapInteraction
             )
 
             // Top sticky swipeable status card + optional proximity banner.
@@ -252,7 +258,40 @@ fun MapTabScreen(
                     )
                 }
 
-                RegionThreatLegendPill()
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RegionThreatLegendPill()
+
+                    Surface(
+                        modifier = Modifier.clickable { isKnowledgeBaseOpen = true },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        tonalElevation = 2.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = stringResource(Res.string.kb_map_legend_btn),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = stringResource(Res.string.kb_map_legend_btn),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
             }
 
             // Right-side map zoom pill + Floating Action Buttons.
@@ -409,7 +448,19 @@ fun MapTabScreen(
     uiState.selectedThreatDetails?.let { threat ->
         ThreatDetailsBottomSheet(
             item = threat,
+            warningRadiusKm = uiState.settings.warningRadiusKm,
+            highlightNearbyThreats = uiState.settings.radarNearbyAlertsEnabled,
+            onOpenKnowledgeBase = {
+                viewModel.dismissDetailsSheets()
+                isKnowledgeBaseOpen = true
+            },
             onDismiss = viewModel::dismissDetailsSheets
+        )
+    }
+
+    if (isKnowledgeBaseOpen) {
+        ThreatKnowledgeBaseSheet(
+            onDismiss = { isKnowledgeBaseOpen = false }
         )
     }
 
@@ -465,16 +516,21 @@ private fun StickyStatusPager(
         return
     }
 
+    val initialPage = selectedIndex.coerceIn(0, statuses.lastIndex)
     val pagerState = rememberPagerState(
-        initialPage = selectedIndex.coerceIn(0, statuses.lastIndex),
+        initialPage = initialPage,
         pageCount = { statuses.size }
     )
+    var lastHandledPage by remember { mutableIntStateOf(initialPage) }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }
             .distinctUntilChanged()
             .collect { page ->
-                onPageSelected(page)
+                if (page != lastHandledPage) {
+                    lastHandledPage = page
+                    onPageSelected(page)
+                }
             }
     }
 

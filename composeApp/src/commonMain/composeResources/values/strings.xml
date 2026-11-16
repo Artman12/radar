@@ -66,7 +66,7 @@
     <string name="legend_high">Alert</string>
     <string name="legend_critical">Target</string>
     <string name="region_threat_clear">No active alert</string>
-    <string name="region_threat_elevated">Elevated threat / Radar target nearby</string>
+    <string name="region_threat_elevated">Elevated threat (Yellow warning)</string>
     <string name="region_threat_high">Active air alert</string>
     <string name="region_threat_critical">Critical: Air alert + Radar target nearby</string>
     <string name="region_nearby_targets_count">%1$d radar target(s) nearby</string>
@@ -113,9 +113,12 @@
     <string name="threat_details_distance_value">~%1$d km</string>
     <string name="threat_details_uncertainty">Position uncertainty: ±%1$d km</string>
     <string name="threat_details_approx_note">OSINT radar data is approximate and updated only while the Map tab is open.</string>
+    <string name="threat_details_inside_radius">Inside %1$d km warning radius</string>
+    <string name="threat_details_open_kb">About threat types &amp; icons</string>
 
     <!-- Threat Types -->
-    <string name="threat_type_uav">Attack UAV (Shahed)</string>
+    <string name="threat_type_uav">Attack UAV (Shahed-136)</string>
+    <string name="threat_type_jet_shahed">Jet Shahed (Shahed-238)</string>
     <string name="threat_type_fpv">FPV Drone</string>
     <string name="threat_type_recon">Reconnaissance UAV</string>
     <string name="threat_type_cruise_missile">Cruise Missile</string>
@@ -123,6 +126,49 @@
     <string name="threat_type_kab">Guided Aerial Bomb (KAB)</string>
     <string name="threat_type_aviation">Tactical Aviation</string>
     <string name="threat_type_unknown">Aerial Target</string>
+
+    <!-- Threat Knowledge Base -->
+    <string name="kb_title">Threat Knowledge Base</string>
+    <string name="kb_subtitle">All radar icons, target profiles &amp; safety actions</string>
+    <string name="kb_intro_note">Icons rotate along the reported heading. Targets inside your warning radius are highlighted with a red-amber beacon ring.</string>
+    <string name="kb_map_legend_btn">Threat Guide</string>
+    <string name="kb_safety_label">Safety action</string>
+
+    <string name="kb_uav_profile">~150–185 km/h • Propeller delta-wing UAV</string>
+    <string name="kb_uav_desc">Long-range piston-driven loitering munition (Shahed-136 / 131, Geran-2) with a cropped delta wing and rear pusher propeller. Moves steadily in groups at low altitude.</string>
+    <string name="kb_uav_safety">Expect prolonged air defense activity and debris risk. Move away from windows to an interior wall or shelter.</string>
+
+    <string name="kb_jet_shahed_profile">~450–600 km/h • Turbojet delta-wing UAV</string>
+    <string name="kb_jet_shahed_desc">Jet-powered Shahed-238 (Geran-3) variant with a dorsal air intake and turbojet exhaust instead of a propeller. Flies 3× faster and reaches targets much sooner than standard Shaheds.</string>
+    <string name="kb_jet_shahed_safety">Significantly shorter warning window due to high speed. Move to shelter or behind two solid walls immediately.</string>
+
+    <string name="kb_fpv_profile">~70–140 km/h • Short-range quadcopter</string>
+    <string name="kb_fpv_desc">Small high-maneuverability tactical quadcopter piloted via video link or fiber-optic tether. Typically threatens frontline and border communities at very low altitude.</string>
+    <string name="kb_fpv_safety">Avoid open roads and vehicles if reported nearby; seek solid overhead cover immediately.</string>
+
+    <string name="kb_recon_profile">~90–140 km/h • High-aspect glider UAV</string>
+    <string name="kb_recon_desc">Reconnaissance drone (e.g., Orlan, Supercam, ZALA) orbiting or traversing at medium altitude to spot targets and adjust missile or artillery strikes.</string>
+    <string name="kb_recon_safety">Often precedes precision strikes in the area. Stay alert for follow-up ballistic, KAB, or artillery alerts.</string>
+
+    <string name="kb_cruise_profile">~750–950 km/h • Terrain-hugging missile</string>
+    <string name="kb_cruise_desc">Subsonic jet-powered missile (e.g., Kh-101, Kalibr, Kh-59/69) flying low along terrain and frequently changing course to bypass air defenses.</string>
+    <string name="kb_cruise_safety">Can cross an entire oblast in minutes. Proceed to shelter immediately and wait for the official all-clear.</string>
+
+    <string name="kb_ballistic_profile">Mach 5+ (~4,000+ km/h) • High-speed arc</string>
+    <string name="kb_ballistic_desc">Quasi-ballistic or ballistic missile (e.g., Iskander-M, KN-23, Kinzhal) descending steeply from high altitude with minimal flight time from launch to impact.</string>
+    <string name="kb_ballistic_safety">Only seconds to a few minutes of warning. Take cover immediately using the two-walls rule or nearest shelter.</string>
+
+    <string name="kb_kab_profile">~500–800 km/h • Guided glide bomb</string>
+    <string name="kb_kab_desc">Heavy aerial bomb fitted with pop-out UMPK wings and satellite guidance, released by tactical aircraft tens of kilometers behind the front or border.</string>
+    <string name="kb_kab_safety">Very short flight time (1–3 minutes) and heavy blast radius. Seek underground shelter or reinforced lower floors immediately.</string>
+
+    <string name="kb_aviation_profile">Supersonic jet • Launch platform</string>
+    <string name="kb_aviation_desc">Enemy tactical fighter/bomber (e.g., Su-34, Su-35, MiG-31K) operating near borders or sea zones, capable of launching KAB glide bombs, cruise, or aeroballistic missiles.</string>
+    <string name="kb_aviation_safety">Indicates elevated launch threat across nearby or nationwide regions. Keep shelter nearby and watch for sudden missile launches.</string>
+
+    <string name="kb_unknown_profile">Unclassified radar track</string>
+    <string name="kb_unknown_desc">Aerial target detected on OSINT radar whose exact type, speed, or altitude has not yet been confirmed by monitoring channels.</string>
+    <string name="kb_unknown_safety">Treat as an active air threat until classified or cleared, and follow official regional alert status.</string>
 
     <!-- Alert Types -->
     <string name="alert_type_air">Air Raid Alert</string>
@@ -169,6 +215,8 @@
     <string name="settings_radar_section">Radar &amp; Proximity</string>
     <string name="settings_warning_radius">Warning radius: %1$d km</string>
     <string name="settings_radar_nearby_alerts">Highlight threats inside warning radius</string>
+    <string name="settings_kb_title">Threat Knowledge Base</string>
+    <string name="settings_kb_subtitle">View all target icons, characteristics &amp; safety actions</string>
 
     <string name="settings_diagnostics_section">Background Diagnostics</string>
     <string name="diag_service_title">Foreground Monitoring Service</string>

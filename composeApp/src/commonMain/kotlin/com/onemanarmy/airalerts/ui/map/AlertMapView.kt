@@ -31,10 +31,13 @@ expect fun AlertMapView(
     selectedRegionId: String? = null,
     showThreatsLayer: Boolean,
     warningRadiusKm: Int,
+    highlightNearbyThreats: Boolean = true,
     gpsCoordinates: Pair<Double, Double>?,
     isCrosshairPickerMode: Boolean = false,
     onPointClicked: (PointStatus) -> Unit = {},
     onThreatClicked: (ThreatWithProximity) -> Unit = {},
     onRegionClicked: (RegionPolygon, RegionThreatInfo?) -> Unit = { _, _ -> },
-    onMapCenterChanged: (Double, Double) -> Unit = { _, _ -> }
+    onMapCenterChanged: (Double, Double) -> Unit = { _, _ -> },
+    onMapViewportChanged: (Double, Double, Double) -> Unit = { _, _, _ -> },
+    onUserMapInteraction: () -> Unit = {}
 )

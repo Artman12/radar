@@ -9,6 +9,7 @@ import com.onemanarmy.airalerts.domain.model.RegionThreatSnapshot
 import com.onemanarmy.airalerts.domain.model.ThreatType
 import com.onemanarmy.airalerts.domain.model.ThreatWithProximity
 import com.onemanarmy.airalerts.domain.model.UkraineMapBoundaries
+import kotlin.concurrent.Volatile
 
 /**
  * Evaluates real-time threat levels for every oblast, raion, and hromada in Ukraine
@@ -21,6 +22,73 @@ class RegionThreatEvaluator {
         private const val BBOX_PAD_LON = 0.42f
         private const val DEFAULT_THREAT_RADIUS_KM = 18.0
         private const val MISSILE_THREAT_RADIUS_KM = 26.0
+        private val MULTI_SPACE_REGEX = Regex("\\s+")
+        private val ADJ_SUFFIXES = listOf("ський", "ська", "ське", "цький", "цька", "цьке", "зький", "зька", "зьке")
+        private val SHORT_SUFFIXES = listOf("ий", "ій", "а", "я", "е", "о", "и", "і")
+    }
+
+    private class BoundaryThreatIndex(
+        val source: UkraineMapBoundaries,
+        val oblastKeys: Array<String>,
+        val raionOblastKeys: Array<String>,
+        val raionKeys: Array<String>,
+        val hromadaOblastKeys: Array<String>,
+        val hromadaRaionKeys: Array<String>,
+        val hromadaKeys: Array<String>
+    )
+
+    private class IndexedLocalAlert(
+        val raionKey: String,
+        val hromadaKey: String,
+        val level: AlertLevel
+    )
+
+    @Volatile
+    private var cachedIndex: BoundaryThreatIndex? = null
+
+    private fun getOrBuildIndex(boundaries: UkraineMapBoundaries): BoundaryThreatIndex {
+        val existing = cachedIndex
+        if (existing != null && existing.source === boundaries) {
+            return existing
+        }
+        val oblastKeyCache = HashMap<String, String>(48)
+        fun cachedOblast(raw: String): String =
+            oblastKeyCache.getOrPut(raw) { canonicalOblastKey(raw) }
+
+        val raionKeyCache = HashMap<String, String>(192)
+        fun cachedRaion(raw: String): String =
+            raionKeyCache.getOrPut(raw) { canonicalRaionKey(raw) }
+
+        val oblastKeys = Array(boundaries.oblasts.size) { i ->
+            cachedOblast(boundaries.oblasts[i].name)
+        }
+        val raionOblastKeys = Array(boundaries.raions.size) { i ->
+            cachedOblast(boundaries.raions[i].oblastName)
+        }
+        val raionKeys = Array(boundaries.raions.size) { i ->
+            cachedRaion(boundaries.raions[i].name)
+        }
+        val hromadaOblastKeys = Array(boundaries.hromadas.size) { i ->
+            cachedOblast(boundaries.hromadas[i].oblastName)
+        }
+        val hromadaRaionKeys = Array(boundaries.hromadas.size) { i ->
+            cachedRaion(boundaries.hromadas[i].raionName)
+        }
+        val hromadaKeys = Array(boundaries.hromadas.size) { i ->
+            canonicalHromadaKey(boundaries.hromadas[i].name)
+        }
+
+        val built = BoundaryThreatIndex(
+            source = boundaries,
+            oblastKeys = oblastKeys,
+            raionOblastKeys = raionOblastKeys,
+            raionKeys = raionKeys,
+            hromadaOblastKeys = hromadaOblastKeys,
+            hromadaRaionKeys = hromadaRaionKeys,
+            hromadaKeys = hromadaKeys
+        )
+        cachedIndex = built
+        return built
     }
 
     fun evaluate(
@@ -28,24 +96,75 @@ class RegionThreatEvaluator {
         activeAlerts: List<ActiveAlertInfo>,
         threats: List<ThreatWithProximity>
     ): RegionThreatSnapshot {
-        val oblastAlerts = activeAlerts.filter { it.isOblastWide }
-        val localAlerts = activeAlerts.filter { !it.isOblastWide }
+        val index = getOrBuildIndex(boundaries)
 
-        val oblastAlertLevels = boundaries.oblasts.map { oblast ->
-            highestAlertForOblast(oblast, oblastAlerts, localAlerts)
+        val oblastWideMap = HashMap<String, AlertLevel>(32)
+        val localByOblast = HashMap<String, ArrayList<IndexedLocalAlert>>(32)
+        val unscopedLocalAlerts = ArrayList<IndexedLocalAlert>(8)
+
+        for (alert in activeAlerts) {
+            if (alert.isOblastWide) {
+                val key = canonicalOblastKey(alert.oblastName.ifBlank { alert.regionName })
+                if (key.isNotBlank()) {
+                    val prev = oblastWideMap[key] ?: AlertLevel.NONE
+                    val next = maxAlertLevel(prev, alert.level)
+                    oblastWideMap[key] = next
+                    // Crimea-wide alert ("9999") also applies to Sevastopol.
+                    if (key == "9999") {
+                        val prevSev = oblastWideMap["sevastopol"] ?: AlertLevel.NONE
+                        oblastWideMap["sevastopol"] = maxAlertLevel(prevSev, alert.level)
+                    } else if (key == "sevastopol") {
+                        val prevCrimea = oblastWideMap["9999"] ?: AlertLevel.NONE
+                        oblastWideMap["9999"] = maxAlertLevel(prevCrimea, alert.level)
+                    }
+                }
+            } else {
+                val oblastKey = canonicalOblastKey(alert.oblastName)
+                val fallbackOblastKey = if (oblastKey.isBlank()) {
+                    canonicalOblastKey(alert.regionName)
+                } else {
+                    oblastKey
+                }
+                val entry = IndexedLocalAlert(
+                    raionKey = canonicalRaionKey(alert.regionName),
+                    hromadaKey = canonicalHromadaKey(alert.regionName),
+                    level = alert.level
+                )
+                if (oblastKey.isBlank()) {
+                    unscopedLocalAlerts.add(entry)
+                } else {
+                    localByOblast.getOrPut(oblastKey) { ArrayList(4) }.add(entry)
+                    if (oblastKey == "9999") {
+                        localByOblast.getOrPut("sevastopol") { ArrayList(4) }.add(entry)
+                    } else if (oblastKey == "sevastopol") {
+                        localByOblast.getOrPut("9999") { ArrayList(4) }.add(entry)
+                    }
+                }
+                // Handle special-status cities (Kyiv, Sevastopol) if reported as local alerts without oblastName.
+                if (oblastKey.isBlank() && (fallbackOblastKey == "31" || fallbackOblastKey == "sevastopol")) {
+                    localByOblast.getOrPut(fallbackOblastKey) { ArrayList(2) }.add(entry)
+                }
+            }
         }
 
-        val hromadaThreats = ArrayList<RegionThreatLevel>(boundaries.hromadas.size)
-        val hromadaInfos = ArrayList<RegionThreatInfo>(boundaries.hromadas.size)
+        val hromadas = boundaries.hromadas
+        val hromadaThreats = ArrayList<RegionThreatLevel>(hromadas.size)
+        val hromadaInfos = ArrayList<RegionThreatInfo>(hromadas.size)
 
         var criticalCount = 0
         var highCount = 0
         var elevatedCount = 0
 
-        for (hromada in boundaries.hromadas) {
-            val oblastAlert = highestOblastWideAlert(hromada.oblastName, oblastAlerts)
-            val raionAlert = highestLocalAlertForRaion(hromada.raionName, hromada.oblastName, localAlerts)
-            val hromadaOnlyAlert = highestLocalAlertForHromada(hromada, localAlerts)
+        for (i in hromadas.indices) {
+            val hromada = hromadas[i]
+            val oblastKey = index.hromadaOblastKeys[i]
+            val raionKey = index.hromadaRaionKeys[i]
+            val hromadaKey = index.hromadaKeys[i]
+
+            val oblastAlert = oblastWideMap[oblastKey] ?: AlertLevel.NONE
+            val scopedLocals = localByOblast[oblastKey]
+            val raionAlert = highestLocalAlertForRaionIndexed(raionKey, scopedLocals, unscopedLocalAlerts)
+            val hromadaOnlyAlert = highestLocalAlertForHromadaIndexed(hromadaKey, scopedLocals, unscopedLocalAlerts)
             val alertLevel = maxAlertLevel(oblastAlert, maxAlertLevel(raionAlert, hromadaOnlyAlert))
             val nearbyCount = countNearbyRadarThreats(hromada, threats)
 
@@ -58,7 +177,7 @@ class RegionThreatEvaluator {
                     highCount++
                     RegionThreatLevel.HIGH
                 }
-                alertLevel == AlertLevel.YELLOW || nearbyCount > 0 -> {
+                alertLevel == AlertLevel.YELLOW -> {
                     elevatedCount++
                     RegionThreatLevel.ELEVATED
                 }
@@ -80,11 +199,15 @@ class RegionThreatEvaluator {
             )
         }
 
-        val raionThreats = ArrayList<RegionThreatLevel>(boundaries.raions.size)
-        val raionInfos = ArrayList<RegionThreatInfo>(boundaries.raions.size)
-        for (raion in boundaries.raions) {
-            val oblastAlert = highestOblastWideAlert(raion.oblastName, oblastAlerts)
-            val localAlert = highestLocalAlertForRaion(raion.name, raion.oblastName, localAlerts)
+        val raions = boundaries.raions
+        val raionThreats = ArrayList<RegionThreatLevel>(raions.size)
+        val raionInfos = ArrayList<RegionThreatInfo>(raions.size)
+        for (i in raions.indices) {
+            val raion = raions[i]
+            val oblastKey = index.raionOblastKeys[i]
+            val raionKey = index.raionKeys[i]
+            val oblastAlert = oblastWideMap[oblastKey] ?: AlertLevel.NONE
+            val localAlert = highestLocalAlertForRaionIndexed(raionKey, localByOblast[oblastKey], unscopedLocalAlerts)
             val alertLevel = maxAlertLevel(oblastAlert, localAlert)
             val nearbyCount = countNearbyRadarThreats(raion, threats)
             val threatLevel = toRegionThreatLevel(alertLevel, nearbyCount > 0)
@@ -101,11 +224,20 @@ class RegionThreatEvaluator {
             )
         }
 
-        val oblastThreats = ArrayList<RegionThreatLevel>(boundaries.oblasts.size)
-        val oblastInfos = ArrayList<RegionThreatInfo>(boundaries.oblasts.size)
-        for (idx in boundaries.oblasts.indices) {
-            val oblast = boundaries.oblasts[idx]
-            val oblastWideAlert = oblastAlertLevels[idx]
+        val oblasts = boundaries.oblasts
+        val oblastThreats = ArrayList<RegionThreatLevel>(oblasts.size)
+        val oblastInfos = ArrayList<RegionThreatInfo>(oblasts.size)
+        for (idx in oblasts.indices) {
+            val oblast = oblasts[idx]
+            val key = index.oblastKeys[idx]
+            var oblastWideAlert = oblastWideMap[key] ?: AlertLevel.NONE
+            if (key == "31" || key == "sevastopol") {
+                localByOblast[key]?.let { specials ->
+                    for (entry in specials) {
+                        oblastWideAlert = maxAlertLevel(oblastWideAlert, entry.level)
+                    }
+                }
+            }
             val nearbyCount = countNearbyRadarThreats(oblast, threats)
             val threatLevel = toRegionThreatLevel(oblastWideAlert, nearbyCount > 0)
             oblastThreats.add(threatLevel)
@@ -133,97 +265,65 @@ class RegionThreatEvaluator {
         )
     }
 
+    private fun highestLocalAlertForRaionIndexed(
+        raionKey: String,
+        scopedLocals: List<IndexedLocalAlert>?,
+        unscopedLocals: List<IndexedLocalAlert>
+    ): AlertLevel {
+        if (raionKey.isBlank()) return AlertLevel.NONE
+        var best = AlertLevel.NONE
+        if (scopedLocals != null) {
+            for (i in scopedLocals.indices) {
+                val entry = scopedLocals[i]
+                if (raionKey == entry.raionKey) {
+                    best = maxAlertLevel(best, entry.level)
+                    if (best == AlertLevel.RED) return best
+                }
+            }
+        }
+        for (i in unscopedLocals.indices) {
+            val entry = unscopedLocals[i]
+            if (raionKey == entry.raionKey) {
+                best = maxAlertLevel(best, entry.level)
+                if (best == AlertLevel.RED) return best
+            }
+        }
+        return best
+    }
+
+    private fun highestLocalAlertForHromadaIndexed(
+        hromadaKey: String,
+        scopedLocals: List<IndexedLocalAlert>?,
+        unscopedLocals: List<IndexedLocalAlert>
+    ): AlertLevel {
+        if (hromadaKey.isBlank()) return AlertLevel.NONE
+        var best = AlertLevel.NONE
+        if (scopedLocals != null) {
+            for (i in scopedLocals.indices) {
+                val entry = scopedLocals[i]
+                if (hromadaKeysMatch(hromadaKey, entry.hromadaKey)) {
+                    best = maxAlertLevel(best, entry.level)
+                    if (best == AlertLevel.RED) return best
+                }
+            }
+        }
+        for (i in unscopedLocals.indices) {
+            val entry = unscopedLocals[i]
+            if (hromadaKeysMatch(hromadaKey, entry.hromadaKey)) {
+                best = maxAlertLevel(best, entry.level)
+                if (best == AlertLevel.RED) return best
+            }
+        }
+        return best
+    }
+
     private fun toRegionThreatLevel(alertLevel: AlertLevel, hasNearbyThreat: Boolean): RegionThreatLevel =
         when {
             alertLevel == AlertLevel.RED && hasNearbyThreat -> RegionThreatLevel.CRITICAL
             alertLevel == AlertLevel.RED -> RegionThreatLevel.HIGH
-            alertLevel == AlertLevel.YELLOW || hasNearbyThreat -> RegionThreatLevel.ELEVATED
+            alertLevel == AlertLevel.YELLOW -> RegionThreatLevel.ELEVATED
             else -> RegionThreatLevel.CLEAR
         }
-
-    private fun highestAlertForOblast(
-        oblast: RegionPolygon,
-        oblastAlerts: List<ActiveAlertInfo>,
-        localAlerts: List<ActiveAlertInfo>
-    ): AlertLevel {
-        val key = canonicalOblastKey(oblast.name)
-        var best = AlertLevel.NONE
-
-        for (alert in oblastAlerts) {
-            if (oblastKeysMatch(key, canonicalOblastKey(alert.oblastName.ifBlank { alert.regionName }))) {
-                best = maxAlertLevel(best, alert.level)
-            }
-        }
-
-        // Handle special-status cities (Kyiv, Sevastopol) if reported as local alerts.
-        if (key == "31" || key == "sevastopol") {
-            for (alert in localAlerts) {
-                val alertOblast = canonicalOblastKey(alert.oblastName.ifBlank { alert.regionName })
-                if (oblastKeysMatch(key, alertOblast)) {
-                    best = maxAlertLevel(best, alert.level)
-                }
-            }
-        }
-
-        return best
-    }
-
-    private fun highestOblastWideAlert(
-        oblastName: String,
-        oblastAlerts: List<ActiveAlertInfo>
-    ): AlertLevel {
-        val oblastKey = canonicalOblastKey(oblastName)
-        var best = AlertLevel.NONE
-        for (alert in oblastAlerts) {
-            val alertOblastKey = canonicalOblastKey(alert.oblastName.ifBlank { alert.regionName })
-            if (oblastKeysMatch(oblastKey, alertOblastKey)) {
-                best = maxAlertLevel(best, alert.level)
-                if (best == AlertLevel.RED) return best
-            }
-        }
-        return best
-    }
-
-    private fun highestLocalAlertForRaion(
-        raionName: String,
-        oblastName: String,
-        localAlerts: List<ActiveAlertInfo>
-    ): AlertLevel {
-        val raionKey = canonicalRaionKey(raionName)
-        if (raionKey.isBlank()) return AlertLevel.NONE
-        val oblastKey = canonicalOblastKey(oblastName)
-        var best = AlertLevel.NONE
-        for (alert in localAlerts) {
-            val alertOblast = canonicalOblastKey(alert.oblastName)
-            if (alertOblast.isNotBlank() && !oblastKeysMatch(oblastKey, alertOblast)) continue
-            if (raionKeysMatch(raionKey, canonicalRaionKey(alert.regionName))) {
-                best = maxAlertLevel(best, alert.level)
-                if (best == AlertLevel.RED) return best
-            }
-        }
-        return best
-    }
-
-    private fun highestLocalAlertForHromada(
-        hromada: RegionPolygon,
-        localAlerts: List<ActiveAlertInfo>
-    ): AlertLevel {
-        val hromadaKey = canonicalHromadaKey(hromada.name)
-        if (hromadaKey.isBlank()) return AlertLevel.NONE
-        val oblastKey = canonicalOblastKey(hromada.oblastName)
-        var best = AlertLevel.NONE
-        for (alert in localAlerts) {
-            val alertOblastKey = canonicalOblastKey(alert.oblastName)
-            if (alertOblastKey.isNotBlank() && !oblastKeysMatch(oblastKey, alertOblastKey)) {
-                continue
-            }
-            if (hromadaKeysMatch(hromadaKey, canonicalHromadaKey(alert.regionName))) {
-                best = maxAlertLevel(best, alert.level)
-                if (best == AlertLevel.RED) return best
-            }
-        }
-        return best
-    }
 
     private fun countNearbyRadarThreats(
         region: RegionPolygon,
@@ -251,7 +351,11 @@ class RegionThreatEvaluator {
                 continue
             }
 
-            val radiusKm = if (threat.type == ThreatType.BALLISTIC || threat.type == ThreatType.CRUISE_MISSILE) {
+            val radiusKm = if (
+                threat.type == ThreatType.BALLISTIC ||
+                threat.type == ThreatType.CRUISE_MISSILE ||
+                threat.type == ThreatType.JET_SHAHED
+            ) {
                 MISSILE_THREAT_RADIUS_KM
             } else {
                 DEFAULT_THREAT_RADIUS_KM
@@ -283,14 +387,6 @@ class RegionThreatEvaluator {
         if (norm == "київ" || norm == "kyiv" || norm == "kiev") return "31"
         if (norm.startsWith("київськ") || norm.startsWith("kyivsk")) return "14"
         return RegionMatcher.findOblastByName(raw)?.regionId ?: norm
-    }
-
-    private fun oblastKeysMatch(a: String, b: String): Boolean {
-        if (a.isBlank() || b.isBlank()) return false
-        if (a == b) return true
-        // Crimea-wide alert ("9999") also applies to Sevastopol if no separate Sevastopol code is emitted.
-        if ((a == "sevastopol" && b == "9999") || (a == "9999" && b == "sevastopol")) return true
-        return false
     }
 
     internal fun canonicalRaionKey(raw: String): String {
@@ -332,11 +428,6 @@ class RegionThreatEvaluator {
         return stripAdjectivalSuffix(norm)
     }
 
-    private fun raionKeysMatch(a: String, b: String): Boolean {
-        if (a.isBlank() || b.isBlank()) return false
-        return a == b
-    }
-
     private fun hromadaKeysMatch(a: String, b: String): Boolean {
         if (a.isBlank() || b.isBlank()) return false
         if (a == b) return true
@@ -346,14 +437,12 @@ class RegionThreatEvaluator {
 
     private fun stripAdjectivalSuffix(input: String): String {
         val s = input.trim()
-        val suffixes = listOf("ський", "ська", "ське", "цький", "цька", "цьке", "зький", "зька", "зьке")
-        for (suffix in suffixes) {
+        for (suffix in ADJ_SUFFIXES) {
             if (s.length > suffix.length + 3 && s.endsWith(suffix)) {
                 return s.dropLast(suffix.length)
             }
         }
-        val shortSuffixes = listOf("ий", "ій", "а", "я", "е", "о", "и", "і")
-        for (suffix in shortSuffixes) {
+        for (suffix in SHORT_SUFFIXES) {
             if (s.length > 4 && s.endsWith(suffix)) {
                 return s.dropLast(suffix.length)
             }
@@ -373,7 +462,7 @@ class RegionThreatEvaluator {
             .replace("’", "")
             .replace("`", "")
             .replace("-", " ")
-            .replace(Regex("\\s+"), " ")
+            .replace(MULTI_SPACE_REGEX, " ")
             .trim()
     }
 }

@@ -15,6 +15,7 @@ import com.onemanarmy.airalerts.domain.model.RegionThreatLevel
 import com.onemanarmy.airalerts.domain.model.RegionThreatSnapshot
 import com.onemanarmy.airalerts.domain.model.UkraineBounds
 import com.onemanarmy.airalerts.domain.model.UkraineMapBoundaries
+import kotlinx.coroutines.launch
 import org.osmdroid.util.TileSystem
 import org.osmdroid.views.Projection
 import kotlin.math.PI
@@ -645,42 +646,127 @@ internal class UkraineThreatAtlas(
  * or opening the crosshair picker.
  */
 internal object UkraineAtlasCache {
+    private val staticLock = Any()
+    private val threatLock = Any()
+
     @Volatile
     private var cachedStatic: UkraineStaticMercatorAtlas? = null
 
     @Volatile
     private var cachedThreat: UkraineThreatAtlas? = null
 
+    fun peekStatic(
+        boundaries: UkraineMapBoundaries?,
+        isDark: Boolean
+    ): UkraineStaticMercatorAtlas? {
+        val existing = cachedStatic ?: return null
+        return if (boundaries != null && existing.sourceBoundaries === boundaries && existing.isDark == isDark) {
+            existing
+        } else {
+            null
+        }
+    }
+
     fun getOrBuildStatic(
         boundaries: UkraineMapBoundaries,
         isDark: Boolean
     ): UkraineStaticMercatorAtlas {
-        val existing = cachedStatic
-        if (existing != null &&
-            existing.sourceBoundaries === boundaries &&
-            existing.isDark == isDark
-        ) {
-            return existing
+        peekStatic(boundaries, isDark)?.let { return it }
+        synchronized(staticLock) {
+            peekStatic(boundaries, isDark)?.let { return it }
+            val built = UkraineStaticMercatorAtlas.build(boundaries, isDark)
+            cachedStatic = built
+            return built
         }
-        val built = UkraineStaticMercatorAtlas.build(boundaries, isDark)
-        cachedStatic = built
-        return built
+    }
+
+    fun peekThreat(
+        atlas: UkraineStaticMercatorAtlas?,
+        snapshot: RegionThreatSnapshot?
+    ): UkraineThreatAtlas? {
+        val existing = cachedThreat ?: return null
+        return if (atlas != null && snapshot != null &&
+            existing.isDark == atlas.isDark &&
+            existing.sourceSnapshot === snapshot
+        ) {
+            existing
+        } else {
+            null
+        }
     }
 
     fun getOrBuildThreat(
         atlas: UkraineStaticMercatorAtlas,
         snapshot: RegionThreatSnapshot
     ): UkraineThreatAtlas {
-        val existing = cachedThreat
-        if (existing != null &&
-            existing.isDark == atlas.isDark &&
-            existing.sourceSnapshot === snapshot
-        ) {
-            return existing
+        peekThreat(atlas, snapshot)?.let { return it }
+        synchronized(threatLock) {
+            peekThreat(atlas, snapshot)?.let { return it }
+            val built = atlas.buildThreatAtlas(snapshot, cachedThreat)
+            cachedThreat = built
+            return built
         }
-        val built = atlas.buildThreatAtlas(snapshot, existing)
-        cachedThreat = built
-        return built
     }
 }
+
+/**
+ * Application-startup preloader that warms osmdroid configuration, DNS resolution,
+ * binary boundary parsing, and the static Mercator atlas on background threads before
+ * the Map screen even enters composition.
+ */
+object UkraineMapPreloader {
+    private val osmLock = Any()
+    @Volatile
+    private var osmConfigured = false
+    private val preloadStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val scope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default
+    )
+
+    fun ensureOsmDroidConfigured(context: android.content.Context) {
+        if (osmConfigured) return
+        synchronized(osmLock) {
+            if (osmConfigured) return
+            val appContext = context.applicationContext
+            org.osmdroid.config.Configuration.getInstance().apply {
+                load(appContext, appContext.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
+                userAgentValue = "${appContext.packageName}/1.0 (Android; AirAlerts)"
+                osmdroidBasePath = java.io.File(appContext.cacheDir, "osmdroid")
+                osmdroidTileCache = java.io.File(appContext.cacheDir, "osmdroid/tiles")
+                cacheMapTileOvershoot = 48
+                tileDownloadThreads = 4
+                tileFileSystemThreads = 4
+            }
+            runCatching { java.io.File(appContext.cacheDir, "osmdroid/tiles/CartoDarkMatter").deleteRecursively() }
+            runCatching { java.io.File(appContext.cacheDir, "osmdroid/tiles/EsriDarkGrayCanvas").deleteRecursively() }
+            osmConfigured = true
+        }
+    }
+
+    fun startPreload(
+        context: android.content.Context,
+        boundaryRepo: com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
+    ) {
+        if (!preloadStarted.compareAndSet(false, true)) return
+        val appContext = context.applicationContext
+
+        com.onemanarmy.airalerts.data.remote.ResilientOkHttpProvider.prewarmDnsAsync(
+            "neptun.in.ua",
+            "server.arcgisonline.com",
+            "nominatim.openstreetmap.org"
+        )
+
+        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            ensureOsmDroidConfigured(appContext)
+        }
+
+        scope.launch {
+            val boundaries = boundaryRepo.loadIfNeeded()
+            if (boundaries != null) {
+                UkraineAtlasCache.getOrBuildStatic(boundaries, isDark = true)
+            }
+        }
+    }
+}
+
 

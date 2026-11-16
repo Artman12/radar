@@ -121,10 +121,19 @@ class UkraineBoundaryRepository {
 
         fun readRing(): FloatArray {
             val vertexCount = readInt()
-            val coords = FloatArray(vertexCount * 2)
-            for (i in coords.indices) {
-                coords[i] = readFloat()
+            val floatCount = vertexCount * 2
+            val coords = FloatArray(floatCount)
+            var p = pos
+            val b = bytes
+            for (i in 0 until floatCount) {
+                val bits = ((b[p].toInt() and 0xFF) shl 24) or
+                    ((b[p + 1].toInt() and 0xFF) shl 16) or
+                    ((b[p + 2].toInt() and 0xFF) shl 8) or
+                    (b[p + 3].toInt() and 0xFF)
+                coords[i] = Float.fromBits(bits)
+                p += 4
             }
+            pos = p
             return coords
         }
 

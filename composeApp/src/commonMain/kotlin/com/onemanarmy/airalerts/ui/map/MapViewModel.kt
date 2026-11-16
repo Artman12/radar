@@ -8,6 +8,7 @@ import com.onemanarmy.airalerts.data.repository.AlertMonitoringRepository
 import com.onemanarmy.airalerts.data.repository.RadarRepository
 import com.onemanarmy.airalerts.domain.logic.RegionThreatEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
+import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.PointStatus
 import com.onemanarmy.airalerts.domain.model.RegionPolygon
@@ -85,14 +86,30 @@ class MapViewModel(
 ) : ViewModel() {
 
     private val _localState = MutableStateFlow(MapUiState())
+    private val _rawThreats = MutableStateFlow<List<AirThreat>>(emptyList())
     private var radarPollingJob: Job? = null
     private var latestMapCenterLat = UkraineBounds.CENTER_LAT
     private var latestMapCenterLon = UkraineBounds.CENTER_LON
+    private var hasUserInteractedWithMap = false
+    private var hasDoneInitialAutoFocus = false
+
+    private val enrichedThreatsFlow = combine(
+        _rawThreats,
+        monitoringRepo.trackedPointStatusesFlow,
+        prefsRepo.settingsFlow
+    ) { rawThreats, statuses, settings ->
+        if (!settings.radarLayerEnabled || rawThreats.isEmpty()) {
+            emptyList()
+        } else {
+            val points = buildProximityPoints(statuses, settings)
+            radarRepo.enrichProximity(rawThreats, points, settings.warningRadiusKm)
+        }
+    }.flowOn(Dispatchers.Default)
 
     private val regionThreatsFlow = combine(
         boundaryRepo.boundariesFlow,
         monitoringRepo.activeAlertsFlow,
-        _localState.map { it.threats }.distinctUntilChanged()
+        enrichedThreatsFlow
     ) { boundaries, alerts, threats ->
         if (boundaries == null) {
             null
@@ -113,15 +130,19 @@ class MapViewModel(
 
     val uiState: StateFlow<MapUiState> = combine(
         _localState,
+        enrichedThreatsFlow,
         mapDomainFlow
-    ) { local, domain ->
+    ) { local, threats, domain ->
         val safeIndex = if (domain.statuses.isEmpty()) 0 else local.selectedPointIndex.coerceIn(0, domain.statuses.lastIndex)
-        val nearby = if (domain.settings.radarNearbyAlertsEnabled) {
-            local.threats
+        val nearby = if (domain.settings.radarLayerEnabled && domain.settings.radarNearbyAlertsEnabled) {
+            threats
                 .filter { it.isWithinWarningRadius }
                 .minByOrNull { it.distanceKm ?: Double.MAX_VALUE }
         } else {
             null
+        }
+        val refreshedSelectedThreat = local.selectedThreatDetails?.let { selected ->
+            threats.firstOrNull { it.threat.id == selected.threat.id } ?: selected
         }
         val refreshedSelectedRegion = local.selectedRegion?.let { sel ->
             val regionThreats = domain.regionThreats
@@ -141,11 +162,13 @@ class MapViewModel(
         }
         local.copy(
             pointStatuses = domain.statuses,
+            threats = threats,
             settings = domain.settings,
             activeAlerts = domain.activeAlerts,
             boundaries = domain.boundaries,
             regionThreats = domain.regionThreats,
             selectedRegion = refreshedSelectedRegion,
+            selectedThreatDetails = refreshedSelectedThreat,
             selectedPointIndex = safeIndex,
             nearbyThreat = nearby
         )
@@ -156,12 +179,24 @@ class MapViewModel(
             boundaryRepo.loadIfNeeded()
         }
 
+        // Apply initial focus immediately from cached points before waiting on network.
+        viewModelScope.launch {
+            val cachedStatuses = monitoringRepo.trackedPointStatusesFlow.first()
+            if (!hasUserInteractedWithMap && !hasDoneInitialAutoFocus) {
+                cachedStatuses.firstOrNull()?.let { first ->
+                    focusMapOn(first.point.latitude, first.point.longitude, 9.5)
+                }
+            }
+        }
+
         viewModelScope.launch {
             monitoringRepo.refreshRegionsIfNeeded()
             monitoringRepo.pollAlertsOnce(forceFullFetch = false, dispatchNotifications = false)
-            val statuses = monitoringRepo.trackedPointStatusesFlow.first()
-            statuses.firstOrNull()?.let { first ->
-                focusMapOn(first.point.latitude, first.point.longitude, 9.5)
+            if (!hasUserInteractedWithMap && !hasDoneInitialAutoFocus) {
+                val statuses = monitoringRepo.trackedPointStatusesFlow.first()
+                statuses.firstOrNull()?.let { first ->
+                    focusMapOn(first.point.latitude, first.point.longitude, 9.5)
+                }
             }
         }
 
@@ -176,7 +211,7 @@ class MapViewModel(
                         if (settings.gpsTrackingEnabled) {
                             val hadCoords = settings.gpsLatitude != null
                             val resolved = monitoringRepo.refreshGpsLocation()
-                            if (!hadCoords && resolved != null && _localState.value.focusVersion == 0) {
+                            if (!hadCoords && resolved != null && !hasUserInteractedWithMap && !hasDoneInitialAutoFocus) {
                                 focusMapOn(resolved.latitude, resolved.longitude, 10.0)
                             }
                         }
@@ -194,9 +229,10 @@ class MapViewModel(
             while (isActive) {
                 val settings = prefsRepo.settingsFlow.first()
                 if (settings.radarLayerEnabled) {
-                    refreshRadarOnce(settings)
+                    refreshRadarOnce()
                 } else {
-                    _localState.update { it.copy(threats = emptyList(), isRadarLoading = false) }
+                    _rawThreats.value = emptyList()
+                    _localState.update { it.copy(isRadarLoading = false) }
                 }
                 delay(20_000L)
             }
@@ -208,17 +244,41 @@ class MapViewModel(
         radarPollingJob = null
     }
 
-    private suspend fun refreshRadarOnce(settings: AppSettings) {
+    private suspend fun refreshRadarOnce() {
         _localState.update { it.copy(isRadarLoading = true) }
-        val points = monitoringRepo.trackedPointStatusesFlow.first().map { it.point }
-        radarRepo.fetchThreatsWithProximity(points, settings.warningRadiusKm)
+        radarRepo.fetchRawThreats()
             .onSuccess { threats ->
-                _localState.update { it.copy(threats = threats, isRadarLoading = false) }
+                _rawThreats.value = threats
+                _localState.update { it.copy(isRadarLoading = false) }
             }
             .onFailure {
                 // NEPTUN failure must never disrupt official alert monitoring.
                 _localState.update { it.copy(isRadarLoading = false) }
             }
+    }
+
+    private fun buildProximityPoints(
+        statuses: List<PointStatus>,
+        settings: AppSettings
+    ): List<SavedPoint> {
+        val points = statuses.map { it.point }
+        val hasGpsAnchor = points.any { it.isGpsAnchor }
+        if (!hasGpsAnchor &&
+            settings.gpsTrackingEnabled &&
+            settings.gpsLatitude != null &&
+            settings.gpsLongitude != null
+        ) {
+            return points + SavedPoint(
+                id = AlertMonitoringRepository.GPS_POINT_ID,
+                name = settings.gpsPointRegionName ?: "My Location",
+                latitude = settings.gpsLatitude,
+                longitude = settings.gpsLongitude,
+                regionId = settings.gpsPointRegionId.orEmpty(),
+                regionName = settings.gpsPointRegionName.orEmpty(),
+                isGpsAnchor = true
+            )
+        }
+        return points
     }
 
     fun selectPointPage(index: Int) {
@@ -245,10 +305,9 @@ class MapViewModel(
             val next = !current
             prefsRepo.updateSettings { it.copy(radarLayerEnabled = next) }
             if (next) {
-                val settings = prefsRepo.settingsFlow.first()
-                refreshRadarOnce(settings)
+                refreshRadarOnce()
             } else {
-                _localState.update { it.copy(threats = emptyList()) }
+                _rawThreats.value = emptyList()
             }
         }
     }
@@ -271,12 +330,29 @@ class MapViewModel(
     }
 
     fun focusMapOn(lat: Double, lon: Double, zoom: Double = 10.0) {
+        hasDoneInitialAutoFocus = true
         _localState.update {
             it.copy(
                 mapCenterLat = lat,
                 mapCenterLon = lon,
                 mapZoom = zoom,
                 focusVersion = it.focusVersion + 1
+            )
+        }
+    }
+
+    fun onUserMapInteraction() {
+        hasUserInteractedWithMap = true
+    }
+
+    fun onMapViewportChanged(lat: Double, lon: Double, zoom: Double) {
+        latestMapCenterLat = lat
+        latestMapCenterLon = lon
+        _localState.update {
+            it.copy(
+                mapCenterLat = lat,
+                mapCenterLon = lon,
+                mapZoom = zoom
             )
         }
     }

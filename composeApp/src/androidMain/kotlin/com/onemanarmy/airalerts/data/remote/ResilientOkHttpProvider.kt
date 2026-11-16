@@ -8,23 +8,25 @@ import org.json.JSONObject
 import java.net.InetAddress
 import java.net.UnknownHostException
 import java.util.concurrent.Callable
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * Shared OkHttpClient with fast resilient DNS resolution:
+ * Shared OkHttpClient with fast coalesced resilient DNS resolution:
  * 1. Returns cached DNS entries immediately.
- * 2. Tries Android system DNS with a strict 1200ms timeout (so dead VPN DNS servers never stall requests).
- * 3. Falls back to DNS-over-HTTPS (Cloudflare 1.1.1.1 / Google 8.8.8.8 by literal IP) and temporarily
- *    bypasses failing system DNS for 60 seconds so map tiles and API calls stay instant.
+ * 2. Coalesces concurrent lookups per hostname so multiple threads never duplicate DNS timeouts or DoH requests.
+ * 3. Tries Android system DNS with a strict 450ms timeout (healthy DNS resolves in <50ms; dead VPN DNS fails fast).
+ * 4. Falls back to DNS-over-HTTPS (Cloudflare 1.1.1.1 / Google 8.8.8.8 by literal IP) and bypasses failing
+ *    system DNS for 5 minutes so map tiles and API calls stay instant.
  */
 object ResilientOkHttpProvider {
 
     private const val TAG = "ResilientDns"
     private const val CACHE_TTL_MS = 5 * 60 * 1000L
-    private const val SYSTEM_DNS_TIMEOUT_MS = 1_200L
-    private const val SYSTEM_DNS_COOLDOWN_MS = 60_000L
+    private const val SYSTEM_DNS_TIMEOUT_MS = 450L
+    private const val SYSTEM_DNS_COOLDOWN_MS = 5 * 60 * 1000L
 
     private data class CachedDns(
         val addresses: List<InetAddress>,
@@ -32,6 +34,7 @@ object ResilientOkHttpProvider {
     )
 
     private val dnsCache = ConcurrentHashMap<String, CachedDns>()
+    private val inFlightLookups = ConcurrentHashMap<String, CompletableFuture<List<InetAddress>>>()
     private val systemDnsExecutor = Executors.newCachedThreadPool()
 
     @Volatile
@@ -39,9 +42,9 @@ object ResilientOkHttpProvider {
 
     private val dohBootstrapClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(3, TimeUnit.SECONDS)
-            .readTimeout(3, TimeUnit.SECONDS)
-            .callTimeout(4, TimeUnit.SECONDS)
+            .connectTimeout(2500, TimeUnit.MILLISECONDS)
+            .readTimeout(2500, TimeUnit.MILLISECONDS)
+            .callTimeout(3500, TimeUnit.MILLISECONDS)
             .build()
     }
 
@@ -58,27 +61,65 @@ object ResilientOkHttpProvider {
                 }
             }
 
-            // Try system DNS only if it hasn't just timed out/failed.
-            if (now >= bypassSystemDnsUntilMs) {
-                val systemResult = lookupSystemWithTimeout(hostname)
-                if (systemResult.isNotEmpty()) {
-                    dnsCache[hostname] = CachedDns(systemResult, now + CACHE_TTL_MS)
-                    return systemResult
+            // Coalesce concurrent lookups for the same hostname.
+            val newFuture = CompletableFuture<List<InetAddress>>()
+            val existingFuture = inFlightLookups.putIfAbsent(hostname, newFuture)
+            if (existingFuture != null) {
+                return try {
+                    existingFuture.get(5, TimeUnit.SECONDS)
+                } catch (t: Throwable) {
+                    throw UnknownHostException("Unable to resolve host \"$hostname\"").apply { initCause(t) }
                 }
-                bypassSystemDnsUntilMs = now + SYSTEM_DNS_COOLDOWN_MS
-                Log.w(TAG, "System DNS failed/timed out for $hostname; switching to DoH fallback for 60s")
             }
 
-            val dohAddresses = queryDoh("https://1.1.1.1/dns-query?name=$hostname&type=A", hostname)
-                .ifEmpty { queryDoh("https://8.8.8.8/resolve?name=$hostname&type=A", hostname) }
-
-            if (dohAddresses.isNotEmpty()) {
-                Log.i(TAG, "DoH resolved $hostname -> ${dohAddresses.joinToString { it.hostAddress.orEmpty() }}")
-                dnsCache[hostname] = CachedDns(dohAddresses, now + CACHE_TTL_MS)
-                return dohAddresses
+            try {
+                val resolved = resolveUncached(hostname)
+                newFuture.complete(resolved)
+                return resolved
+            } catch (t: Throwable) {
+                newFuture.completeExceptionally(t)
+                throw t
+            } finally {
+                inFlightLookups.remove(hostname, newFuture)
             }
+        }
+    }
 
-            throw UnknownHostException("Unable to resolve host \"$hostname\" via system DNS or DoH")
+    private fun resolveUncached(hostname: String): List<InetAddress> {
+        val now = System.currentTimeMillis()
+        dnsCache[hostname]?.let { cached ->
+            if (cached.expiresAtMs > now && cached.addresses.isNotEmpty()) {
+                return cached.addresses
+            }
+        }
+
+        if (now >= bypassSystemDnsUntilMs) {
+            val systemResult = lookupSystemWithTimeout(hostname)
+            if (systemResult.isNotEmpty()) {
+                dnsCache[hostname] = CachedDns(systemResult, now + CACHE_TTL_MS)
+                return systemResult
+            }
+            bypassSystemDnsUntilMs = now + SYSTEM_DNS_COOLDOWN_MS
+            Log.w(TAG, "System DNS failed/timed out for $hostname; switching to DoH fallback for 5m")
+        }
+
+        val dohAddresses = queryDoh("https://1.1.1.1/dns-query?name=$hostname&type=A", hostname)
+            .ifEmpty { queryDoh("https://8.8.8.8/resolve?name=$hostname&type=A", hostname) }
+
+        if (dohAddresses.isNotEmpty()) {
+            Log.i(TAG, "DoH resolved $hostname -> ${dohAddresses.joinToString { it.hostAddress.orEmpty() }}")
+            dnsCache[hostname] = CachedDns(dohAddresses, System.currentTimeMillis() + CACHE_TTL_MS)
+            return dohAddresses
+        }
+
+        throw UnknownHostException("Unable to resolve host \"$hostname\" via system DNS or DoH")
+    }
+
+    fun prewarmDnsAsync(vararg hostnames: String) {
+        for (host in hostnames) {
+            systemDnsExecutor.execute {
+                runCatching { resilientDns.lookup(host) }
+            }
         }
     }
 

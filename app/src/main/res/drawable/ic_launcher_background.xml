@@ -6,48 +6,45 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Deep tactical midnight-navy radial background -->
+    <!-- Deep dark slate-charcoal background for maximum contrast with bright red/amber/white siren -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:centerX="54"
-                android:centerY="54"
-                android:gradientRadius="64"
+                android:centerY="52"
+                android:gradientRadius="68"
                 android:type="radial">
                 <item
-                    android:color="#FF13263E"
+                    android:color="#FF1E2430"
                     android:offset="0.0" />
                 <item
-                    android:color="#FF0B131E"
-                    android:offset="0.62" />
+                    android:color="#FF11151D"
+                    android:offset="0.6" />
                 <item
-                    android:color="#FF060A10"
+                    android:color="#FF090C11"
                     android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Subtle radar crosshair axes -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M54,6 L54,102 M6,54 L102,54"
-        android:strokeWidth="0.7"
-        android:strokeColor="#165BB2FF" />
-
-    <!-- Subtle concentric radar range rings -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M54,28 A26,26 0 1,1 53.99,28 Z"
-        android:strokeWidth="0.8"
-        android:strokeColor="#1E5BB2FF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M54,16 A38,38 0 1,1 53.99,16 Z"
-        android:strokeWidth="0.8"
-        android:strokeColor="#185BB2FF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M54,4 A50,50 0 1,1 53.99,4 Z"
-        android:strokeWidth="0.8"
-        android:strokeColor="#125BB2FF" />
+    <!-- Subtle warm alert glow behind the siren dome -->
+    <path android:pathData="M54,18 A34,34 0 1,1 53.99,18 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:centerX="54"
+                android:centerY="52"
+                android:gradientRadius="34"
+                android:type="radial">
+                <item
+                    android:color="#30EF4444"
+                    android:offset="0.0" />
+                <item
+                    android:color="#12F59E0B"
+                    android:offset="0.55" />
+                <item
+                    android:color="#00EF4444"
+                    android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
 </vector>

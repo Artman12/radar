@@ -1,6 +1,0 @@
-int string fg_channel_desc 0x0
-int string fg_channel_name 0x0
-int string fg_status_active_alert 0x0
-int string fg_status_active_clear 0x0
-int string fg_status_monitoring 0x0
-int string fg_status_no_network 0x0

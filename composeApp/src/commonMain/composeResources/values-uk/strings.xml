@@ -66,7 +66,7 @@
     <string name="legend_high">Тривога</string>
     <string name="legend_critical">Ціль</string>
     <string name="region_threat_clear">Активної тривоги немає</string>
-    <string name="region_threat_elevated">Підвищена загроза / Ціль поруч</string>
+    <string name="region_threat_elevated">Підвищена загроза (жовтий рівень)</string>
     <string name="region_threat_high">Повітряна тривога</string>
     <string name="region_threat_critical">Критично: Тривога + Ціль поруч</string>
     <string name="region_nearby_targets_count">%1$d ціль(ей) поблизу</string>
@@ -113,9 +113,12 @@
     <string name="threat_details_distance_value">~%1$d км</string>
     <string name="threat_details_uncertainty">Похибка позиції: ±%1$d км</string>
     <string name="threat_details_approx_note">Дані радара OSINT є орієнтовними та оновлюються лише при відкритій вкладці «Карта».</string>
+    <string name="threat_details_inside_radius">У межах %1$d км радіуса попередження</string>
+    <string name="threat_details_open_kb">Довідник типів загроз та іконок</string>
 
     <!-- Threat Types -->
-    <string name="threat_type_uav">Ударний БпЛА (Shahed)</string>
+    <string name="threat_type_uav">Ударний БпЛА (Shahed-136)</string>
+    <string name="threat_type_jet_shahed">Реактивний шахед (Shahed-238)</string>
     <string name="threat_type_fpv">FPV-дрон</string>
     <string name="threat_type_recon">Розвідувальний БпЛА</string>
     <string name="threat_type_cruise_missile">Крилата ракета</string>
@@ -123,6 +126,49 @@
     <string name="threat_type_kab">Керована авіабомба (КАБ)</string>
     <string name="threat_type_aviation">Тактична авіація</string>
     <string name="threat_type_unknown">Повітряна ціль</string>
+
+    <!-- Threat Knowledge Base -->
+    <string name="kb_title">Довідник повітряних цілей</string>
+    <string name="kb_subtitle">Усі іконки радара, характеристики та дії безпеки</string>
+    <string name="kb_intro_note">Іконки повертаються за курсом руху цілі. Цілі у вашому радіусі попередження підсвічуються яскравим червоно-жовтим кільцем.</string>
+    <string name="kb_map_legend_btn">Довідник</string>
+    <string name="kb_safety_label">Правила безпеки</string>
+
+    <string name="kb_uav_profile">~150–185 км/год • Гвинтовий дельта-БпЛА</string>
+    <string name="kb_uav_desc">Далекобійний ударний дрон (Shahed-136 / 131, «Герань-2») з трикутним крилом, кінцевими шайбами та штовхаючим гвинтом ззаду. Летить переважно групами на малій висоті.</string>
+    <string name="kb_uav_safety">Можлива тривала робота ППО та падіння уламків. Перейдіть в укриття або за правило «двох стін» подалі від вікон.</string>
+
+    <string name="kb_jet_shahed_profile">~450–600 км/год • Реактивний дельта-БпЛА</string>
+    <string name="kb_jet_shahed_desc">Реактивна модифікація Shahed-238 («Герань-3») із верхнім повітрозабірником та турбореактивним соплом замість гвинта. Летить утричі швидше за звичайні «шахеди».</string>
+    <string name="kb_jet_shahed_safety">Значно коротший час підльоту через високу швидкість. Негайно перейдіть в укриття або за дві капітальні стіни.</string>
+
+    <string name="kb_fpv_profile">~70–140 км/год • Тактичний квадрокоптер</string>
+    <string name="kb_fpv_desc">Маневрений дрон малого радіуса дії з керуванням по відеозв’язку або оптоволокну. Загрожує прифронтовим і прикордонним громадам на надмалих висотах.</string>
+    <string name="kb_fpv_safety">Уникайте відкритих доріг і транспорту поблизу; негайно знайдіть надійне перекриття зверху.</string>
+
+    <string name="kb_recon_profile">~90–140 км/год • Висотний планер-розвідник</string>
+    <string name="kb_recon_desc">Розвідувальний БпЛА (Orlan, Supercam, ZALA), що барражує на середній висоті для виявлення цілей та коригування ударів.</string>
+    <string name="kb_recon_safety">Часто передує прицільному удару. Будьте готові до раптової загрози балістики, КАБів або артилерії.</string>
+
+    <string name="kb_cruise_profile">~750–950 км/год • Маневруюча ракета</string>
+    <string name="kb_cruise_desc">Дозвукова реактивна ракета (Х-101, «Калібр», Х-59/69), що рухається низько над рельєфом і часто змінює курс для обходу ППО.</string>
+    <string name="kb_cruise_safety">Долає область за лічені хвилини. Негайно прямуйте в укриття і залишайтеся там до офіційного відбою.</string>
+
+    <string name="kb_ballistic_profile">5+ Махів (~4000+ км/год) • Балістична траєкторія</string>
+    <string name="kb_ballistic_desc">Балістична чи аеробалістична ракета («Іскандер-М», KN-23, «Кинджал»), що заходить на ціль майже вертикально з мінімальним часом підльоту.</string>
+    <string name="kb_ballistic_safety">Час реакції — від кількох секунд до 2–3 хвилин. Негайно скористайтеся укриттям або правилом двох стін.</string>
+
+    <string name="kb_kab_profile">~500–800 км/год • Плануюча авіабомба</string>
+    <string name="kb_kab_desc">Важка авіабомба з розкладними крилами (УМПК) та супутниковим наведенням, яку скидає тактична авіація за десятки кілометрів від лінії фронту чи кордону.</string>
+    <string name="kb_kab_safety">Дуже короткий час підльоту (1–3 хв) та велика потужність. Негайно спускайтеся в підземне укриття або на нижні поверхи.</string>
+
+    <string name="kb_aviation_profile">Надзвуковий літак • Носій ракет і КАБів</string>
+    <string name="kb_aviation_desc">Ворожий тактичний винищувач або бомбардувальник (Су-34, Су-35, МіГ-31К) у прикордонній чи морській зоні, здатний запускати ракети або КАБи.</string>
+    <string name="kb_aviation_safety">Свідчить про високу ймовірність пусків. Тримайте шлях до укриття відкритим та стежте за повідомленнями про пуски.</string>
+
+    <string name="kb_unknown_profile">Некласифікована повітряна ціль</string>
+    <string name="kb_unknown_desc">Повітряний об’єкт на радарі OSINT, точний тип, швидкість або висота якого ще уточнюються моніторинговими каналами.</string>
+    <string name="kb_unknown_safety">Ставтеся як до активної загрози до уточнення типу та дотримуйтеся сигналів офіційної тривоги.</string>
 
     <!-- Alert Types -->
     <string name="alert_type_air">Повітряна тривога</string>
@@ -169,6 +215,8 @@
     <string name="settings_radar_section">Радар та дистанція</string>
     <string name="settings_warning_radius">Радіус попередження: %1$d км</string>
     <string name="settings_radar_nearby_alerts">Підсвічувати цілі в радіусі попередження</string>
+    <string name="settings_kb_title">Довідник повітряних цілей</string>
+    <string name="settings_kb_subtitle">Усі іконки цілей, їхній опис та поради з безпеки</string>
 
     <string name="settings_diagnostics_section">Діагностика фонової роботи</string>
     <string name="diag_service_title">Фонова служба моніторингу</string>

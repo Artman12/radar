@@ -59,7 +59,9 @@ class AlertMonitoringService : Service() {
         super.onCreate()
         _isRunning.value = true
         notifier.ensureForegroundChannel()
-        startForegroundWithType(buildStatusNotification("Monitoring active"))
+        startForegroundWithType(
+            buildStatusNotification(getString(com.onemanarmy.airalerts.shared.R.string.fg_status_monitoring))
+        )
         registerNetworkCallback()
         startPollingLoop()
     }

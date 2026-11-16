@@ -23,6 +23,7 @@ import com.onemanarmy.airalerts.resources.threat_type_aviation
 import com.onemanarmy.airalerts.resources.threat_type_ballistic
 import com.onemanarmy.airalerts.resources.threat_type_cruise_missile
 import com.onemanarmy.airalerts.resources.threat_type_fpv
+import com.onemanarmy.airalerts.resources.threat_type_jet_shahed
 import com.onemanarmy.airalerts.resources.threat_type_kab
 import com.onemanarmy.airalerts.resources.threat_type_recon
 import com.onemanarmy.airalerts.resources.threat_type_uav
@@ -68,6 +69,7 @@ fun alertTypeLabel(type: AlertType): String = when (type) {
 @Composable
 fun threatTypeLabel(type: ThreatType): String = when (type) {
     ThreatType.UAV -> stringResource(Res.string.threat_type_uav)
+    ThreatType.JET_SHAHED -> stringResource(Res.string.threat_type_jet_shahed)
     ThreatType.FPV -> stringResource(Res.string.threat_type_fpv)
     ThreatType.RECON -> stringResource(Res.string.threat_type_recon)
     ThreatType.CRUISE_MISSILE -> stringResource(Res.string.threat_type_cruise_missile)

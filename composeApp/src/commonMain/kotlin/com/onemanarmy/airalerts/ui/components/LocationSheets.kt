@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
@@ -78,6 +79,8 @@ import com.onemanarmy.airalerts.resources.threat_details_distance
 import com.onemanarmy.airalerts.resources.threat_details_distance_value
 import com.onemanarmy.airalerts.resources.threat_details_heading
 import com.onemanarmy.airalerts.resources.threat_details_heading_unknown
+import com.onemanarmy.airalerts.resources.threat_details_inside_radius
+import com.onemanarmy.airalerts.resources.threat_details_open_kb
 import com.onemanarmy.airalerts.resources.threat_details_speed
 import com.onemanarmy.airalerts.resources.threat_details_type
 import com.onemanarmy.airalerts.resources.threat_details_uncertainty
@@ -362,10 +365,14 @@ fun PointDetailsBottomSheet(
 @Composable
 fun ThreatDetailsBottomSheet(
     item: ThreatWithProximity,
+    warningRadiusKm: Int = 30,
+    highlightNearbyThreats: Boolean = true,
+    onOpenKnowledgeBase: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val threat = item.threat
-    val threatTint = if (item.isWithinWarningRadius) AlertColors.AlertRed else AlertColors.WarningAmber
+    val isWarningActive = highlightNearbyThreats && item.isWithinWarningRadius
+    val threatTint = if (isWarningActive) AlertColors.AlertRed else AlertColors.WarningAmber
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -383,20 +390,24 @@ fun ThreatDetailsBottomSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(threatTint.copy(alpha = 0.16f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = threatTint
+                Surface(
+                    modifier = Modifier.size(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = androidx.compose.ui.graphics.Color(0xFF1A2535),
+                    border = BorderStroke(
+                        width = if (isWarningActive) 2.dp else 1.dp,
+                        color = threatTint
                     )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        ThreatTypeIcon(
+                            type = threat.type,
+                            modifier = Modifier.size(40.dp),
+                            isHighlighted = isWarningActive
+                        )
+                    }
                 }
-                Column {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
                         text = threat.title.ifBlank { threatTypeLabel(threat.type) },
                         style = MaterialTheme.typography.titleLarge,
@@ -408,6 +419,32 @@ fun ThreatDetailsBottomSheet(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                    if (isWarningActive) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AlertColors.AlertRedContainerDark,
+                            border = BorderStroke(0.5.dp, AlertColors.AlertRed.copy(alpha = 0.6f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = AlertColors.AlertRed,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = stringResource(Res.string.threat_details_inside_radius, warningRadiusKm),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AlertColors.AlertOnContainerDark
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -445,7 +482,7 @@ fun ThreatDetailsBottomSheet(
                         DetailRow(
                             label = stringResource(Res.string.threat_details_distance, item.nearestPointName),
                             value = stringResource(Res.string.threat_details_distance_value, item.distanceKm.roundToInt()),
-                            valueColor = if (item.isWithinWarningRadius) AlertColors.AlertRed else MaterialTheme.colorScheme.onSurface
+                            valueColor = if (isWarningActive) AlertColors.AlertRed else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -469,6 +506,26 @@ fun ThreatDetailsBottomSheet(
                         text = threat.explanation,
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            if (onOpenKnowledgeBase != null) {
+                OutlinedButton(
+                    onClick = onOpenKnowledgeBase,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(
+                        text = stringResource(Res.string.threat_details_open_kb),
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

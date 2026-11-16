@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="fg_channel_desc">Постійне сповіщення про стан фонового моніторингу AirAlerts</string>
-    <string name="fg_channel_name">Фоновий моніторинг тривог</string>
-    <string name="fg_status_active_alert">ПОВІТРЯНА ТРИВОГА • %1$s</string>
-    <string name="fg_status_active_clear">Моніторинг активний • %1$s: Тривоги немає</string>
-    <string name="fg_status_monitoring">Моніторинг активний</string>
-    <string name="fg_status_no_network">Офлайн • Очікування мережі</string>
-</resources>

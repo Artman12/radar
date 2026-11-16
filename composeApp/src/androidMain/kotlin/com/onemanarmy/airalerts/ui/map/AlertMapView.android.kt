@@ -44,7 +44,6 @@ import com.onemanarmy.airalerts.domain.model.UkraineMapBoundaries
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
-import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
@@ -59,7 +58,6 @@ import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.TilesOverlay
-import java.io.File
 
 @Composable
 actual fun AlertMapView(
@@ -78,12 +76,15 @@ actual fun AlertMapView(
     selectedRegionId: String?,
     showThreatsLayer: Boolean,
     warningRadiusKm: Int,
+    highlightNearbyThreats: Boolean,
     gpsCoordinates: Pair<Double, Double>?,
     isCrosshairPickerMode: Boolean,
     onPointClicked: (PointStatus) -> Unit,
     onThreatClicked: (ThreatWithProximity) -> Unit,
     onRegionClicked: (RegionPolygon, RegionThreatInfo?) -> Unit,
-    onMapCenterChanged: (Double, Double) -> Unit
+    onMapCenterChanged: (Double, Double) -> Unit,
+    onMapViewportChanged: (Double, Double, Double) -> Unit,
+    onUserMapInteraction: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -100,20 +101,31 @@ actual fun AlertMapView(
         }
     }
 
-    // Reuse cached Mercator spatial vector & overview bitmap atlas across tab switches.
+    // Reuse cached Mercator spatial vector & overview bitmap atlas across tab switches and startup preload.
+    val prebuiltStatic = remember(effectiveBoundaries, isDark) {
+        UkraineAtlasCache.peekStatic(effectiveBoundaries, isDark)
+    }
     val staticAtlas by produceState<UkraineStaticMercatorAtlas?>(
-        initialValue = null,
+        initialValue = prebuiltStatic,
         effectiveBoundaries,
         isDark
     ) {
+        val existing = UkraineAtlasCache.peekStatic(effectiveBoundaries, isDark)
+        if (existing != null) {
+            value = existing
+            return@produceState
+        }
         val data = effectiveBoundaries ?: return@produceState
         value = withContext(Dispatchers.Default) {
             UkraineAtlasCache.getOrBuildStatic(data, isDark)
         }
     }
 
+    val prebuiltThreat = remember(staticAtlas, regionThreats) {
+        UkraineAtlasCache.peekThreat(staticAtlas, regionThreats)
+    }
     val threatAtlas by produceState<UkraineThreatAtlas?>(
-        initialValue = null,
+        initialValue = prebuiltThreat,
         staticAtlas,
         regionThreats
     ) {
@@ -121,6 +133,11 @@ actual fun AlertMapView(
         val snapshot = regionThreats
         if (atlas == null || snapshot == null) {
             value = null
+            return@produceState
+        }
+        val existing = UkraineAtlasCache.peekThreat(atlas, snapshot)
+        if (existing != null) {
+            value = existing
             return@produceState
         }
         value = withContext(Dispatchers.Default) {
@@ -136,6 +153,8 @@ actual fun AlertMapView(
     val currentOnThreatClicked by rememberUpdatedState(onThreatClicked)
     val currentOnRegionClicked by rememberUpdatedState(onRegionClicked)
     val currentOnMapCenterChanged by rememberUpdatedState(onMapCenterChanged)
+    val currentOnMapViewportChanged by rememberUpdatedState(onMapViewportChanged)
+    val currentOnUserMapInteraction by rememberUpdatedState(onUserMapInteraction)
 
     val density = LocalDensity.current.density
     val regionsOverlay = remember(density) { UkraineRegionsOverlay(density) }
@@ -145,18 +164,7 @@ actual fun AlertMapView(
 
     // Configure osmdroid user agent, larger tile caches, disk cache & Ukraine-only viewport bounds.
     val mapView = remember(context) {
-        Configuration.getInstance().apply {
-            load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-            userAgentValue = "${context.packageName}/1.0 (Android; AirAlerts)"
-            osmdroidBasePath = File(context.cacheDir, "osmdroid")
-            osmdroidTileCache = File(context.cacheDir, "osmdroid/tiles")
-            cacheMapTileOvershoot = 48
-            tileDownloadThreads = 4
-            tileFileSystemThreads = 4
-        }
-        // Clean up legacy composited/watermark tile caches.
-        runCatching { File(context.cacheDir, "osmdroid/tiles/CartoDarkMatter").deleteRecursively() }
-        runCatching { File(context.cacheDir, "osmdroid/tiles/EsriDarkGrayCanvas").deleteRecursively() }
+        UkraineMapPreloader.ensureOsmDroidConfigured(context)
         val tileProvider = ResilientMapTileProvider(
             context.applicationContext,
             DarkMapTileSources.EsriDarkGrayBase
@@ -205,7 +213,8 @@ actual fun AlertMapView(
         }
     }
 
-    val lastAppliedFocus = remember { intArrayOf(-1) }
+    val lastAppliedFocus = remember { intArrayOf(focusVersion) }
+    val lastAnimateStartMs = remember { longArrayOf(0L) }
     val lastZoomIn = remember { intArrayOf(zoomInVersion) }
     val lastZoomOut = remember { intArrayOf(zoomOutVersion) }
     val lastDynamicOverlayKey = remember { arrayOf<Any?>(null) }
@@ -228,12 +237,18 @@ actual fun AlertMapView(
             override fun onScroll(event: ScrollEvent?): Boolean {
                 val center = mapView.mapCenter
                 currentOnMapCenterChanged(center.latitude, center.longitude)
+                if (android.os.SystemClock.elapsedRealtime() - lastAnimateStartMs[0] > 550L) {
+                    currentOnMapViewportChanged(center.latitude, center.longitude, mapView.zoomLevelDouble)
+                }
                 return false
             }
 
             override fun onZoom(event: ZoomEvent?): Boolean {
                 val center = mapView.mapCenter
                 currentOnMapCenterChanged(center.latitude, center.longitude)
+                if (android.os.SystemClock.elapsedRealtime() - lastAnimateStartMs[0] > 550L) {
+                    currentOnMapViewportChanged(center.latitude, center.longitude, mapView.zoomLevelDouble)
+                }
                 return false
             }
         }
@@ -261,14 +276,17 @@ actual fun AlertMapView(
 
             if (lastAppliedFocus[0] != focusVersion) {
                 lastAppliedFocus[0] = focusVersion
+                lastAnimateStartMs[0] = android.os.SystemClock.elapsedRealtime()
                 view.controller.animateTo(GeoPoint(centerLat, centerLon), zoomLevel.coerceAtLeast(5.4), 450L)
             }
             if (lastZoomIn[0] != zoomInVersion) {
                 lastZoomIn[0] = zoomInVersion
+                currentOnUserMapInteraction()
                 view.controller.zoomIn()
             }
             if (lastZoomOut[0] != zoomOutVersion) {
                 lastZoomOut[0] = zoomOutVersion
+                currentOnUserMapInteraction()
                 view.controller.zoomOut()
             }
 
@@ -278,7 +296,8 @@ actual fun AlertMapView(
                 selectedPath = selectedRegionPath,
                 isDark = isDark,
                 isCrosshairPickerMode = isCrosshairPickerMode,
-                onRegionTap = { polygon, info -> currentOnRegionClicked(polygon, info) }
+                onRegionTap = { polygon, info -> currentOnRegionClicked(polygon, info) },
+                onUserTouch = { currentOnUserMapInteraction() }
             )
             maskOverlay.updateState(
                 staticAtlas = staticAtlas,
@@ -291,6 +310,7 @@ actual fun AlertMapView(
                 threats = threats,
                 showThreatsLayer = showThreatsLayer,
                 warningRadiusKm = warningRadiusKm,
+                highlightNearbyThreats = highlightNearbyThreats,
                 gpsCoordinates = gpsCoordinates,
                 isCrosshairPickerMode = isCrosshairPickerMode
             )
@@ -305,16 +325,43 @@ actual fun AlertMapView(
                 view.overlays.add(maskOverlay)
 
                 if (!isCrosshairPickerMode) {
-                    if (showThreatsLayer && warningRadiusKm > 0) {
-                        trackedPoints.forEach { status ->
+                    if (showThreatsLayer && highlightNearbyThreats && warningRadiusKm > 0) {
+                        val radiusCenters = buildList {
+                            trackedPoints.forEach { status ->
+                                val hasInside = threats.any {
+                                    it.isWithinWarningRadius && it.nearestPointId == status.point.id
+                                }
+                                add(Triple(status.point.latitude, status.point.longitude, hasInside))
+                            }
+                            if (gpsCoordinates != null && trackedPoints.none { it.point.isGpsAnchor }) {
+                                val hasInside = threats.any {
+                                    it.isWithinWarningRadius &&
+                                        GeoUtils.haversineDistanceKm(
+                                            gpsCoordinates.first,
+                                            gpsCoordinates.second,
+                                            it.threat.latitude,
+                                            it.threat.longitude
+                                        ) <= warningRadiusKm
+                                }
+                                add(Triple(gpsCoordinates.first, gpsCoordinates.second, hasInside))
+                            }
+                        }
+
+                        radiusCenters.forEach { (lat, lon, hasInside) ->
                             val circle = Polygon(view).apply {
                                 points = Polygon.pointsAsCircle(
-                                    GeoPoint(status.point.latitude, status.point.longitude),
+                                    GeoPoint(lat, lon),
                                     warningRadiusKm * 1000.0
                                 )
-                                fillPaint.color = Color.argb(20, 245, 158, 11)
-                                outlinePaint.color = Color.argb(120, 245, 158, 11)
-                                outlinePaint.strokeWidth = 2f
+                                if (hasInside) {
+                                    fillPaint.color = Color.argb(30, 239, 68, 68)
+                                    outlinePaint.color = Color.argb(215, 251, 191, 36)
+                                    outlinePaint.strokeWidth = 2.4f * density
+                                } else {
+                                    fillPaint.color = Color.argb(18, 245, 158, 11)
+                                    outlinePaint.color = Color.argb(155, 245, 158, 11)
+                                    outlinePaint.strokeWidth = 1.8f * density
+                                }
                                 infoWindow = null
                                 setOnClickListener { _, _, _ -> false }
                             }
@@ -355,18 +402,19 @@ actual fun AlertMapView(
                     if (showThreatsLayer) {
                         threats.forEach { item ->
                             val threat = item.threat
+                            val isNearbyHighlighted = highlightNearbyThreats && item.isWithinWarningRadius
                             if (threat.trail.isNotEmpty()) {
                                 val trailLine = Polyline(view).apply {
                                     setPoints(
                                         threat.trail.map { GeoPoint(it.latitude, it.longitude) } +
                                             GeoPoint(threat.latitude, threat.longitude)
                                     )
-                                    outlinePaint.color = if (item.isWithinWarningRadius) {
-                                        Color.argb(215, 239, 68, 68)
+                                    outlinePaint.color = if (isNearbyHighlighted) {
+                                        Color.argb(230, 251, 191, 36)
                                     } else {
                                         Color.argb(175, 251, 146, 60)
                                     }
-                                    outlinePaint.strokeWidth = 4f
+                                    outlinePaint.strokeWidth = if (isNearbyHighlighted) 5.5f else 4f
                                     infoWindow = null
                                     setOnClickListener { _, _, _ -> false }
                                 }
@@ -379,7 +427,7 @@ actual fun AlertMapView(
                                 icon = createThreatDrawable(
                                     context = context,
                                     type = threat.type,
-                                    isNearbyWarning = item.isWithinWarningRadius
+                                    isNearbyWarning = isNearbyHighlighted
                                 )
                                 rotation = -(threat.headingDeg?.toFloat() ?: 0f)
                                 setInfoWindow(null)
@@ -412,6 +460,7 @@ private data class DynamicOverlayKey(
     val threats: List<ThreatWithProximity>,
     val showThreatsLayer: Boolean,
     val warningRadiusKm: Int,
+    val highlightNearbyThreats: Boolean,
     val gpsCoordinates: Pair<Double, Double>?,
     val isCrosshairPickerMode: Boolean
 )
@@ -439,6 +488,7 @@ private class UkraineRegionsOverlay(
     private var isDark: Boolean = false
     private var isCrosshairPickerMode: Boolean = false
     private var onRegionTap: ((RegionPolygon, RegionThreatInfo?) -> Unit)? = null
+    private var onUserTouch: (() -> Unit)? = null
 
     private val drawMatrix = Matrix()
     private val reuseTapGeo = GeoPoint(0.0, 0.0)
@@ -478,7 +528,8 @@ private class UkraineRegionsOverlay(
         selectedPath: Path?,
         isDark: Boolean,
         isCrosshairPickerMode: Boolean,
-        onRegionTap: (RegionPolygon, RegionThreatInfo?) -> Unit
+        onRegionTap: (RegionPolygon, RegionThreatInfo?) -> Unit,
+        onUserTouch: () -> Unit
     ) {
         this.staticAtlas = staticAtlas
         this.threatAtlas = threatAtlas
@@ -486,7 +537,18 @@ private class UkraineRegionsOverlay(
         this.isDark = isDark
         this.isCrosshairPickerMode = isCrosshairPickerMode
         this.onRegionTap = onRegionTap
+        this.onUserTouch = onUserTouch
         refreshColors()
+    }
+
+    override fun onTouchEvent(event: MotionEvent?, mapView: MapView?): Boolean {
+        if (event != null &&
+            (event.actionMasked == MotionEvent.ACTION_DOWN ||
+                event.actionMasked == MotionEvent.ACTION_POINTER_DOWN)
+        ) {
+            onUserTouch?.invoke()
+        }
+        return false
     }
 
     private fun refreshColors() {
@@ -916,26 +978,45 @@ private fun createThreatDrawable(
     type: ThreatType,
     isNearbyWarning: Boolean
 ): Drawable {
-    val size = 80
+    val size = if (isNearbyWarning) 108 else 80
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    val cx = size / 2f
-    val cy = size / 2f
 
     if (isNearbyWarning) {
-        val warningGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(95, 239, 68, 68)
+        val half = size / 2f
+        // High-contrast beacon ring (white + crimson + amber) so nearby threats pop over both red alerts & dark tiles.
+        val outerGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(110, 239, 68, 68)
             style = Paint.Style.FILL
         }
-        canvas.drawCircle(cx, cy, 36f, warningGlow)
+        canvas.drawCircle(half, half, 50f, outerGlow)
 
-        val warningRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(239, 68, 68)
+        val whiteHaloRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
             style = Paint.Style.STROKE
-            strokeWidth = 3f
+            strokeWidth = 7.5f
         }
-        canvas.drawCircle(cx, cy, 33f, warningRing)
+        canvas.drawCircle(half, half, 45f, whiteHaloRing)
+
+        val redDangerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(255, 45, 45)
+            style = Paint.Style.STROKE
+            strokeWidth = 4.2f
+        }
+        canvas.drawCircle(half, half, 45f, redDangerRing)
+
+        val amberInnerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(251, 191, 36)
+            style = Paint.Style.STROKE
+            strokeWidth = 2.2f
+        }
+        canvas.drawCircle(half, half, 39f, amberInnerRing)
+
+        canvas.translate((size - 80f) / 2f, (size - 80f) / 2f)
     }
+
+    val cx = 40f
+    val cy = 40f
 
     val whiteOuterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
@@ -962,28 +1043,135 @@ private fun createThreatDrawable(
 
     when (type) {
         ThreatType.UAV -> {
-            // Shahed-136 delta wing silhouette with cropped tips and rear engine hub.
-            val path = Path().apply {
-                moveTo(cx, 12f)
-                lineTo(cx + 4f, 25f)
-                lineTo(66f, 55f)
-                lineTo(66f, 61f)
-                lineTo(cx + 5f, 54f)
-                lineTo(cx + 4f, 62f)
-                lineTo(cx, 60f)
-                lineTo(cx - 4f, 62f)
-                lineTo(cx - 5f, 54f)
-                lineTo(14f, 61f)
-                lineTo(14f, 55f)
-                lineTo(cx - 4f, 25f)
+            // Shahed-136: cropped delta wing with wingtip stabilizer endplates and 2-blade pusher propeller.
+            val bodyPath = Path().apply {
+                moveTo(cx, 10f)
+                lineTo(cx + 3.2f, 20f)
+                lineTo(63f, 48f)
+                lineTo(63.5f, 58f)
+                lineTo(60.5f, 58f)
+                lineTo(59f, 55f)
+                lineTo(cx + 4f, 55f)
+                lineTo(cx + 3.2f, 59.5f)
+                lineTo(cx - 3.2f, 59.5f)
+                lineTo(cx - 4f, 55f)
+                lineTo(21f, 55f)
+                lineTo(19.5f, 58f)
+                lineTo(16.5f, 58f)
+                lineTo(17f, 48f)
+                lineTo(cx - 3.2f, 20f)
                 close()
             }
-            canvas.drawPath(path, whiteOuterPaint)
-            canvas.drawPath(path, blackFillPaint)
-            // Center fuselage spine & nose cue
-            canvas.drawLine(cx, 22f, cx, 49f, detailStrokePaint)
+            val propShaftOuter = Paint(whiteOuterPaint).apply { strokeWidth = 7.0f }
+            val propBladeOuter = Paint(whiteOuterPaint).apply { strokeWidth = 7.5f }
+            val propShaftInner = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(8, 10, 14)
+                style = Paint.Style.STROKE
+                strokeWidth = 2.6f
+                strokeCap = Paint.Cap.ROUND
+            }
+            val propBladeInner = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(8, 10, 14)
+                style = Paint.Style.STROKE
+                strokeWidth = 3.0f
+                strokeCap = Paint.Cap.ROUND
+            }
+            val spineStroke = Paint(detailStrokePaint).apply { strokeWidth = 1.8f }
+            val seamStroke = Paint(detailStrokePaint).apply { strokeWidth = 1.5f }
+            val hubPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            }
+
+            // Pass 1: White outer border for wing + propeller
+            canvas.drawPath(bodyPath, whiteOuterPaint)
+            canvas.drawLine(cx, 59f, cx, 64.5f, propShaftOuter)
+            canvas.drawLine(cx - 10.5f, 64.5f, cx + 10.5f, 64.5f, propBladeOuter)
+
+            // Pass 2: Jet-black silhouette fill
+            canvas.drawPath(bodyPath, blackFillPaint)
+            canvas.drawLine(cx, 59f, cx, 64.5f, propShaftInner)
+            canvas.drawLine(cx - 10.5f, 64.5f, cx + 10.5f, 64.5f, propBladeInner)
+
+            // Pass 3: Crisp internal spine, wingtip endplate seams & prop hub
+            canvas.drawLine(cx, 19f, cx, 52f, spineStroke)
+            canvas.drawLine(19.5f, 48.5f, 19.5f, 55.5f, seamStroke)
+            canvas.drawLine(60.5f, 48.5f, 60.5f, 55.5f, seamStroke)
+            canvas.drawCircle(cx, 64.5f, 1.7f, hubPaint)
             if (isNearbyWarning) {
-                canvas.drawCircle(cx, 40f, 3.2f, detailAccentPaint)
+                canvas.drawCircle(cx, 38f, 3.0f, detailAccentPaint)
+            }
+        }
+
+        ThreatType.JET_SHAHED -> {
+            // Shahed-238 (Jet Shahed): cropped delta wing with dorsal air intake and rear turbojet exhaust flame.
+            val bodyPath = Path().apply {
+                moveTo(cx, 10f)
+                lineTo(cx + 3.2f, 20f)
+                lineTo(63f, 48f)
+                lineTo(63.5f, 58f)
+                lineTo(60.5f, 58f)
+                lineTo(59f, 55f)
+                lineTo(cx + 4.4f, 55f)
+                lineTo(cx + 3f, 60.5f)
+                lineTo(cx - 3f, 60.5f)
+                lineTo(cx - 4.4f, 55f)
+                lineTo(21f, 55f)
+                lineTo(19.5f, 58f)
+                lineTo(16.5f, 58f)
+                lineTo(17f, 48f)
+                lineTo(cx - 3.2f, 20f)
+                close()
+            }
+            val flameOuterPath = Path().apply {
+                moveTo(cx - 3.6f, 60.5f)
+                lineTo(cx, 72.5f)
+                lineTo(cx + 3.6f, 60.5f)
+                close()
+            }
+            val flameInnerPath = Path().apply {
+                moveTo(cx - 1.8f, 60.5f)
+                lineTo(cx, 68f)
+                lineTo(cx + 1.8f, 60.5f)
+                close()
+            }
+            val intakePath = Path().apply {
+                moveTo(cx, 25.5f)
+                lineTo(cx + 3.2f, 31f)
+                lineTo(cx + 2.4f, 38.5f)
+                lineTo(cx - 2.4f, 38.5f)
+                lineTo(cx - 3.2f, 31f)
+                close()
+            }
+            val flameOuterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(255, 87, 34)
+                style = Paint.Style.FILL
+            }
+            val flameInnerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(255, 193, 7)
+                style = Paint.Style.FILL
+            }
+            val whiteFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            }
+            val seamStroke = Paint(detailStrokePaint).apply { strokeWidth = 1.5f }
+
+            // Pass 1: White outer border around jet flame & airframe
+            canvas.drawPath(flameOuterPath, whiteOuterPaint)
+            canvas.drawPath(bodyPath, whiteOuterPaint)
+
+            // Pass 2: Turbojet exhaust flame + black airframe silhouette
+            canvas.drawPath(flameOuterPath, flameOuterPaint)
+            canvas.drawPath(flameInnerPath, flameInnerPaint)
+            canvas.drawPath(bodyPath, blackFillPaint)
+
+            // Pass 3: Dorsal air intake scoop + wingtip endplate seams
+            canvas.drawPath(intakePath, whiteFillPaint)
+            canvas.drawLine(19.5f, 48.5f, 19.5f, 55.5f, seamStroke)
+            canvas.drawLine(60.5f, 48.5f, 60.5f, 55.5f, seamStroke)
+            if (isNearbyWarning) {
+                canvas.drawCircle(cx, 46.5f, 3.0f, detailAccentPaint)
             }
         }
 

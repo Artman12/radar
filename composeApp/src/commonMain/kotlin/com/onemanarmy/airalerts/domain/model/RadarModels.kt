@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ThreatType {
     UAV,
+    JET_SHAHED,
     FPV,
     RECON,
     CRUISE_MISSILE,
@@ -18,14 +19,43 @@ enum class ThreatType {
 
     companion object {
         fun fromApiValue(raw: String?): ThreatType = when (raw?.lowercase()?.trim()) {
-            "uav", "shahed", "drone" -> UAV
+            "jet_shahed", "shahed_jet", "shahed-jet", "shahed238", "shahed_238", "shahed-238",
+            "jet_uav", "uav_jet", "reactive_shahed", "reactive_uav", "geran3", "geran_3", "geran-3" -> JET_SHAHED
+            "uav", "shahed", "shahed136", "shahed_136", "shahed-136", "shahed131", "drone" -> UAV
             "fpv", "fpv_drone" -> FPV
             "recon", "recon_uav" -> RECON
             "missile", "cruise_missile", "cruise" -> CRUISE_MISSILE
             "ballistic", "ballistic_missile" -> BALLISTIC
             "kab", "guided_bomb" -> KAB
-            "aviation", "aircraft", "jet" -> AVIATION
+            "aviation", "aircraft", "jet", "mig31k", "mig-31k" -> AVIATION
             else -> UNKNOWN
+        }
+
+        fun resolveFromApi(
+            rawType: String?,
+            title: String? = null,
+            explanation: String? = null,
+            speedKmh: Double? = null
+        ): ThreatType {
+            val baseType = fromApiValue(rawType)
+            if (baseType != UAV) return baseType
+
+            val combinedText = buildString {
+                if (!title.isNullOrBlank()) append(title.lowercase()).append(' ')
+                if (!explanation.isNullOrBlank()) append(explanation.lowercase())
+            }
+            val isJetShahedByText = combinedText.contains("реактив") ||
+                combinedText.contains("турбореакт") ||
+                combinedText.contains("238") ||
+                combinedText.contains("герань-3") ||
+                combinedText.contains("geran-3") ||
+                combinedText.contains("geran 3") ||
+                combinedText.contains("jet shahed") ||
+                combinedText.contains("jet uav") ||
+                combinedText.contains("turbojet")
+            val isJetShahedBySpeed = speedKmh != null && speedKmh >= 260.0
+
+            return if (isJetShahedByText || isJetShahedBySpeed) JET_SHAHED else UAV
         }
     }
 }

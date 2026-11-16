@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.onemanarmy.airalerts.data.local.UkraineBoundaryParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-15T23:42:14.515Z" hostname="ARTMAN-PC" time="0.065">
-  <properties/>
-  <testcase name="parseBinary_rejectsInvalidMagicHeader" classname="com.onemanarmy.airalerts.data.local.UkraineBoundaryParserTest" time="0.046"/>
-  <testcase name="parseBinary_decodesUab1PayloadCorrectly" classname="com.onemanarmy.airalerts.data.local.UkraineBoundaryParserTest" time="0.012"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

@@ -84,7 +84,12 @@ class NeptunRadarApi(
 
                 AirThreat(
                     id = dto.id,
-                    type = ThreatType.fromApiValue(dto.type),
+                    type = ThreatType.resolveFromApi(
+                        rawType = dto.type,
+                        title = dto.title,
+                        explanation = dto.explanationShort,
+                        speedKmh = dto.velocity?.speedKmh
+                    ),
                     title = dto.title.orEmpty(),
                     region = dto.region.orEmpty(),
                     locality = dto.locality.orEmpty(),

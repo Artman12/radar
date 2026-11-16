@@ -124,7 +124,7 @@ class RegionThreatEvaluatorTest {
     }
 
     @Test
-    fun evaluate_raionAlertSupportsRenamedAliasesAndRadarUpgradesClearHromadaToElevated() {
+    fun evaluate_raionAlertSupportsRenamedAliasesAndRadarDoesNotTurnClearRegionYellow() {
         val alerts = listOf(
             ActiveAlertInfo(
                 regionId = "neptun_raion:новоград-волинський",
@@ -158,8 +158,10 @@ class RegionThreatEvaluatorTest {
 
         assertEquals(RegionThreatLevel.ELEVATED, snapshot.hromadaThreats[3]) // Zviahel matches Novohrad-Volynskyi
         assertEquals(RegionThreatLevel.CLEAR, snapshot.hromadaThreats[4])    // Zhytomyr raion stays clear
-        assertEquals(RegionThreatLevel.ELEVATED, snapshot.hromadaThreats[2]) // Kyiv upgraded by live radar
-        assertEquals(RegionThreatLevel.ELEVATED, snapshot.oblastThreats[1])  // Kyiv city upgraded by radar
+        assertEquals(RegionThreatLevel.CLEAR, snapshot.hromadaThreats[2])    // Kyiv stays clear (radar alone doesn't paint yellow)
+        assertEquals(RegionThreatLevel.CLEAR, snapshot.oblastThreats[1])     // Kyiv city stays clear
+        assertEquals(1, snapshot.hromadaInfos[2].nearbyThreatCount)          // Nearby target count is still tracked
+        assertEquals(1, snapshot.oblastInfos[1].nearbyThreatCount)
         assertEquals(RegionThreatLevel.CLEAR, snapshot.oblastThreats[2])     // Zhytomyrska stays clear except Zviahel raion
         assertEquals(RegionThreatLevel.ELEVATED, snapshot.raionThreats[1])   // Zviahel raion is elevated
         assertTrue(snapshot.raionInfos[1].isStandaloneAlert)                 // Highlighted on zoomed-out map

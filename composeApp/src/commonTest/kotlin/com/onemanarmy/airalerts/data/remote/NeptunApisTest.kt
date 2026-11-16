@@ -112,4 +112,55 @@ class NeptunApisTest {
         assertEquals(2, item.count)
         assertEquals(1, item.trail.size)
     }
+
+    @Test
+    fun distinguishesPropellerShahedAndJetShahedAndMig31k() = runTest {
+        val payload = """
+            {
+              "epoch": "rt-203547fe",
+              "seq": 95800,
+              "threats": [
+                {
+                  "id": "trk_uav_prop",
+                  "type": "uav",
+                  "title": "БпЛА",
+                  "lat": 49.99,
+                  "lon": 36.23,
+                  "velocity": {"bearingDeg": 270.0, "speedKmh": 165.0}
+                },
+                {
+                  "id": "trk_uav_jet_title",
+                  "type": "uav",
+                  "title": "Реактивний шахед",
+                  "lat": 48.50,
+                  "lon": 35.10,
+                  "velocity": {"bearingDeg": 250.0, "speedKmh": 520.0}
+                },
+                {
+                  "id": "trk_uav_jet_type",
+                  "type": "jet_shahed",
+                  "title": "Shahed-238",
+                  "lat": 47.90,
+                  "lon": 34.80
+                },
+                {
+                  "id": "trk_mig",
+                  "type": "mig31k",
+                  "title": "МіГ-31К",
+                  "lat": 51.00,
+                  "lon": 33.00
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val api = NeptunRadarApi(mockClient(payload))
+        val threats = api.fetchThreats().getOrThrow()
+
+        assertEquals(4, threats.size)
+        assertEquals(ThreatType.UAV, threats[0].type)
+        assertEquals(ThreatType.JET_SHAHED, threats[1].type)
+        assertEquals(ThreatType.JET_SHAHED, threats[2].type)
+        assertEquals(ThreatType.AVIATION, threats[3].type)
+    }
 }

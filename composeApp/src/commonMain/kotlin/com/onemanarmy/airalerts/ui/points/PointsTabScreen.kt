@@ -300,7 +300,10 @@ private fun GpsTrackingCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Switch(checked = enabled, onCheckedChange = onToggle)
+            Switch(
+                checked = enabled,
+                onCheckedChange = onToggle
+            )
         }
     }
 }

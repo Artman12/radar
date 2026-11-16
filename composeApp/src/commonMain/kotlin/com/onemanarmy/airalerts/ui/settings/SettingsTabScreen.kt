@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -41,12 +43,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -99,6 +103,8 @@ import com.onemanarmy.airalerts.resources.diag_service_stopped
 import com.onemanarmy.airalerts.resources.diag_service_title
 import com.onemanarmy.airalerts.resources.settings_about_section
 import com.onemanarmy.airalerts.resources.settings_diagnostics_section
+import com.onemanarmy.airalerts.resources.settings_kb_subtitle
+import com.onemanarmy.airalerts.resources.settings_kb_title
 import com.onemanarmy.airalerts.resources.settings_night_behavior
 import com.onemanarmy.airalerts.resources.settings_night_days
 import com.onemanarmy.airalerts.resources.settings_night_end
@@ -119,6 +125,7 @@ import com.onemanarmy.airalerts.resources.test_notification_title
 import com.onemanarmy.airalerts.ui.common.nightBehaviorLabel
 import com.onemanarmy.airalerts.ui.common.soundPresetLabel
 import com.onemanarmy.airalerts.ui.common.vibrationPresetLabel
+import com.onemanarmy.airalerts.ui.components.ThreatKnowledgeBaseSheet
 import com.onemanarmy.airalerts.ui.theme.AlertColors
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -135,6 +142,7 @@ fun SettingsTabScreen(
 
     var editingStartTime by remember { mutableStateOf(false) }
     var editingEndTime by remember { mutableStateOf(false) }
+    var isKnowledgeBaseOpen by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -186,6 +194,7 @@ fun SettingsTabScreen(
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 8.dp),
+                    thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
@@ -248,6 +257,7 @@ fun SettingsTabScreen(
                 if (settings.nightModeEnabled) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
 
@@ -315,16 +325,23 @@ fun SettingsTabScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         dayLabels.forEach { (isoDay, label) ->
+                            val isSelected = isoDay in settings.nightActiveDaysIso
                             FilterChip(
-                                selected = isoDay in settings.nightActiveDaysIso,
+                                selected = isSelected,
                                 onClick = { viewModel.toggleNightDay(isoDay) },
-                                label = { Text(label) }
+                                label = { Text(label) },
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = MaterialTheme.colorScheme.outline
+                                )
                             )
                         }
                     }
 
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant
                     )
 
@@ -379,12 +396,69 @@ fun SettingsTabScreen(
                     Text(
                         text = stringResource(Res.string.settings_radar_nearby_alerts),
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).padding(end = 12.dp)
                     )
                     Switch(
                         checked = settings.radarNearbyAlertsEnabled,
                         onCheckedChange = viewModel::setRadarNearbyAlertsEnabled
                     )
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { isKnowledgeBaseOpen = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.settings_kb_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(Res.string.settings_kb_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -510,6 +584,12 @@ fun SettingsTabScreen(
                 viewModel.updateNightEnd(h, m)
                 editingEndTime = false
             }
+        )
+    }
+
+    if (isKnowledgeBaseOpen) {
+        ThreatKnowledgeBaseSheet(
+            onDismiss = { isKnowledgeBaseOpen = false }
         )
     }
 }

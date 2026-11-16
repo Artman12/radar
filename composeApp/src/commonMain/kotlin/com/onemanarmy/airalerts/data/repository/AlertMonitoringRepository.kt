@@ -34,6 +34,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.datetime.Clock
 import org.jetbrains.compose.resources.getString
@@ -242,6 +244,9 @@ class AlertMonitoringRepository(
         return resolved
     }
 
+    private val pollMutex = Mutex()
+    private var lastSuccessfulPollMs: Long = 0L
+
     /**
      * Polls alert status from UkraineAlarm API v3 (when API key is present) or NEPTUN keyless alerts API.
      */
@@ -250,16 +255,48 @@ class AlertMonitoringRepository(
         dispatchNotifications: Boolean = true,
         gpsDisplayName: String = "My Location"
     ): PollResult {
+        if (!forceFullFetch && !dispatchNotifications) {
+            val age = Clock.System.now().toEpochMilliseconds() - lastSuccessfulPollMs
+            if (age in 0L..1_500L) {
+                return PollResult(
+                    success = true,
+                    trackedStatuses = trackedPointStatusesFlow.first()
+                )
+            }
+        }
+        return pollMutex.withLock {
+            if (!forceFullFetch && !dispatchNotifications) {
+                val age = Clock.System.now().toEpochMilliseconds() - lastSuccessfulPollMs
+                if (age in 0L..1_500L) {
+                    return@withLock PollResult(
+                        success = true,
+                        trackedStatuses = trackedPointStatusesFlow.first()
+                    )
+                }
+            }
+            pollAlertsOnceInternal(
+                forceFullFetch = forceFullFetch,
+                dispatchNotifications = dispatchNotifications,
+                gpsDisplayName = gpsDisplayName
+            )
+        }
+    }
+
+    private suspend fun pollAlertsOnceInternal(
+        forceFullFetch: Boolean,
+        dispatchNotifications: Boolean,
+        gpsDisplayName: String
+    ): PollResult {
         val now = Clock.System.now()
         val nowMs = now.toEpochMilliseconds()
         val settings = prefsRepo.settingsFlow.first()
         val existingAlerts = prefsRepo.lastActiveAlertsFlow.first()
 
-        // Refresh GPS concurrently with alert fetch so GPS latency never slows down alert polling.
+        // Refresh GPS concurrently with a tight bound so slow GPS never blocks alert loading.
         val (remoteIndex, activeAlerts) = coroutineScope {
             val gpsJob = if (settings.gpsTrackingEnabled) {
                 async {
-                    val timeoutMs = if (settings.gpsLatitude == null) 4_000L else 2_500L
+                    val timeoutMs = if (settings.gpsLatitude == null) 600L else 250L
                     withTimeoutOrNull(timeoutMs) {
                         runCatching { refreshGpsLocation() }
                     }
@@ -290,6 +327,8 @@ class AlertMonitoringRepository(
                 errorMessage = err.message
             )
         }
+
+        lastSuccessfulPollMs = Clock.System.now().toEpochMilliseconds()
 
         prefsRepo.updateSettings {
             it.copy(

@@ -6,69 +6,92 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Soft drop shadow under shield -->
+    <!-- Soft drop shadow under siren unit -->
     <path
-        android:fillColor="#55000000"
-        android:pathData="M54,27.5 L76,34.5 L76,53.5 C76,68.2 66.4,78.5 54,84.5 C41.6,78.5 32,68.2 32,53.5 L32,34.5 Z" />
+        android:fillColor="#66000000"
+        android:pathData="M37,66.5 L71,66.5 L75,75 C75.6,76.8 74.3,78.5 72.5,78.5 L35.5,78.5 C33.7,78.5 32.4,76.8 33,75 Z" />
 
-    <!-- Protective shield body -->
+    <!-- Five straight flashing siren rays (amber-gold) radiating around the dome -->
     <path
-        android:pathData="M54,26 L75.5,33 L75.5,52 C75.5,66.6 66.1,76.8 54,82.5 C41.9,76.8 32.5,66.6 32.5,52 L32.5,33 Z"
+        android:fillColor="#00000000"
+        android:pathData="M27,54 L35,54"
+        android:strokeWidth="3.6"
+        android:strokeColor="#FBBF24"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M33.5,34.5 L39.2,40.2"
+        android:strokeWidth="3.6"
+        android:strokeColor="#FBBF24"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,25 L54,33"
+        android:strokeWidth="3.6"
+        android:strokeColor="#FDE047"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M74.5,34.5 L68.8,40.2"
+        android:strokeWidth="3.6"
+        android:strokeColor="#FBBF24"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M81,54 L73,54"
+        android:strokeWidth="3.6"
+        android:strokeColor="#FBBF24"
+        android:strokeLineCap="round" />
+
+    <!-- Vivid crimson-red siren dome with crisp white rim -->
+    <path
+        android:pathData="M41,65 L41,51 A13,13 0 0,1 67,51 L67,65 Z"
         android:strokeWidth="2.4"
-        android:strokeColor="#5BB2FF"
+        android:strokeColor="#F8FAFC"
         android:strokeLineJoin="round">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:endX="54"
-                android:endY="82.5"
+                android:endY="65"
                 android:startX="54"
-                android:startY="26"
+                android:startY="38"
                 android:type="linear">
                 <item
-                    android:color="#FF182A42"
+                    android:color="#FFFF5252"
                     android:offset="0.0" />
                 <item
-                    android:color="#FF0D1724"
+                    android:color="#FFDC2626"
                     android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Subtle radar sweep highlight inside shield -->
-    <path
-        android:fillColor="#245BB2FF"
-        android:pathData="M54,58 L41,42 A19,19 0 0,1 67,42 Z" />
-
-    <!-- Outer upward radar arc -->
+    <!-- Bright specular highlight on left side of dome -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M40.5,46.5 A17.5,17.5 0 0,1 67.5,46.5"
-        android:strokeWidth="2.8"
-        android:strokeColor="#5BB2FF"
+        android:pathData="M45,51 A9,9 0 0,1 51,42.5"
+        android:strokeWidth="1.8"
+        android:strokeColor="#99FFFFFF"
         android:strokeLineCap="round" />
 
-    <!-- Inner upward radar arc -->
+    <!-- High-contrast exclamation mark inside the siren dome -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M45,51.2 A11.5,11.5 0 0,1 63,51.2"
-        android:strokeWidth="2.8"
-        android:strokeColor="#93C5FD"
+        android:pathData="M54,44.5 L54,54"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFBEB"
         android:strokeLineCap="round" />
-
-    <!-- Alert beacon pulse halo -->
-    <path
-        android:fillColor="#44EF4444"
-        android:pathData="M54,50 A8.5,8.5 0 1,1 53.99,50 Z" />
-
-    <!-- Alert beacon red core -->
-    <path
-        android:fillColor="#EF4444"
-        android:pathData="M54,53 A5.5,5.5 0 1,1 53.99,53 Z"
-        android:strokeWidth="1.2"
-        android:strokeColor="#FCA5A5" />
-
-    <!-- High-contrast inner core dot -->
     <path
         android:fillColor="#FFFBEB"
-        android:pathData="M54,56.3 A2.2,2.2 0 1,1 53.99,56.3 Z" />
+        android:pathData="M54,57.5 A1.9,1.9 0 1,1 53.99,57.5 Z" />
+
+    <!-- Crisp bright white metallic siren pedestal base -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M38,65 L70,65 L73.8,73.2 C74.5,74.8 73.3,76.5 71.5,76.5 L36.5,76.5 C34.7,76.5 33.5,74.8 34.2,73.2 Z" />
+
+    <!-- Subtle slate trim at bottom edge of pedestal for 3D depth -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M35.2,72 L72.8,72 L73.8,73.2 C74.5,74.8 73.3,76.5 71.5,76.5 L36.5,76.5 C34.7,76.5 33.5,74.8 34.2,73.2 Z" />
 </vector>
