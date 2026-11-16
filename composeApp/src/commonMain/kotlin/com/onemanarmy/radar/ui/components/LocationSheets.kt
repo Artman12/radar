@@ -88,6 +88,7 @@ import com.onemanarmy.radar.resources.points_status_clear
 import com.onemanarmy.radar.resources.search_no_results
 import com.onemanarmy.radar.resources.sheet_add_location_title
 import com.onemanarmy.radar.resources.sheet_rename_location_title
+import com.onemanarmy.radar.resources.threat_details_age_hours_minutes
 import com.onemanarmy.radar.resources.threat_details_approx_note
 import com.onemanarmy.radar.resources.threat_details_distance
 import com.onemanarmy.radar.resources.threat_details_distance_value
@@ -99,6 +100,7 @@ import com.onemanarmy.radar.resources.threat_details_open_kb
 import com.onemanarmy.radar.resources.threat_details_speed
 import com.onemanarmy.radar.resources.threat_details_type
 import com.onemanarmy.radar.resources.threat_details_uncertainty
+import com.onemanarmy.radar.resources.threat_details_updated
 import com.onemanarmy.radar.ui.common.alertTypeLabel
 import com.onemanarmy.radar.ui.common.threatTypeLabel
 import com.onemanarmy.radar.ui.theme.AlertColors
@@ -192,10 +194,10 @@ fun AddLocationBottomSheet(
                     onClick = onPickOnMap,
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
+                        contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -397,6 +399,18 @@ fun ThreatDetailsBottomSheet(
     val isWarningActive = highlightNearbyThreats && item.isWithinWarningRadius
     val threatTint = if (isWarningActive) AlertColors.AlertRed else AlertColors.WarningAmber
 
+    val updatedInstant = remember(threat.updatedAtIso) {
+        DurationFormatter.parseInstantOrNull(threat.updatedAtIso)
+    }
+    var nowInstant by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(threat.id, threat.updatedAtIso) {
+        nowInstant = Clock.System.now()
+        while (updatedInstant != null) {
+            delay(15_000L)
+            nowInstant = Clock.System.now()
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -447,7 +461,7 @@ fun ThreatDetailsBottomSheet(
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AlertColors.AlertRedContainerDark,
-                            border = BorderStroke(0.5.dp, AlertColors.AlertRed.copy(alpha = 0.6f))
+                            border = BorderStroke(1.dp, AlertColors.AlertRed.copy(alpha = 0.6f))
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -512,6 +526,30 @@ fun ThreatDetailsBottomSheet(
                             valueColor = if (isWarningActive) AlertColors.AlertRed else MaterialTheme.colorScheme.onSurface
                         )
                     }
+
+                    updatedInstant?.let { instant ->
+                        val dt = remember(instant) {
+                            instant.toLocalDateTime(TimeZone.currentSystemDefault())
+                        }
+                        val timeLabel = remember(dt) {
+                            DurationFormatter.formatTimeOfDay(dt.hour, dt.minute)
+                        }
+                        val ageMinutes = DurationFormatter.ageMinutesSince(instant, nowInstant)
+                        val ageLabel = when {
+                            ageMinutes < 1 -> stringResource(Res.string.explosion_details_age_just_now)
+                            ageMinutes < 60 -> stringResource(Res.string.explosion_details_age_minutes, ageMinutes)
+                            else -> stringResource(
+                                Res.string.threat_details_age_hours_minutes,
+                                ageMinutes / 60,
+                                ageMinutes % 60
+                            )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        DetailRow(
+                            label = stringResource(Res.string.threat_details_updated),
+                            value = "$timeLabel ($ageLabel)"
+                        )
+                    }
                 }
             }
 
@@ -542,7 +580,7 @@ fun ThreatDetailsBottomSheet(
                     onClick = onOpenKnowledgeBase,
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         contentColor = MaterialTheme.colorScheme.primary

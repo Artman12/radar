@@ -87,6 +87,7 @@
     <string name="legend_critical">Ціль</string>
     <string name="legend_occupied">Окуповано</string>
     <string name="threats_summary_none">Цілей немає</string>
+    <string name="threats_summary_loading">Завантаження…</string>
     <string name="refresh_countdown_seconds">%1$dс</string>
     <string name="map_next_refresh_cd">Наступне оновлення через %1$d с</string>
     <string name="threats_list_title">Активні повітряні цілі</string>
@@ -144,6 +145,8 @@
     <string name="threat_details_speed">Швидкість</string>
     <string name="threat_details_distance">Відстань до «%1$s»</string>
     <string name="threat_details_distance_value">~%1$d км</string>
+    <string name="threat_details_updated">Оновлено</string>
+    <string name="threat_details_age_hours_minutes">%1$d год %2$d хв тому</string>
     <string name="threat_details_uncertainty">Похибка позиції: ±%1$d км</string>
     <string name="threat_details_approx_note">Дані радара OSINT є орієнтовними та оновлюються лише при відкритій вкладці «Карта».</string>
     <string name="threat_details_inside_radius">У межах %1$d км радіуса загрози</string>

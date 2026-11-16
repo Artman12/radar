@@ -21,6 +21,25 @@ object DurationFormatter {
         return "${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}"
     }
 
+    fun parseInstantOrNull(raw: String?): Instant? {
+        val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val isoParsed = runCatching { Instant.parse(trimmed) }.getOrNull()
+        if (isoParsed != null) return isoParsed
+        val numeric = trimmed.toLongOrNull() ?: return null
+        return runCatching {
+            if (numeric >= 1_000_000_000_000L) {
+                Instant.fromEpochMilliseconds(numeric)
+            } else {
+                Instant.fromEpochSeconds(numeric)
+            }
+        }.getOrNull()
+    }
+
+    fun ageMinutesSince(
+        instant: Instant,
+        now: Instant = Clock.System.now()
+    ): Int = ((now - instant).inWholeSeconds.coerceAtLeast(0L) / 60L).toInt()
+
     fun formatTimeOfDay(hour: Int, minute: Int): String = "${pad2(hour.toLong())}:${pad2(minute.toLong())}"
 
     private fun pad2(value: Long): String = if (value < 10) "0$value" else value.toString()

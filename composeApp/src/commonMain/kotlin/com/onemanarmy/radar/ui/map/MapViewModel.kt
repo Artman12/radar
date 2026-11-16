@@ -30,7 +30,9 @@ import com.onemanarmy.radar.platform.PlatformLocationClient
 import com.onemanarmy.radar.platform.SystemDiagnosticsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -291,14 +293,15 @@ class MapViewModel(
                 .drop(1)
                 .collect { (enabled, _) ->
                     _rawThreats.value = emptyList()
+                    val willRestartPolling = radarPollingJob?.isActive == true
                     _localState.update {
                         it.copy(
                             selectedThreatDetails = null,
-                            isRadarLoading = if (enabled) it.isRadarLoading else false,
-                            nextRadarRefreshEpochMs = if (enabled) it.nextRadarRefreshEpochMs else null
+                            isRadarLoading = enabled && willRestartPolling,
+                            nextRadarRefreshEpochMs = null
                         )
                     }
-                    if (radarPollingJob?.isActive == true) {
+                    if (willRestartPolling) {
                         radarPollingJob?.cancel()
                         radarPollingJob = null
                         startRadarOnlyPolling()
@@ -392,14 +395,17 @@ class MapViewModel(
     private suspend fun refreshRadarOnce() {
         _localState.update { it.copy(isRadarLoading = true) }
         val source = prefsRepo.settingsFlow.first().threatDataSource
-        radarRepo.fetchRawThreats(source)
+        val result = radarRepo.fetchRawThreats(source)
+        currentCoroutineContext().ensureActive()
+        result
             .onSuccess { threats ->
                 _rawThreats.value = threats
-                _localState.update { it.copy(isRadarLoading = false) }
                 monitoringRepo.evaluateThreatRadiusThreats(
                     threats = threats,
                     dispatchNotifications = true
                 )
+                currentCoroutineContext().ensureActive()
+                _localState.update { it.copy(isRadarLoading = false) }
             }
             .onFailure {
                 // Radar failure must never disrupt official alert monitoring.
@@ -451,6 +457,7 @@ class MapViewModel(
 
     /**
      * Cycles the map radar FAB through: Off -> NEPTUN -> MAPA.UA -> Off.
+     * Rapid back-and-forth switches are allowed and backed by [RadarRepository]'s 10s per-source cache.
      */
     fun cycleThreatRadarMode() {
         viewModelScope.launch {

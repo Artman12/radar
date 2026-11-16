@@ -1,5 +1,6 @@
 package com.onemanarmy.radar.data.remote
 
+import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.ThreatTrailPoint
 import com.onemanarmy.radar.domain.model.ThreatType
@@ -112,7 +113,11 @@ class NeptunRadarApi(
                     uncertaintyKm = dto.uncertaintyKm?.roundToInt(),
                     positionQuality = dto.positionQuality,
                     explanation = dto.explanationShort.orEmpty(),
-                    updatedAtIso = dto.updatedAt.orEmpty(),
+                    updatedAtIso = resolveUpdatedAtIso(
+                        updatedAt = dto.updatedAt,
+                        trail = dto.trail,
+                        serverTime = response.serverTime
+                    ),
                     trail = dto.trail.mapNotNull { tp ->
                         val tLat = tp.lat ?: return@mapNotNull null
                         val tLon = tp.lon ?: return@mapNotNull null
@@ -122,6 +127,27 @@ class NeptunRadarApi(
                 )
             }
         }
+    }
+
+    private fun resolveUpdatedAtIso(
+        updatedAt: String?,
+        trail: List<NeptunTrailPointDto>,
+        serverTime: String?
+    ): String {
+        val direct = updatedAt?.trim()?.takeIf { it.isNotEmpty() }
+        if (direct != null && DurationFormatter.parseInstantOrNull(direct) != null) {
+            return direct
+        }
+        val latestTrailInstant = trail
+            .mapNotNull { tp -> tp.t?.let(DurationFormatter::parseInstantOrNull) }
+            .maxOrNull()
+        if (latestTrailInstant != null) {
+            return latestTrailInstant.toString()
+        }
+        return direct
+            ?: trail.lastOrNull { !it.t.isNullOrBlank() }?.t?.trim()
+            ?: serverTime?.trim()?.takeIf { it.isNotEmpty() }
+            ?: ""
     }
 
     private suspend fun fetchLiveOrFallback(): NeptunThreatsResponseDto {

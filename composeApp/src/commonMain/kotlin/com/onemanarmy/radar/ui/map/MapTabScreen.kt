@@ -423,7 +423,7 @@ fun MapTabScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
-                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Row(
                         modifier = Modifier
@@ -580,8 +580,8 @@ private fun ThreatGuideButton(
             .defaultMinSize(minHeight = 28.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
         tonalElevation = 2.dp
     ) {
         Row(
@@ -616,7 +616,7 @@ private fun AlertRefreshStatusPill(
         modifier = modifier.defaultMinSize(minWidth = 72.dp, minHeight = 28.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 2.dp
     ) {
         Row(
@@ -651,7 +651,7 @@ private fun ZoomToUkraineButton(
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
         shadowElevation = 4.dp
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -682,9 +682,9 @@ private fun RadarLayerToggleButton(
         else -> MaterialTheme.colorScheme.tertiary
     }
     val borderColor = when {
-        !enabled -> MaterialTheme.colorScheme.outline
-        source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-        else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
+        !enabled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
+        source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+        else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.65f)
     }
     val description = when {
         !enabled -> stringResource(Res.string.map_radar_mode_off)
@@ -776,7 +776,7 @@ private fun StickyStatusPager(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.96f)
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
@@ -998,7 +998,7 @@ private fun SelectedRegionInfoCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -1071,7 +1071,7 @@ private fun RegionThreatLegendPill(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 2.dp
     ) {
         FlowRow(

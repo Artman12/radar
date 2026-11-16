@@ -352,7 +352,7 @@ fun SettingsTabScreen(
                     // Card 2: Threat in Radius (0–100 km) Urgent Notification
                     val threatBorderColor by animateColorAsState(
                         targetValue = if (settings.threatRadiusNotificationEnabled) {
-                            AlertColors.AlertRed.copy(alpha = 0.45f)
+                            AlertColors.AlertRed.copy(alpha = 0.50f)
                         } else {
                             MaterialTheme.colorScheme.outlineVariant
                         }
@@ -433,7 +433,7 @@ fun SettingsTabScreen(
                                             Surface(
                                                 shape = RoundedCornerShape(8.dp),
                                                 color = AlertColors.AlertRed.copy(alpha = 0.14f),
-                                                border = BorderStroke(0.5.dp, AlertColors.AlertRed.copy(alpha = 0.4f))
+                                                border = BorderStroke(1.dp, AlertColors.AlertRed.copy(alpha = 0.48f))
                                             ) {
                                                 Text(
                                                     text = radiusBadgeText,
@@ -624,7 +624,7 @@ fun SettingsTabScreen(
                             onClick = { editingStartTime = true },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                             )
@@ -640,7 +640,7 @@ fun SettingsTabScreen(
                             onClick = { editingEndTime = true },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                             )
@@ -683,7 +683,8 @@ fun SettingsTabScreen(
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = MaterialTheme.colorScheme.outline
+                                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                                    selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
                                 )
                             )
                         }
@@ -884,8 +885,8 @@ fun SettingsTabScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .clickable { isKnowledgeBaseOpen = true },
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f))
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
@@ -924,7 +925,7 @@ fun SettingsTabScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -1142,6 +1143,11 @@ private fun DiagnosticRow(
             FilledTonalButton(
                 onClick = onAction,
                 shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Icon(Icons.Default.ErrorOutline, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1335,9 +1341,9 @@ private fun NotificationStyleAccordionHeader(
             border = BorderStroke(
                 1.dp,
                 if (isUrgent) {
-                    AlertColors.AlertRed.copy(alpha = 0.45f)
+                    AlertColors.AlertRed.copy(alpha = 0.50f)
                 } else {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
                 }
             )
         ) {

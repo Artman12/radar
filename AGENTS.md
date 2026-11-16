@@ -64,12 +64,22 @@
 * **Асинхронность:** Никаких блокирующих вызовов на `Dispatchers.Main`. Все сетевые запросы и геокодирование выполняются на `Dispatchers.IO`.
 * **Отказоустойчивость сети:** Любой сетевой запрос оборачивать в `runCatching` или `try/catch` с таймаутами (`requestTimeoutMillis = 10_000`). Падение API радара (`neptun.in.ua`) не должно вызывать краш или блокировать обновление статусов тревог (`ukrainealarm.com`).
 * **Дедупликация:** Перед отправкой уведомления всегда сверяй новый статус и `alertId` с сохранённым состоянием в `DataStore`. Уведомление отправляется только при фактическом изменении статуса.
-* **UI/UX:** Поддерживай светлую и тёмную темы Material 3. Все строки интерфейса выноси в Compose Multiplatform Resources (`composeResources/values/strings.xml`), основной язык интерфейса — русский/украинский согласно `SPECIFICATION.md`.
+* **UI/UX:** Следуй единой дизайн-системе **Tactical Dark HUD** (см. `DESIGN_PHILOSOPHY.md`). Все строки интерфейса выноси в Compose Multiplatform Resources (`composeResources/values/strings.xml` и `values-uk/strings.xml`), основной язык интерфейса — украинский/английский согласно проекту.
 
 ---
 
-## 5. Команды проверки перед завершением задачи
+## 5. Дизайн-система и UI-философия (`DESIGN_PHILOSOPHY.md`)
+
+Проект использует стиль **Tactical Dark HUD** поверх Compose Material 3 (`RadarTheme` в `AirAlertsTheme.kt`) с единой **2-уровневой системой рамок (`1.dp`)**:
+* **Уровень 1 — Пассивные контейнеры:** Все статичные карточки (`SettingsSectionCard`, `SavedPointCard`), информационные плашки без нажатия (`AlertRefreshStatusPill`, `RegionThreatLegendPill`), блоки деталей внутри штор и строка атрибуции используют **`BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)`** (`#3B4F69`). Не используй `0.5.dp` и не оставляй токен `outline` (`#566E8C`) на кнопках — он предназначен только для полей ввода (`OutlinedTextField`) и ручек `ModalBottomSheet`.
+* **Уровень 2 — Интерактивные элементы и акценты:** Все нажимаемые вторичные кнопки, иконочные кнопки действий (`Surface` в `PointsTabScreen`), `OutlinedButton`, `FilledTonalButton`, кнопки карты (`MapZoomControlsPill`, `ZoomToUkraineButton`, `RadarLayerToggleButton`), кликабельные плашки HUD (`ThreatGuideButton`, `ActiveThreatsSummaryPill`) и кликабельные карточки-переходы (например, База знаний) используют **`BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f))`** (либо активный семантический цвет: `tertiary` для `MAPA.UA`, `AlertRed` для тревоги/удаления/срочных уведомлений, `WarningAmber` для взрывов).
+* **Кнопки управления на карте и карточках:** Для компактных кнопок карты (`42.dp`, в landscape `38.dp`, `RoundedCornerShape(14.dp)`) и кнопок действий в списке точек (`40.dp`, `RoundedCornerShape(12.dp)`) используй `Surface(onClick = ..., border = BorderStroke(1.dp, ...))`, а **не** `SmallFloatingActionButton` с `.border(...)` (иначе рамка рисуется по внешнему `48.dp` touch-target с отступом вокруг кнопки).
+* **Шкала скруглений:** `10.dp` (нижняя строка атрибуции, чипы, компактные tonal-кнопки), `12.dp` (плашки HUD, иконочные кнопки, `OutlinedButton`, кликабельные строки), `14.dp` (кнопки карты и блоки деталей), `16.dp–18.dp` (основные карточки экранов).
+* **Адаптивность:** Учитывай `isCompactLandscape` (`maxWidth > maxHeight && maxHeight < 520.dp`) и задавай `defaultMinSize` парным плашкам в `FlowRow`, чтобы мелкие индикаторы (например, таймер обновления) не выглядели сжатыми рядом с текстовыми плашками.
+
+---
+
+## 6. Команды проверки перед завершением задачи
 Перед тем как считать этап разработки завершённым, обязательно проверь сборку и отсутствие ошибок компиляции:
-* `./gradlew :composeApp:compileDebugKotlinAndroid` — проверка компиляции общего и Android-кода.
-* `./gradlew :composeApp:assembleDebug` — сборка тестового APK.
-* `./gradlew :composeApp:testDebugUnitTest` — запуск юнит-тестов (обязательно покрыть тестами логику «Тихих часов», дедупликацию и расчёт дистанции Гаверсинуса в `commonTest`).
+* `./gradlew :composeApp:testAndroidHostTest` — запуск юнит-тестов (обязательно покрыть тестами логику «Тихих часов», дедупликацию и расчёт дистанции Гаверсинуса в `commonTest`).
+* `./gradlew :app:assembleDebug` — полная сборка тестового Android APK (проверяет компиляцию общего `commonMain` и Android-кода).

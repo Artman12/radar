@@ -240,4 +240,47 @@ class NeptunApisTest {
         assertEquals("trk_fallback", fallbackThreats.first().id)
         assertEquals(ThreatType.UAV, fallbackThreats.first().type)
     }
+
+    @Test
+    fun resolvesUpdatedAtIsoFromDirectFieldOrTrailOrServerTime() = runTest {
+        val payload = """
+            {
+              "epoch": "rt-time",
+              "seq": 200,
+              "serverTime": "2026-11-16T22:00:00Z",
+              "threats": [
+                {
+                  "id": "trk_direct",
+                  "type": "uav",
+                  "lat": 50.0,
+                  "lon": 30.0,
+                  "updatedAt": "2026-11-16T21:58:30Z",
+                  "trail": [{"lat": 50.0, "lon": 30.0, "t": "2026-11-16T21:55:00Z"}]
+                },
+                {
+                  "id": "trk_trail",
+                  "type": "uav",
+                  "lat": 50.1,
+                  "lon": 30.1,
+                  "trail": [
+                    {"lat": 50.0, "lon": 30.0, "t": "2026-11-16T21:51:00Z"},
+                    {"lat": 50.1, "lon": 30.1, "t": "2026-11-16T21:57:10Z"}
+                  ]
+                },
+                {
+                  "id": "trk_server_time",
+                  "type": "uav",
+                  "lat": 50.2,
+                  "lon": 30.2
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val threats = NeptunRadarApi(mockClient(payload)).fetchThreats().getOrThrow()
+        assertEquals(3, threats.size)
+        assertEquals("2026-11-16T21:58:30Z", threats[0].updatedAtIso)
+        assertEquals("2026-11-16T21:57:10Z", threats[1].updatedAtIso)
+        assertEquals("2026-11-16T22:00:00Z", threats[2].updatedAtIso)
+    }
 }

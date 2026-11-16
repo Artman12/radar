@@ -296,7 +296,7 @@ private fun ExplosionKnowledgeCard() {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = accentColor.copy(alpha = 0.14f),
-                        border = BorderStroke(0.5.dp, accentColor.copy(alpha = 0.45f))
+                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.45f))
                     ) {
                         Text(
                             text = stringResource(Res.string.kb_explosion_profile),
@@ -395,7 +395,7 @@ private fun ThreatKnowledgeCard(entry: ThreatKbEntry) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = entry.accentColor.copy(alpha = 0.14f),
-                        border = BorderStroke(0.5.dp, entry.accentColor.copy(alpha = 0.45f))
+                        border = BorderStroke(1.dp, entry.accentColor.copy(alpha = 0.45f))
                     ) {
                         Text(
                             text = stringResource(entry.profileRes),

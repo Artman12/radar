@@ -374,7 +374,7 @@ private fun OnboardingBottomNav(
                 onClick = onBack,
                 modifier = Modifier.weight(1f).height(50.dp),
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f))
             ) {
                 Text(backLabel)
             }
@@ -875,6 +875,7 @@ private fun PermissionStatusCard(
                 FilledTonalButton(
                     onClick = onGrant,
                     shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(stringResource(Res.string.btn_grant))
@@ -1240,6 +1241,7 @@ private fun ComfortStep(
                         FilledTonalButton(
                             onClick = onTestVibration,
                             shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(stringResource(Res.string.btn_test))

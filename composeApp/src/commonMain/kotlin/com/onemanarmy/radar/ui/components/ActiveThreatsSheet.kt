@@ -69,6 +69,7 @@ import com.onemanarmy.radar.resources.threats_list_filter_all
 import com.onemanarmy.radar.resources.threats_list_speed_kmh
 import com.onemanarmy.radar.resources.threats_list_title
 import com.onemanarmy.radar.resources.threats_list_total
+import com.onemanarmy.radar.resources.threats_summary_loading
 import com.onemanarmy.radar.resources.threats_summary_none
 import com.onemanarmy.radar.ui.common.threatDataSourceLabel
 import com.onemanarmy.radar.ui.common.threatTypeLabel
@@ -161,11 +162,11 @@ fun ActiveThreatsSummaryPill(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         border = BorderStroke(
-            width = if (hasAnyNearby) 1.dp else 0.5.dp,
-            color = if (hasAnyNearby) {
-                AlertColors.AlertRed.copy(alpha = 0.75f)
-            } else {
-                MaterialTheme.colorScheme.outlineVariant
+            width = 1.dp,
+            color = when {
+                hasAnyNearby -> AlertColors.AlertRed.copy(alpha = 0.75f)
+                source == ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
+                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
             }
         ),
         tonalElevation = 2.dp
@@ -212,13 +213,19 @@ fun ActiveThreatsSummaryPill(
                     Icon(
                         imageVector = Icons.Default.Radar,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isRefreshing) sourceAccentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = stringResource(Res.string.threats_summary_none),
+                        text = stringResource(
+                            if (isRefreshing) {
+                                Res.string.threats_summary_loading
+                            } else {
+                                Res.string.threats_summary_none
+                            }
+                        ),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isRefreshing) sourceAccentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
                     )
                 }
@@ -409,7 +416,7 @@ fun AllThreatsBottomSheet(
                                 if (isSelected) {
                                     MaterialTheme.colorScheme.primary
                                 } else {
-                                    MaterialTheme.colorScheme.outlineVariant
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
                                 }
                             )
                         ) {
@@ -444,7 +451,7 @@ fun AllThreatsBottomSheet(
                                 when {
                                     isSelected -> MaterialTheme.colorScheme.primary
                                     entry.hasNearbyWarning -> AlertColors.AlertRed.copy(alpha = 0.65f)
-                                    else -> MaterialTheme.colorScheme.outlineVariant
+                                    else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
                                 }
                             )
                         ) {
@@ -534,7 +541,7 @@ private fun ThreatListRowCard(
             color = if (isWarningActive) {
                 AlertColors.AlertRed.copy(alpha = 0.65f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
             }
         )
     ) {
@@ -583,7 +590,7 @@ private fun ThreatListRowCard(
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = AlertColors.WarningAmber.copy(alpha = 0.18f),
-                            border = BorderStroke(0.5.dp, AlertColors.WarningAmber.copy(alpha = 0.55f))
+                            border = BorderStroke(1.dp, AlertColors.WarningAmber.copy(alpha = 0.55f))
                         ) {
                             Text(
                                 text = "×${threat.count}",
@@ -669,11 +676,11 @@ fun ExplosionsSummaryPill(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         border = BorderStroke(
-            width = if (hasRecent) 1.dp else 0.5.dp,
+            width = 1.dp,
             color = if (hasRecent) {
                 AlertColors.AlertRed.copy(alpha = 0.70f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                AlertColors.WarningAmber.copy(alpha = 0.55f)
             }
         ),
         tonalElevation = 2.dp
@@ -820,7 +827,7 @@ private fun ExplosionListRowCard(
             color = if (explosion.isRecent) {
                 AlertColors.AlertRed.copy(alpha = 0.60f)
             } else {
-                MaterialTheme.colorScheme.outlineVariant
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
             }
         )
     ) {

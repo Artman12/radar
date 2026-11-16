@@ -28,10 +28,8 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -241,7 +239,7 @@ private fun GpsTrackingCard(
     onToggle: (Boolean) -> Unit
 ) {
     val borderColor = if (enabled) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
@@ -319,7 +317,7 @@ private fun SavedPointCard(
     val point: SavedPoint = status.point
     val statusTint = if (status.isAlertActive) AlertColors.AlertRed else AlertColors.SafeGreen
     val borderColor = if (status.isAlertActive) {
-        AlertColors.AlertRed.copy(alpha = 0.5f)
+        AlertColors.AlertRed.copy(alpha = 0.55f)
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
@@ -395,44 +393,53 @@ private fun SavedPointCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilledTonalIconButton(
+                Surface(
                     onClick = onRename,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f))
                 ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = stringResource(Res.string.points_action_rename),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = stringResource(Res.string.points_action_rename),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
-                FilledTonalIconButton(
+                Surface(
                     onClick = onReposition,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface
-                    )
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.48f))
                 ) {
-                    Icon(
-                        Icons.Default.OpenWith,
-                        contentDescription = stringResource(Res.string.points_action_reposition),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.OpenWith,
+                            contentDescription = stringResource(Res.string.points_action_reposition),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
-                FilledTonalIconButton(
+                Surface(
                     onClick = onDelete,
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = AlertColors.AlertRedContainerDark.copy(alpha = 0.7f),
-                        contentColor = AlertColors.AlertRed
-                    )
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = AlertColors.AlertRedContainerDark.copy(alpha = 0.7f),
+                    contentColor = AlertColors.AlertRed,
+                    border = BorderStroke(1.dp, AlertColors.AlertRed.copy(alpha = 0.50f))
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = stringResource(Res.string.points_action_delete),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = stringResource(Res.string.points_action_delete),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -445,8 +452,8 @@ private fun StatusBadge(isAlertActive: Boolean) {
         shape = RoundedCornerShape(20.dp),
         color = if (isAlertActive) AlertColors.AlertRedContainerDark else AlertColors.SafeGreenContainerDark,
         border = BorderStroke(
-            0.5.dp,
-            if (isAlertActive) AlertColors.AlertRed.copy(alpha = 0.45f) else AlertColors.SafeGreen.copy(alpha = 0.4f)
+            1.dp,
+            if (isAlertActive) AlertColors.AlertRed.copy(alpha = 0.48f) else AlertColors.SafeGreen.copy(alpha = 0.45f)
         )
     ) {
         Text(

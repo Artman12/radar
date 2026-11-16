@@ -133,6 +133,7 @@ class MapaUaRadarApiTest {
         assertEquals(33.63889, jet.longitude)
         assertEquals(304.0, jet.headingDeg)
         assertEquals(450.0, jet.speedKmh)
+        assertEquals("2026-11-16T17:46:02Z", jet.updatedAtIso)
         assertEquals(2, jet.trail.size)
         // Ensure [lon, lat] was flipped into ThreatTrailPoint(latitude, longitude)
         assertEquals(46.93807, jet.trail[0].latitude)
@@ -142,6 +143,7 @@ class MapaUaRadarApiTest {
         assertEquals("mapa_446001", piston.id)
         assertEquals(ThreatType.UAV, piston.type)
         assertEquals(2, piston.count)
+        assertEquals("2026-11-16T17:46:40Z", piston.updatedAtIso)
 
         assertEquals(ThreatType.CRUISE_MISSILE, threats[2].type)
         assertEquals(ThreatType.BALLISTIC, threats[3].type)

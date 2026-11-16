@@ -135,4 +135,121 @@ class RadarRepositoryTest {
         assertEquals("mapa_99", mapaThreats.first().id)
         assertEquals(ThreatType.CRUISE_MISSILE, mapaThreats.first().type)
     }
+
+    @Test
+    fun fetchRawThreats_throttlesRepeatedCallsPerSourceWithinCooldown() = runTest {
+        var neptunRequests = 0
+        var mapaRequests = 0
+        var fakeNowMs = 10_000L
+
+        val neptunClient = HttpClient(
+            MockEngine {
+                neptunRequests++
+                respond(
+                    content = """
+                        {
+                          "threats": [
+                            { "id": "neptun_$neptunRequests", "type": "uav", "title": "Neptun UAV", "lat": 50.45, "lon": 30.52 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val mapaClient = HttpClient(
+            MockEngine {
+                mapaRequests++
+                respond(
+                    content = """
+                        {
+                          "objects": [
+                            { "id": $mapaRequests, "kind": "uav", "title": "Mapa UAV", "status": "active", "lat": 49.0, "lon": 32.0 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val throttledRepo = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(neptunClient),
+            mapaUaRadarApi = MapaUaRadarApi(mapaClient),
+            minRequestIntervalMs = 10_000L,
+            nowEpochMs = { fakeNowMs }
+        )
+
+        // First NEPTUN fetch hits the API once
+        val firstNeptun = throttledRepo.fetchRawThreats(ThreatDataSource.NEPTUN).getOrThrow()
+        assertEquals(1, neptunRequests)
+        assertEquals("neptun_1", firstNeptun.first().id)
+
+        // Switching to MAPA_UA is independent and hits MAPA_UA once
+        fakeNowMs += 1_000L
+        val firstMapa = throttledRepo.fetchRawThreats(ThreatDataSource.MAPA_UA).getOrThrow()
+        assertEquals(1, mapaRequests)
+        assertEquals("mapa_1", firstMapa.first().id)
+
+        // Switching back to NEPTUN within 10s reuses cached response without hitting NEPTUN again
+        fakeNowMs += 4_000L
+        val cachedNeptun = throttledRepo.fetchRawThreats(ThreatDataSource.NEPTUN).getOrThrow()
+        assertEquals(1, neptunRequests)
+        assertEquals("neptun_1", cachedNeptun.first().id)
+
+        // Advancing past 10s allows a fresh NEPTUN request
+        fakeNowMs += 5_000L
+        val refreshedNeptun = throttledRepo.fetchRawThreats(ThreatDataSource.NEPTUN).getOrThrow()
+        assertEquals(2, neptunRequests)
+        assertEquals("neptun_2", refreshedNeptun.first().id)
+    }
+
+    @Test
+    fun fetchRawThreats_throttlesRetriesAfterFailure() = runTest {
+        var neptunAttempts = 0
+        var fakeNowMs = 50_000L
+
+        val failingClient = HttpClient(
+            MockEngine {
+                neptunAttempts++
+                respond(
+                    content = "Too Many Requests",
+                    status = HttpStatusCode.TooManyRequests
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val repoWithCooldown = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(failingClient),
+            mapaUaRadarApi = MapaUaRadarApi(emptyClient),
+            minRequestIntervalMs = 10_000L,
+            nowEpochMs = { fakeNowMs }
+        )
+
+        val firstAttempt = repoWithCooldown.fetchRawThreats(ThreatDataSource.NEPTUN)
+        assertTrue(firstAttempt.isFailure)
+        // NeptunRadarApi tries /live then /threats fallback = 2 HTTP calls for the single fetch attempt
+        val attemptsAfterFirstFetch = neptunAttempts
+
+        // Immediate retry within 10s cooldown must NOT hit the network again
+        fakeNowMs += 5_000L
+        val secondAttempt = repoWithCooldown.fetchRawThreats(ThreatDataSource.NEPTUN)
+        assertTrue(secondAttempt.isFailure)
+        assertEquals(attemptsAfterFirstFetch, neptunAttempts)
+
+        // After 10s cooldown elapses, retry is allowed
+        fakeNowMs += 5_000L
+        val thirdAttempt = repoWithCooldown.fetchRawThreats(ThreatDataSource.NEPTUN)
+        assertTrue(thirdAttempt.isFailure)
+        assertTrue(neptunAttempts > attemptsAfterFirstFetch)
+    }
 }

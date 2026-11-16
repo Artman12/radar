@@ -87,6 +87,7 @@
     <string name="legend_critical">Target</string>
     <string name="legend_occupied">Occupied</string>
     <string name="threats_summary_none">No threats</string>
+    <string name="threats_summary_loading">Loading…</string>
     <string name="refresh_countdown_seconds">%1$ds</string>
     <string name="map_next_refresh_cd">Next refresh in %1$d s</string>
     <string name="threats_list_title">Active Air Threats</string>
@@ -144,6 +145,8 @@
     <string name="threat_details_speed">Speed</string>
     <string name="threat_details_distance">Distance to %1$s</string>
     <string name="threat_details_distance_value">~%1$d km</string>
+    <string name="threat_details_updated">Updated</string>
+    <string name="threat_details_age_hours_minutes">%1$dh %2$dm ago</string>
     <string name="threat_details_uncertainty">Position uncertainty: ±%1$d km</string>
     <string name="threat_details_approx_note">OSINT radar data is approximate and updated only while the Map tab is open.</string>
     <string name="threat_details_inside_radius">Inside %1$d km threat radius</string>
