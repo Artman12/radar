@@ -21,6 +21,7 @@ import com.onemanarmy.radar.domain.model.RegionPolygon
 import com.onemanarmy.radar.domain.model.RegionThreatInfo
 import com.onemanarmy.radar.domain.model.RegionThreatSnapshot
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatWithProximity
 import com.onemanarmy.radar.domain.model.UkraineBounds
 import com.onemanarmy.radar.domain.model.UkraineMapBoundaries
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -280,12 +282,40 @@ class MapViewModel(
                     }
                 }
         }
+
+        // Refresh radar immediately whenever the user toggles the radar layer or switches source.
+        viewModelScope.launch {
+            prefsRepo.settingsFlow
+                .map { it.radarLayerEnabled to it.threatDataSource }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { (enabled, _) ->
+                    _rawThreats.value = emptyList()
+                    _localState.update {
+                        it.copy(
+                            selectedThreatDetails = null,
+                            isRadarLoading = if (enabled) it.isRadarLoading else false,
+                            nextRadarRefreshEpochMs = if (enabled) it.nextRadarRefreshEpochMs else null
+                        )
+                    }
+                    if (radarPollingJob?.isActive == true) {
+                        radarPollingJob?.cancel()
+                        radarPollingJob = null
+                        startRadarOnlyPolling()
+                    }
+                }
+        }
     }
 
     /**
-     * Starts NEPTUN radar polling strictly while the Map screen is visible in STARTED/RESUMED lifecycle.
+     * Starts air-threat radar polling strictly while the Map screen is visible in STARTED/RESUMED lifecycle.
      */
     fun startRadarPolling() {
+        startRadarOnlyPolling()
+        startExplosionsOnlyPolling()
+    }
+
+    private fun startRadarOnlyPolling() {
         if (radarPollingJob?.isActive != true) {
             radarPollingJob = viewModelScope.launch {
                 while (isActive) {
@@ -307,6 +337,9 @@ class MapViewModel(
                 }
             }
         }
+    }
+
+    private fun startExplosionsOnlyPolling() {
         if (explosionsPollingJob?.isActive != true) {
             explosionsPollingJob = viewModelScope.launch {
                 while (isActive) {
@@ -358,7 +391,8 @@ class MapViewModel(
 
     private suspend fun refreshRadarOnce() {
         _localState.update { it.copy(isRadarLoading = true) }
-        radarRepo.fetchRawThreats()
+        val source = prefsRepo.settingsFlow.first().threatDataSource
+        radarRepo.fetchRawThreats(source)
             .onSuccess { threats ->
                 _rawThreats.value = threats
                 _localState.update { it.copy(isRadarLoading = false) }
@@ -368,7 +402,7 @@ class MapViewModel(
                 )
             }
             .onFailure {
-                // NEPTUN failure must never disrupt official alert monitoring.
+                // Radar failure must never disrupt official alert monitoring.
                 _localState.update { it.copy(isRadarLoading = false) }
             }
     }
@@ -415,20 +449,23 @@ class MapViewModel(
         focusMapOn(UkraineBounds.CENTER_LAT, UkraineBounds.CENTER_LON, UkraineBounds.COUNTRY_ZOOM)
     }
 
-    fun toggleRadarLayer() {
+    /**
+     * Cycles the map radar FAB through: Off -> NEPTUN -> MAPA.UA -> Off.
+     */
+    fun cycleThreatRadarMode() {
         viewModelScope.launch {
-            val current = prefsRepo.settingsFlow.first().radarLayerEnabled
-            val next = !current
-            prefsRepo.updateSettings { it.copy(radarLayerEnabled = next) }
-            if (next) {
-                stopRadarPolling()
-                startRadarPolling()
-            } else {
-                _rawThreats.value = emptyList()
-                _localState.update {
-                    it.copy(
-                        isRadarLoading = false,
-                        nextRadarRefreshEpochMs = null
+            prefsRepo.updateSettings { settings ->
+                when {
+                    !settings.radarLayerEnabled -> settings.copy(
+                        radarLayerEnabled = true,
+                        threatDataSource = ThreatDataSource.NEPTUN
+                    )
+                    settings.threatDataSource == ThreatDataSource.NEPTUN -> settings.copy(
+                        radarLayerEnabled = true,
+                        threatDataSource = ThreatDataSource.MAPA_UA
+                    )
+                    else -> settings.copy(
+                        radarLayerEnabled = false
                     )
                 }
             }

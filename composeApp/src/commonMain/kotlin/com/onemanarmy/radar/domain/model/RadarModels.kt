@@ -20,13 +20,16 @@ enum class ThreatType {
     companion object {
         fun fromApiValue(raw: String?): ThreatType = when (raw?.lowercase()?.trim()) {
             "jet_shahed", "shahed_jet", "shahed-jet", "shahed238", "shahed_238", "shahed-238",
-            "jet_uav", "uav_jet", "reactive_shahed", "reactive_uav", "geran3", "geran_3", "geran-3" -> JET_SHAHED
-            "uav", "shahed", "shahed136", "shahed_136", "shahed-136", "shahed131", "drone" -> UAV
-            "fpv", "fpv_drone" -> FPV
-            "recon", "recon_uav" -> RECON
-            "missile", "cruise_missile", "cruise" -> CRUISE_MISSILE
-            "ballistic", "ballistic_missile" -> BALLISTIC
-            "kab", "guided_bomb" -> KAB
+            "jet_uav", "uav_jet", "reactive_shahed", "reactive_uav", "geran3", "geran_3", "geran-3",
+            "drone_jet", "banderol" -> JET_SHAHED
+            "uav", "shahed", "shahed136", "shahed_136", "shahed-136", "shahed131", "drone",
+            "drone_piston", "decoy" -> UAV
+            "fpv", "fpv_drone", "drone_fpv" -> FPV
+            "recon", "recon_uav", "drone_recon" -> RECON
+            "missile", "cruise_missile", "cruise", "missile_cruise",
+            "kalibr", "x101", "x59" -> CRUISE_MISSILE
+            "ballistic", "ballistic_missile", "missile_ballistic" -> BALLISTIC
+            "kab", "guided_bomb", "bomb" -> KAB
             "aviation", "aircraft", "jet", "mig31k", "mig-31k" -> AVIATION
             else -> UNKNOWN
         }
@@ -63,6 +66,10 @@ enum class ThreatType {
                 return if (isJetShahedByText || isJetShahedBySpeed) JET_SHAHED else UAV
             }
 
+            if (baseType == UNKNOWN && !normalizedSubtype.isNullOrBlank()) {
+                return fromApiValue(normalizedSubtype)
+            }
+
             return baseType
         }
 
@@ -81,7 +88,9 @@ enum class ThreatType {
             "reactive_uav",
             "geran3",
             "geran_3",
-            "geran-3"
+            "geran-3",
+            "drone_jet",
+            "banderol"
         )
     }
 }

@@ -96,12 +96,14 @@ import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import com.onemanarmy.radar.domain.model.VibrationPreset
 import com.onemanarmy.radar.resources.Res
 import com.onemanarmy.radar.resources.about_deepstate
 import com.onemanarmy.radar.resources.about_disclaimer
+import com.onemanarmy.radar.resources.about_mapa_ua
 import com.onemanarmy.radar.resources.about_neptun
 import com.onemanarmy.radar.resources.about_nextalert
 import com.onemanarmy.radar.resources.about_ukraine_alarm
@@ -159,6 +161,8 @@ import com.onemanarmy.radar.resources.settings_threat_sound_pattern
 import com.onemanarmy.radar.resources.settings_threat_sound_volume
 import com.onemanarmy.radar.resources.settings_threat_tone_and_vibration
 import com.onemanarmy.radar.resources.settings_threat_vibration_pattern
+import com.onemanarmy.radar.resources.settings_threat_source_desc
+import com.onemanarmy.radar.resources.settings_threat_source_title
 import com.onemanarmy.radar.resources.settings_vibration_preset
 import com.onemanarmy.radar.resources.status_granted
 import com.onemanarmy.radar.resources.status_not_granted
@@ -168,6 +172,7 @@ import com.onemanarmy.radar.resources.test_threat_notification_body
 import com.onemanarmy.radar.resources.test_threat_notification_title
 import com.onemanarmy.radar.ui.common.nightBehaviorLabel
 import com.onemanarmy.radar.ui.common.soundPresetShortLabel
+import com.onemanarmy.radar.ui.common.threatDataSourceLabel
 import com.onemanarmy.radar.ui.common.threatSoundPatternLabel
 import com.onemanarmy.radar.ui.common.threatVibrationPatternLabel
 import com.onemanarmy.radar.ui.common.vibrationPresetShortLabel
@@ -722,6 +727,32 @@ fun SettingsTabScreen(
                 icon = Icons.Default.Layers,
                 title = stringResource(Res.string.settings_map_section)
             ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(Res.string.settings_threat_source_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(Res.string.settings_threat_source_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IosSegmentedControl(
+                        items = ThreatDataSource.entries,
+                        selectedItem = settings.threatDataSource,
+                        onItemSelected = viewModel::selectThreatDataSource,
+                        labelProvider = { threatDataSourceLabel(it) }
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -916,6 +947,27 @@ fun SettingsTabScreen(
                 ) {
                     Text(
                         text = stringResource(Res.string.about_neptun),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        Icons.Default.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = viewModel::openMapaUaSite)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = stringResource(Res.string.about_mapa_ua),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

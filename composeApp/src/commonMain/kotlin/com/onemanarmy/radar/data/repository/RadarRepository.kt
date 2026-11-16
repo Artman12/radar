@@ -1,24 +1,34 @@
 package com.onemanarmy.radar.data.repository
 
+import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.domain.logic.GeoUtils
 import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatWithProximity
 
 /**
- * Fetches NEPTUN OSINT threats and computes proximity against user's tracked points.
+ * Fetches OSINT aerial threats from the selected radar source (NEPTUN or MAPA.UA)
+ * and computes proximity against user's tracked points.
  */
 class RadarRepository(
-    private val neptunRadarApi: NeptunRadarApi
+    private val neptunRadarApi: NeptunRadarApi,
+    private val mapaUaRadarApi: MapaUaRadarApi
 ) {
-    suspend fun fetchRawThreats(): Result<List<AirThreat>> = neptunRadarApi.fetchThreats()
+    suspend fun fetchRawThreats(
+        source: ThreatDataSource = ThreatDataSource.NEPTUN
+    ): Result<List<AirThreat>> = when (source) {
+        ThreatDataSource.NEPTUN -> neptunRadarApi.fetchThreats()
+        ThreatDataSource.MAPA_UA -> mapaUaRadarApi.fetchThreats()
+    }
 
     suspend fun fetchThreatsWithProximity(
         trackedPoints: List<SavedPoint>,
-        warningRadiusKm: Double
+        warningRadiusKm: Double,
+        source: ThreatDataSource = ThreatDataSource.NEPTUN
     ): Result<List<ThreatWithProximity>> {
-        return neptunRadarApi.fetchThreats().map { threats ->
+        return fetchRawThreats(source).map { threats ->
             enrichProximity(threats, trackedPoints, warningRadiusKm)
         }
     }

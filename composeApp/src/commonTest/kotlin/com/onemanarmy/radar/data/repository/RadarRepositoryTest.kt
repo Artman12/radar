@@ -1,12 +1,22 @@
 package com.onemanarmy.radar.data.repository
 
+import com.onemanarmy.radar.data.remote.HttpClientFactory
+import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatType
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondOk
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,8 +24,11 @@ import kotlin.test.assertTrue
 
 class RadarRepositoryTest {
 
+    private val emptyClient = HttpClient(MockEngine { respondOk("[]") })
+
     private val repo = RadarRepository(
-        neptunRadarApi = NeptunRadarApi(HttpClient(MockEngine { respondOk("[]") }))
+        neptunRadarApi = NeptunRadarApi(emptyClient),
+        mapaUaRadarApi = MapaUaRadarApi(emptyClient)
     )
 
     @Test
@@ -67,5 +80,59 @@ class RadarRepositoryTest {
         )
         assertFalse(within10[0].isWithinWarningRadius)
         assertFalse(within10[1].isWithinWarningRadius)
+    }
+
+    @Test
+    fun fetchRawThreats_routesToSelectedSource() = runTest {
+        val neptunClient = HttpClient(
+            MockEngine {
+                respond(
+                    content = """
+                        {
+                          "threats": [
+                            { "id": "neptun_1", "type": "uav", "title": "Neptun UAV", "lat": 50.45, "lon": 30.52 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val mapaClient = HttpClient(
+            MockEngine {
+                respond(
+                    content = """
+                        {
+                          "objects": [
+                            { "id": 99, "kind": "missile_cruise", "title": "Mapa Missile", "status": "active", "lat": 49.0, "lon": 32.0 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val switchingRepo = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(neptunClient),
+            mapaUaRadarApi = MapaUaRadarApi(mapaClient)
+        )
+
+        val neptunThreats = switchingRepo.fetchRawThreats(ThreatDataSource.NEPTUN).getOrThrow()
+        assertEquals(1, neptunThreats.size)
+        assertEquals("neptun_1", neptunThreats.first().id)
+        assertEquals(ThreatType.UAV, neptunThreats.first().type)
+
+        val mapaThreats = switchingRepo.fetchRawThreats(ThreatDataSource.MAPA_UA).getOrThrow()
+        assertEquals(1, mapaThreats.size)
+        assertEquals("mapa_99", mapaThreats.first().id)
+        assertEquals(ThreatType.CRUISE_MISSILE, mapaThreats.first().type)
     }
 }

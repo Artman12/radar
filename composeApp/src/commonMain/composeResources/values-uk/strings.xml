@@ -62,14 +62,18 @@
     <string name="status_no_points_title">Немає відстежуваних локацій</string>
     <string name="status_no_points_subtitle">Додайте локацію у «Мої точки» або увімкніть GPS</string>
     <string name="status_point_subtitle">%1$s (%2$s)</string>
-    <string name="map_toggle_radar_on">Приховати повітряні цілі</string>
-    <string name="map_toggle_radar_off">Показати повітряні цілі</string>
+    <string name="map_radar_mode_off">Повітряні цілі: Вимк (торкніться для NEPTUN)</string>
+    <string name="map_radar_mode_neptun">Повітряні цілі: NEPTUN (торкніться для MAPA.UA)</string>
+    <string name="map_radar_mode_mapa">Повітряні цілі: MAPA.UA (торкніться, щоб приховати)</string>
+    <string name="map_radar_fab_neptun">NEP</string>
+    <string name="map_radar_fab_mapa">MAPA</string>
     <string name="map_toggle_occupied_on">Приховати окуповані території</string>
     <string name="map_toggle_occupied_off">Показати окуповані території</string>
     <string name="map_center_gps">Центрувати на моїй геопозиції</string>
     <string name="map_add_point">Додати точку</string>
     <string name="map_disclaimer_prefix">Орієнтовно • Джерело: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
+    <string name="map_disclaimer_mapa_ua_link">MAPA.UA</string>
     <string name="map_disclaimer_deepstate_link">DeepState</string>
     <string name="map_disclaimer_nextalert_link">NextAlert</string>
     <string name="map_nearby_threat_banner">Ціль у межах %1$d км від %2$s (~%3$d км)</string>
@@ -295,6 +299,10 @@
     <string name="settings_kb_subtitle">Усі іконки цілей, їхній опис та поради з безпеки</string>
 
     <string name="settings_map_section">Відображення карти</string>
+    <string name="settings_threat_source_title">Джерело повітряних цілей</string>
+    <string name="settings_threat_source_desc">Оберіть OSINT-радар для відображення повітряних цілей</string>
+    <string name="threat_source_neptun">NEPTUN</string>
+    <string name="threat_source_mapa_ua">MAPA.UA</string>
     <string name="settings_occupied_layer_title">Окуповані території</string>
     <string name="settings_occupied_layer_desc">Показувати шар окупованих територій DeepState на карті</string>
     <string name="settings_explosions_layer_title">Шар вибухів</string>
@@ -316,6 +324,7 @@
     <string name="settings_about_section">Довідник та джерела даних</string>
     <string name="about_ukraine_alarm">Тривоги: NEPTUN Alerts API</string>
     <string name="about_neptun">Шар повітряних цілей: Радар OSINT NEPTUN</string>
+    <string name="about_mapa_ua">Шар повітряних цілей (альт.): Радар MAPA.UA</string>
     <string name="about_deepstate">Шар окупованих територій: DeepStateMap</string>
     <string name="about_nextalert">Шар вибухів: NextAlert</string>
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>

@@ -1,6 +1,7 @@
 package com.onemanarmy.radar.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
@@ -41,14 +43,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.model.ExplosionWithProximity
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatType
 import com.onemanarmy.radar.domain.model.ThreatWithProximity
 import com.onemanarmy.radar.resources.Res
@@ -65,6 +70,7 @@ import com.onemanarmy.radar.resources.threats_list_speed_kmh
 import com.onemanarmy.radar.resources.threats_list_title
 import com.onemanarmy.radar.resources.threats_list_total
 import com.onemanarmy.radar.resources.threats_summary_none
+import com.onemanarmy.radar.ui.common.threatDataSourceLabel
 import com.onemanarmy.radar.ui.common.threatTypeLabel
 import com.onemanarmy.radar.ui.theme.AlertColors
 import kotlinx.coroutines.delay
@@ -134,6 +140,7 @@ private fun typePriorityIndex(type: ThreatType): Int {
 fun ActiveThreatsSummaryPill(
     threats: List<ThreatWithProximity>,
     highlightNearbyThreats: Boolean,
+    source: ThreatDataSource = ThreatDataSource.NEPTUN,
     nextRefreshEpochMs: Long? = null,
     refreshIntervalMs: Long = 10_000L,
     isRefreshing: Boolean = false,
@@ -144,6 +151,10 @@ fun ActiveThreatsSummaryPill(
         summarizeThreatsByType(threats, highlightNearbyThreats)
     }
     val hasAnyNearby = counts.any { it.hasNearbyWarning }
+    val sourceAccentColor = when (source) {
+        ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary
+        ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary
+    }
 
     Surface(
         modifier = modifier.clickable(onClick = onClick),
@@ -159,10 +170,13 @@ fun ActiveThreatsSummaryPill(
         ),
         tonalElevation = 2.dp
     ) {
-        if (counts.isEmpty()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
             Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (isRefreshing || nextRefreshEpochMs != null) {
@@ -172,68 +186,84 @@ fun ActiveThreatsSummaryPill(
                         isRefreshing = isRefreshing
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.Radar,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp)
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(sourceAccentColor)
                 )
                 Text(
-                    text = stringResource(Res.string.threats_summary_none),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = threatDataSourceLabel(source),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp
+                    ),
+                    fontWeight = FontWeight.Bold,
+                    color = sourceAccentColor,
                     maxLines = 1
                 )
             }
-        } else {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isRefreshing || nextRefreshEpochMs != null) {
-                    RefreshCountdownBadge(
-                        nextRefreshEpochMs = nextRefreshEpochMs,
-                        intervalMs = refreshIntervalMs,
-                        isRefreshing = isRefreshing
+
+            if (counts.isEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Radar,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = stringResource(Res.string.threats_summary_none),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
-                FlowRow(
-                    modifier = Modifier.weight(1f, fill = false),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    counts.forEach { entry ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            ThreatTypeIcon(
-                                type = entry.type,
-                                modifier = Modifier.size(19.dp),
-                                isHighlighted = entry.hasNearbyWarning
-                            )
-                            Text(
-                                text = entry.count.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (entry.hasNearbyWarning) {
-                                    AlertColors.AlertRed
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                maxLines = 1
-                            )
+                    FlowRow(
+                        modifier = Modifier.weight(1f, fill = false),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        itemVerticalAlignment = Alignment.CenterVertically
+                    ) {
+                        counts.forEach { entry ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                ThreatTypeIcon(
+                                    type = entry.type,
+                                    modifier = Modifier.size(19.dp),
+                                    isHighlighted = entry.hasNearbyWarning
+                                )
+                                Text(
+                                    text = entry.count.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (entry.hasNearbyWarning) {
+                                        AlertColors.AlertRed
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
+                        contentDescription = stringResource(Res.string.threats_list_title),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
-                    contentDescription = stringResource(Res.string.threats_list_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp)
-                )
             }
         }
     }

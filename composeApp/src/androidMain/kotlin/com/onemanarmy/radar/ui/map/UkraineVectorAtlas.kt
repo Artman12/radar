@@ -842,6 +842,7 @@ object UkraineMapPreloader {
 
         com.onemanarmy.radar.data.remote.ResilientOkHttpProvider.prewarmDnsAsync(
             "neptun.in.ua",
+            "mapa.ua",
             "deepstatemap.live",
             "server.arcgisonline.com",
             "nominatim.openstreetmap.org"

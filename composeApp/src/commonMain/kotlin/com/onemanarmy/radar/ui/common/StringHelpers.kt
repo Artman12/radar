@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.onemanarmy.radar.domain.model.AlertType
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatType
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
@@ -28,6 +29,8 @@ import com.onemanarmy.radar.resources.threat_sound_alarm
 import com.onemanarmy.radar.resources.threat_sound_buzzer
 import com.onemanarmy.radar.resources.threat_sound_off
 import com.onemanarmy.radar.resources.threat_sound_siren
+import com.onemanarmy.radar.resources.threat_source_mapa_ua
+import com.onemanarmy.radar.resources.threat_source_neptun
 import com.onemanarmy.radar.resources.threat_type_aviation
 import com.onemanarmy.radar.resources.threat_type_ballistic
 import com.onemanarmy.radar.resources.threat_type_cruise_missile
@@ -125,4 +128,10 @@ fun threatTypeLabel(type: ThreatType): String = when (type) {
     ThreatType.KAB -> stringResource(Res.string.threat_type_kab)
     ThreatType.AVIATION -> stringResource(Res.string.threat_type_aviation)
     ThreatType.UNKNOWN -> stringResource(Res.string.threat_type_unknown)
+}
+
+@Composable
+fun threatDataSourceLabel(source: ThreatDataSource): String = when (source) {
+    ThreatDataSource.NEPTUN -> stringResource(Res.string.threat_source_neptun)
+    ThreatDataSource.MAPA_UA -> stringResource(Res.string.threat_source_mapa_ua)
 }

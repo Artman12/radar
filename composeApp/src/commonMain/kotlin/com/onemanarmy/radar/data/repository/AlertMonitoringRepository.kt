@@ -490,7 +490,7 @@ class AlertMonitoringRepository(
         val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
         if (trackedPoints.none { it.notifyEnabled }) return
 
-        val threats = radarRepo.fetchRawThreats().getOrNull() ?: return
+        val threats = radarRepo.fetchRawThreats(settings.threatDataSource).getOrNull() ?: return
         evaluateThreatRadiusThreats(
             threats = threats,
             dispatchNotifications = dispatchNotifications,

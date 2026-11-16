@@ -4,6 +4,7 @@ import com.onemanarmy.radar.data.local.AppPreferencesRepository
 import com.onemanarmy.radar.data.local.UkraineBoundaryRepository
 import com.onemanarmy.radar.data.remote.DeepStateOccupiedApi
 import com.onemanarmy.radar.data.remote.HttpClientFactory
+import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunAlertsApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.data.remote.NextAlertExplosionsApi
@@ -30,6 +31,7 @@ val commonModule = module {
     single { UkraineAlarmApi(get()) }
     single { NeptunAlertsApi(get()) }
     single { NeptunRadarApi(get()) }
+    single { MapaUaRadarApi(get()) }
     single { NextAlertExplosionsApi(get()) }
     single { DeepStateOccupiedApi(get()) }
     single { NominatimGeocoderApi(get()) }
@@ -39,7 +41,7 @@ val commonModule = module {
     single { UkraineBoundaryRepository() }
     single { RegionThreatEvaluator() }
 
-    single { RadarRepository(get()) }
+    single { RadarRepository(get(), get()) }
     single { NextAlertExplosionsRepository(get()) }
     single { OccupiedTerritoriesRepository(get(), get()) }
     single {

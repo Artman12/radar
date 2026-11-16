@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,11 +36,9 @@ import androidx.compose.material.icons.filled.ZoomOutMap
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -59,11 +58,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.radar.data.remote.DeepStateOccupiedApi
+import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.data.remote.NextAlertExplosionsApi
 import com.onemanarmy.radar.domain.logic.DurationFormatter
@@ -71,6 +72,7 @@ import com.onemanarmy.radar.domain.model.AdminLevel
 import com.onemanarmy.radar.domain.model.AlertLevel
 import com.onemanarmy.radar.domain.model.PointStatus
 import com.onemanarmy.radar.domain.model.RegionThreatLevel
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.resources.Res
 import com.onemanarmy.radar.resources.btn_save
 import com.onemanarmy.radar.resources.default_home_name
@@ -83,12 +85,16 @@ import com.onemanarmy.radar.resources.legend_occupied
 import com.onemanarmy.radar.resources.map_center_gps
 import com.onemanarmy.radar.resources.map_disclaimer_deepstate_link
 import com.onemanarmy.radar.resources.map_disclaimer_link
+import com.onemanarmy.radar.resources.map_disclaimer_mapa_ua_link
 import com.onemanarmy.radar.resources.map_disclaimer_nextalert_link
 import com.onemanarmy.radar.resources.map_disclaimer_prefix
 import com.onemanarmy.radar.resources.map_nearby_threat_banner
 import com.onemanarmy.radar.resources.map_nearby_threat_banner_zero
-import com.onemanarmy.radar.resources.map_toggle_radar_off
-import com.onemanarmy.radar.resources.map_toggle_radar_on
+import com.onemanarmy.radar.resources.map_radar_fab_mapa
+import com.onemanarmy.radar.resources.map_radar_fab_neptun
+import com.onemanarmy.radar.resources.map_radar_mode_mapa
+import com.onemanarmy.radar.resources.map_radar_mode_neptun
+import com.onemanarmy.radar.resources.map_radar_mode_off
 import com.onemanarmy.radar.resources.region_nearby_targets_count
 import com.onemanarmy.radar.resources.region_threat_clear
 import com.onemanarmy.radar.resources.region_threat_critical
@@ -319,12 +325,13 @@ fun MapTabScreen(
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
-                            itemVerticalAlignment = Alignment.CenterVertically
+                            itemVerticalAlignment = Alignment.Bottom
                         ) {
                             if (uiState.settings.radarLayerEnabled) {
                                 ActiveThreatsSummaryPill(
                                     threats = uiState.threats,
                                     highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
+                                    source = uiState.settings.threatDataSource,
                                     nextRefreshEpochMs = uiState.nextRadarRefreshEpochMs,
                                     refreshIntervalMs = uiState.radarPollIntervalMs,
                                     isRefreshing = uiState.isRadarLoading,
@@ -360,7 +367,8 @@ fun MapTabScreen(
                             ) {
                                 RadarLayerToggleButton(
                                     enabled = uiState.settings.radarLayerEnabled,
-                                    onClick = viewModel::toggleRadarLayer,
+                                    source = uiState.settings.threatDataSource,
+                                    onClick = viewModel::cycleThreatRadarMode,
                                     compact = true
                                 )
                                 ZoomToUkraineButton(
@@ -399,7 +407,8 @@ fun MapTabScreen(
 
                             RadarLayerToggleButton(
                                 enabled = uiState.settings.radarLayerEnabled,
-                                onClick = viewModel::toggleRadarLayer
+                                source = uiState.settings.threatDataSource,
+                                onClick = viewModel::cycleThreatRadarMode
                             )
 
                             ZoomToUkraineButton(onClick = viewModel::zoomToUkraine)
@@ -433,15 +442,20 @@ fun MapTabScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        val isMapaUa = uiState.settings.threatDataSource == ThreatDataSource.MAPA_UA
                         Text(
-                            text = stringResource(Res.string.map_disclaimer_link),
+                            text = stringResource(
+                                if (isMapaUa) Res.string.map_disclaimer_mapa_ua_link else Res.string.map_disclaimer_link
+                            ),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 textDecoration = TextDecoration.Underline,
                                 fontWeight = FontWeight.Bold
                             ),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable {
-                                viewModel.openExternalUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+                                viewModel.openExternalUrl(
+                                    if (isMapaUa) MapaUaRadarApi.MAPA_UA_BASE_URL else NeptunRadarApi.NEPTUN_BASE_URL
+                                )
                             }
                         )
                         Text(
@@ -562,7 +576,9 @@ private fun ThreatGuideButton(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.clickable(onClick = onClick),
+        modifier = modifier
+            .defaultMinSize(minHeight = 28.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.94f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -597,22 +613,22 @@ private fun AlertRefreshStatusPill(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.defaultMinSize(minWidth = 72.dp, minHeight = 28.dp),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Default.Sync,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(13.dp)
+                modifier = Modifier.size(14.dp)
             )
             RefreshCountdownBadge(
                 nextRefreshEpochMs = lastAlertCheckEpochMs + alertPollIntervalMs,
@@ -628,71 +644,99 @@ private fun ZoomToUkraineButton(
     onClick: () -> Unit,
     compact: Boolean = false
 ) {
-    SmallFloatingActionButton(
+    val buttonSize = if (compact) 38.dp else 42.dp
+    Surface(
         onClick = onClick,
+        modifier = Modifier.size(buttonSize),
         shape = RoundedCornerShape(14.dp),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-        modifier = Modifier
-            .then(if (compact) Modifier.size(38.dp) else Modifier)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline,
-                RoundedCornerShape(14.dp)
-            )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 4.dp
     ) {
-        Icon(
-            imageVector = Icons.Default.ZoomOutMap,
-            contentDescription = null,
-            modifier = Modifier.size(if (compact) 18.dp else 20.dp)
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.ZoomOutMap,
+                contentDescription = null,
+                modifier = Modifier.size(if (compact) 18.dp else 20.dp)
+            )
+        }
     }
 }
 
 @Composable
 private fun RadarLayerToggleButton(
     enabled: Boolean,
+    source: ThreatDataSource,
     onClick: () -> Unit,
     compact: Boolean = false
 ) {
-    SmallFloatingActionButton(
+    val containerColor = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
+        source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f)
+        else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.96f)
+    }
+    val contentColor = when {
+        !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+        source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.tertiary
+    }
+    val borderColor = when {
+        !enabled -> MaterialTheme.colorScheme.outline
+        source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
+    }
+    val description = when {
+        !enabled -> stringResource(Res.string.map_radar_mode_off)
+        source == ThreatDataSource.NEPTUN -> stringResource(Res.string.map_radar_mode_neptun)
+        else -> stringResource(Res.string.map_radar_mode_mapa)
+    }
+
+    val buttonSize = if (compact) 38.dp else 42.dp
+    Surface(
         onClick = onClick,
+        modifier = Modifier.size(buttonSize),
         shape = RoundedCornerShape(14.dp),
-        containerColor = if (enabled) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
-        },
-        contentColor = if (enabled) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 3.dp),
-        modifier = Modifier
-            .then(if (compact) Modifier.size(38.dp) else Modifier)
-            .border(
-                1.dp,
-                if (enabled) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
-                RoundedCornerShape(14.dp)
-            )
+        color = containerColor,
+        contentColor = contentColor,
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = 4.dp
     ) {
-        Icon(
-            imageVector = if (enabled) Icons.Default.Radar else Icons.Default.VisibilityOff,
-            contentDescription = stringResource(
-                if (enabled) {
-                    Res.string.map_toggle_radar_on
-                } else {
-                    Res.string.map_toggle_radar_off
+        Box(contentAlignment = Alignment.Center) {
+            if (!enabled) {
+                Icon(
+                    imageVector = Icons.Default.VisibilityOff,
+                    contentDescription = description,
+                    modifier = Modifier.size(if (compact) 18.dp else 20.dp)
+                )
+            } else {
+                val badgeText = stringResource(
+                    if (source == ThreatDataSource.NEPTUN) {
+                        Res.string.map_radar_fab_neptun
+                    } else {
+                        Res.string.map_radar_fab_mapa
+                    }
+                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Radar,
+                        contentDescription = description,
+                        modifier = Modifier.size(if (compact) 14.dp else 16.dp)
+                    )
+                    Text(
+                        text = badgeText,
+                        fontSize = if (compact) 7.sp else 8.sp,
+                        lineHeight = if (compact) 8.sp else 9.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
-            ),
-            modifier = Modifier.size(if (compact) 18.dp else 20.dp)
-        )
+            }
+        }
     }
 }
 

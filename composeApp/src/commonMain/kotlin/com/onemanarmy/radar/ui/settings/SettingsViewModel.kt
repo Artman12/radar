@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.onemanarmy.radar.data.local.AppPreferencesRepository
 import com.onemanarmy.radar.data.remote.DeepStateOccupiedApi
+import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.data.remote.NextAlertExplosionsApi
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import com.onemanarmy.radar.domain.model.VibrationPreset
@@ -153,6 +155,12 @@ class SettingsViewModel(
         }
     }
 
+    fun selectThreatDataSource(source: ThreatDataSource) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatDataSource = source) }
+        }
+    }
+
     fun setThreatRadiusNotificationEnabled(enabled: Boolean) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(threatRadiusNotificationEnabled = enabled) }
@@ -231,6 +239,10 @@ class SettingsViewModel(
 
     fun openNeptunSite() {
         diagnosticsProvider.openUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+    }
+
+    fun openMapaUaSite() {
+        diagnosticsProvider.openUrl(MapaUaRadarApi.MAPA_UA_BASE_URL)
     }
 
     fun openDeepStateSite() {
