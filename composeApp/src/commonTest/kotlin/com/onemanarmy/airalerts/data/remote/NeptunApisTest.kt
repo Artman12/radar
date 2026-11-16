@@ -163,4 +163,81 @@ class NeptunApisTest {
         assertEquals(ThreatType.JET_SHAHED, threats[2].type)
         assertEquals(ThreatType.AVIATION, threats[3].type)
     }
+
+    @Test
+    fun parsesJetSubtypeFromLiveEndpointAndFallsBackToThreatsOn403() = runTest {
+        val livePayload = """
+            {
+              "epoch": "rt-live",
+              "seq": 100,
+              "threats": [
+                {
+                  "id": "trk_00364655",
+                  "type": "uav",
+                  "subtype": "jet",
+                  "title": "БпЛА",
+                  "lat": 49.12439388,
+                  "lon": 36.45618559,
+                  "motion": {"speedKmh": 330.0, "courseDeg": 278.1}
+                },
+                {
+                  "id": "trk_00364622",
+                  "type": "uav",
+                  "title": "БпЛА",
+                  "lat": 50.05090252,
+                  "lon": 36.17651712,
+                  "motion": {"speedKmh": 150.0, "courseDeg": 219.0}
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val liveApi = NeptunRadarApi(mockClient(livePayload))
+        val liveThreats = liveApi.fetchThreats().getOrThrow()
+        assertEquals(2, liveThreats.size)
+        assertEquals(ThreatType.JET_SHAHED, liveThreats[0].type)
+        assertEquals(330.0, liveThreats[0].speedKmh)
+        assertEquals(278.1, liveThreats[0].headingDeg)
+        assertEquals(ThreatType.UAV, liveThreats[1].type)
+
+        // Verify 403 on /api/v1/live falls back cleanly to /api/v1/threats
+        val fallbackEngine = MockEngine { request ->
+            if (request.url.encodedPath.endsWith("/api/v1/live")) {
+                respond(
+                    content = """{"error":"Forbidden"}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            } else {
+                respond(
+                    content = """
+                        {
+                          "epoch": "rt-fallback",
+                          "seq": 101,
+                          "threats": [
+                            {
+                              "id": "trk_fallback",
+                              "type": "uav",
+                              "title": "БпЛА",
+                              "lat": 50.0,
+                              "lon": 36.0
+                            }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+        val fallbackClient = HttpClient(fallbackEngine) {
+            install(ContentNegotiation) {
+                json(HttpClientFactory.sharedJson)
+            }
+        }
+        val fallbackThreats = NeptunRadarApi(fallbackClient).fetchThreats().getOrThrow()
+        assertEquals(1, fallbackThreats.size)
+        assertEquals("trk_fallback", fallbackThreats.first().id)
+        assertEquals(ThreatType.UAV, fallbackThreats.first().type)
+    }
 }

@@ -80,6 +80,7 @@ import com.onemanarmy.airalerts.resources.threat_details_distance_value
 import com.onemanarmy.airalerts.resources.threat_details_heading
 import com.onemanarmy.airalerts.resources.threat_details_heading_unknown
 import com.onemanarmy.airalerts.resources.threat_details_inside_radius
+import com.onemanarmy.airalerts.resources.threat_details_inside_radius_zero
 import com.onemanarmy.airalerts.resources.threat_details_open_kb
 import com.onemanarmy.airalerts.resources.threat_details_speed
 import com.onemanarmy.airalerts.resources.threat_details_type
@@ -438,7 +439,11 @@ fun ThreatDetailsBottomSheet(
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
-                                    text = stringResource(Res.string.threat_details_inside_radius, warningRadiusKm),
+                                    text = if (warningRadiusKm <= 0) {
+                                        stringResource(Res.string.threat_details_inside_radius_zero)
+                                    } else {
+                                        stringResource(Res.string.threat_details_inside_radius, warningRadiusKm)
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = AlertColors.AlertOnContainerDark

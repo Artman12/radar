@@ -25,7 +25,7 @@ enum class NotificationSoundPreset {
 }
 
 /**
- * Urgent vibration patterns for Threat-in-Radius (0-10 km) notifications.
+ * Urgent vibration patterns for Threat-in-Radius (0-50 km) notifications.
  */
 @Serializable
 enum class ThreatVibrationPattern {
@@ -36,7 +36,7 @@ enum class ThreatVibrationPattern {
 }
 
 /**
- * Urgent sound patterns for Threat-in-Radius (0-10 km) notifications.
+ * Urgent sound patterns for Threat-in-Radius (0-50 km) notifications.
  */
 @Serializable
 enum class ThreatSoundPattern {
@@ -77,12 +77,10 @@ data class AppSettings(
     val nightEndMinute: Int = 0,
     val nightActiveDaysIso: Set<Int> = setOf(1, 2, 3, 4, 5, 6, 7),
     val nightModeBehavior: NightModeBehavior = NightModeBehavior.FILTER_ALL_CLEAR,
-    val warningRadiusKm: Int = 30,
-    val radarNearbyAlertsEnabled: Boolean = true,
     val radarLayerEnabled: Boolean = true,
     val hromadaAlertNotificationsEnabled: Boolean = true,
     val threatRadiusNotificationEnabled: Boolean = false,
-    val threatNotificationRadiusKm: Int = 5,
+    val threatNotificationRadiusKm: Int = 10,
     val threatVibrationPattern: ThreatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
     val threatSoundPattern: ThreatSoundPattern = ThreatSoundPattern.BUZZER,
     val threatSoundVolumePercent: Int = 85,

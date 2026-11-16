@@ -52,7 +52,7 @@ class RadarRepositoryTest {
         val within30 = repo.enrichProximity(
             threats = listOf(nearThreat, farThreat),
             trackedPoints = listOf(kyivPoint),
-            warningRadiusKm = 30
+            warningRadiusKm = 30.0
         )
         assertEquals(2, within30.size)
         assertTrue(within30[0].isWithinWarningRadius)
@@ -63,7 +63,7 @@ class RadarRepositoryTest {
         val within10 = repo.enrichProximity(
             threats = listOf(nearThreat, farThreat),
             trackedPoints = listOf(kyivPoint),
-            warningRadiusKm = 10
+            warningRadiusKm = 10.0
         )
         assertFalse(within10[0].isWithinWarningRadius)
         assertFalse(within10[1].isWithinWarningRadius)

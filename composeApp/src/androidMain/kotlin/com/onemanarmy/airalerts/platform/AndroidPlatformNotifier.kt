@@ -106,10 +106,10 @@ class AndroidPlatformNotifier(
 
         val channel = NotificationChannel(
             THREAT_RADIUS_CHANNEL_ID,
-            "Nearby Threat Warnings (0–10 km)",
+            "Nearby Threat Warnings (0–50 km)",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Urgent alert banner when an aerial threat enters your 0–10 km radius"
+            description = "Urgent alert banner when an aerial threat enters your configured radius"
             enableVibration(false)
             setSound(null, null)
             enableLights(true)
@@ -162,7 +162,7 @@ class AndroidPlatformNotifier(
 
             val soundUri = when (soundPreset) {
                 NotificationSoundPreset.DEFAULT -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                NotificationSoundPreset.SOFT_CHIME -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                NotificationSoundPreset.SOFT_CHIME -> Uri.parse("android.resource://${context.packageName}/raw/soft_chime")
                 NotificationSoundPreset.SILENT -> null
             }
             if (soundUri != null) {
@@ -206,7 +206,7 @@ class AndroidPlatformNotifier(
         }
 
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(com.onemanarmy.airalerts.shared.R.drawable.ic_notification_siren)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -254,7 +254,7 @@ class AndroidPlatformNotifier(
         ensureThreatRadiusChannel()
 
         val builder = NotificationCompat.Builder(context, THREAT_RADIUS_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(com.onemanarmy.airalerts.shared.R.drawable.ic_notification_siren)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

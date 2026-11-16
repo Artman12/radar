@@ -58,6 +58,7 @@
     <string name="map_disclaimer_prefix">Target positions are approximate • Source: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
     <string name="map_nearby_threat_banner">Threat within %1$d km of %2$s (%3$d km away)</string>
+    <string name="map_nearby_threat_banner_zero">Threat within 500 m of %1$s (%2$d km away)</string>
     <string name="map_crosshair_hint">Move the map to place the crosshair</string>
     <string name="btn_cancel">Cancel</string>
     <string name="btn_save">Save</string>
@@ -113,7 +114,8 @@
     <string name="threat_details_distance_value">~%1$d km</string>
     <string name="threat_details_uncertainty">Position uncertainty: ±%1$d km</string>
     <string name="threat_details_approx_note">OSINT radar data is approximate and updated only while the Map tab is open.</string>
-    <string name="threat_details_inside_radius">Inside %1$d km warning radius</string>
+    <string name="threat_details_inside_radius">Inside %1$d km threat radius</string>
+    <string name="threat_details_inside_radius_zero">Inside 500 m threat radius</string>
     <string name="threat_details_open_kb">About threat types &amp; icons</string>
 
     <!-- Threat Types -->
@@ -203,10 +205,10 @@
     <string name="test_notification_body">Alert is active in your hromada.</string>
 
     <string name="settings_threat_radius_section">Threat in Radius (Urgent)</string>
-    <string name="settings_threat_radius_enable">Threat in radius (0–10 km)</string>
-    <string name="settings_threat_radius_desc">Urgent alert only when the first threat enters radius (silent when it leaves)</string>
-    <string name="settings_threat_radius_value">Notification radius: %1$d km</string>
-    <string name="settings_threat_radius_zero_hint">Notification radius: 0 km (&lt; 500 m overhead)</string>
+    <string name="settings_threat_radius_enable">Threat in radius (0–50 km)</string>
+    <string name="settings_threat_radius_desc">Highlights radius &amp; threats on the map and sends an urgent alert when the first threat enters (silent when leaving)</string>
+    <string name="settings_threat_radius_value">Threat radius: %1$d km</string>
+    <string name="settings_threat_radius_zero_hint">Threat radius: 0 km (&lt; 500 m overhead)</string>
     <string name="settings_threat_vibration_pattern">Vibration pattern</string>
     <string name="threat_vibration_off">Off</string>
     <string name="threat_vibration_quad_hard">4× Hard</string>
@@ -229,6 +231,7 @@
     <string name="settings_night_end">End</string>
     <string name="settings_night_days">Active Days</string>
     <string name="settings_night_behavior">Behavior During Quiet Hours</string>
+    <string name="settings_night_scope_note">Applies to Hromada alerts only. Urgent Threat in Radius alarms remain active for safety.</string>
     <string name="night_behavior_full_silence">Complete silence (no sound, vibration, or wake)</string>
     <string name="night_behavior_soft_pulse">Ultra-soft pulse only (no sound)</string>
     <string name="night_behavior_filter_all_clear">Filter all-clears (notify only on new alerts)</string>
@@ -241,9 +244,6 @@
     <string name="day_sat">Sat</string>
     <string name="day_sun">Sun</string>
 
-    <string name="settings_radar_section">Radar &amp; Proximity</string>
-    <string name="settings_warning_radius">Warning radius: %1$d km</string>
-    <string name="settings_radar_nearby_alerts">Highlight threats inside warning radius</string>
     <string name="settings_kb_title">Threat Knowledge Base</string>
     <string name="settings_kb_subtitle">View all target icons, characteristics &amp; safety actions</string>
 
@@ -260,7 +260,7 @@
     <string name="diag_location_title">Location Permission</string>
     <string name="diag_bg_location_title">Background Location Permission</string>
 
-    <string name="settings_about_section">Data Sources &amp; Attribution</string>
+    <string name="settings_about_section">Reference &amp; Data Sources</string>
     <string name="about_ukraine_alarm">Alerts: NEPTUN API (or UkraineAlarm API v3 with key)</string>
     <string name="about_neptun">Aerial Threats Layer: NEPTUN OSINT Radar</string>
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>

@@ -17,7 +17,7 @@ data class ThreatRadiusEvaluationResult(
 )
 
 /**
- * Evaluates threat-in-radius entry notifications (0..10 km).
+ * Evaluates threat-in-radius entry notifications (0..50 km).
  *
  * Rules:
  * - Notifies ONLY on the transition from 0 threats inside radius -> >= 1 threat inside radius
@@ -27,7 +27,16 @@ data class ThreatRadiusEvaluationResult(
  */
 object ThreatRadiusEvaluator {
 
+    const val MAX_RADIUS_KM = 50
     private const val ZERO_KM_EFFECTIVE_THRESHOLD_KM = 0.5
+
+    fun effectiveRadiusKm(radiusKm: Int): Double {
+        return if (radiusKm <= 0) {
+            ZERO_KM_EFFECTIVE_THRESHOLD_KM
+        } else {
+            radiusKm.coerceAtMost(MAX_RADIUS_KM).toDouble()
+        }
+    }
 
     fun evaluate(
         trackedPoints: List<SavedPoint>,
@@ -36,11 +45,7 @@ object ThreatRadiusEvaluator {
         settings: AppSettings
     ): ThreatRadiusEvaluationResult {
         val updatedStates = previousStates.toMutableMap()
-        val thresholdKm = if (settings.threatNotificationRadiusKm <= 0) {
-            ZERO_KM_EFFECTIVE_THRESHOLD_KM
-        } else {
-            settings.threatNotificationRadiusKm.coerceAtMost(10).toDouble()
-        }
+        val thresholdKm = effectiveRadiusKm(settings.threatNotificationRadiusKm)
 
         val candidates = mutableListOf<ThreatRadiusNotification>()
 

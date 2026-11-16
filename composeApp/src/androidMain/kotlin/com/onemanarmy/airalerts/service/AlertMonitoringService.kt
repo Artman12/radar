@@ -164,7 +164,7 @@ class AlertMonitoringService : Service() {
         }
 
         return NotificationCompat.Builder(this, AndroidPlatformNotifier.FOREGROUND_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setSmallIcon(com.onemanarmy.airalerts.shared.R.drawable.ic_notification_siren)
             .setContentTitle("AirAlerts")
             .setContentText(contentText)
             .setOngoing(true)

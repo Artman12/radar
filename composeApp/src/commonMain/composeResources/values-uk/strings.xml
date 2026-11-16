@@ -58,6 +58,7 @@
     <string name="map_disclaimer_prefix">Положення цілей є орієнтовним • Джерело: </string>
     <string name="map_disclaimer_link">NEPTUN</string>
     <string name="map_nearby_threat_banner">Ціль у межах %1$d км від %2$s (~%3$d км)</string>
+    <string name="map_nearby_threat_banner_zero">Ціль у межах 500 м від %1$s (~%2$d км)</string>
     <string name="map_crosshair_hint">Переміщуйте карту для вибору точки</string>
     <string name="btn_cancel">Скасувати</string>
     <string name="btn_save">Зберегти</string>
@@ -113,7 +114,8 @@
     <string name="threat_details_distance_value">~%1$d км</string>
     <string name="threat_details_uncertainty">Похибка позиції: ±%1$d км</string>
     <string name="threat_details_approx_note">Дані радара OSINT є орієнтовними та оновлюються лише при відкритій вкладці «Карта».</string>
-    <string name="threat_details_inside_radius">У межах %1$d км радіуса попередження</string>
+    <string name="threat_details_inside_radius">У межах %1$d км радіуса загрози</string>
+    <string name="threat_details_inside_radius_zero">У межах 500 м радіуса загрози</string>
     <string name="threat_details_open_kb">Довідник типів загроз та іконок</string>
 
     <!-- Threat Types -->
@@ -203,10 +205,10 @@
     <string name="test_notification_body">Тривога активна у вашій громаді.</string>
 
     <string name="settings_threat_radius_section">Ціль у радіусі (термінове)</string>
-    <string name="settings_threat_radius_enable">Загроза в радіусі (0–10 км)</string>
-    <string name="settings_threat_radius_desc">Термінове сповіщення лише при вході першої цілі в радіус (мовчить при виході)</string>
-    <string name="settings_threat_radius_value">Радіус сповіщення: %1$d км</string>
-    <string name="settings_threat_radius_zero_hint">Радіус сповіщення: 0 км (&lt; 500 м поруч)</string>
+    <string name="settings_threat_radius_enable">Загроза в радіусі (0–50 км)</string>
+    <string name="settings_threat_radius_desc">Підсвічує радіус і цілі на карті та надсилає термінове сповіщення при вході першої цілі (мовчить при виході)</string>
+    <string name="settings_threat_radius_value">Радіус загрози: %1$d км</string>
+    <string name="settings_threat_radius_zero_hint">Радіус загрози: 0 км (&lt; 500 м поруч)</string>
     <string name="settings_threat_vibration_pattern">Тип вібрації</string>
     <string name="threat_vibration_off">Вимк</string>
     <string name="threat_vibration_quad_hard">4× різкі</string>
@@ -229,6 +231,7 @@
     <string name="settings_night_end">Кінець</string>
     <string name="settings_night_days">Дні тижня</string>
     <string name="settings_night_behavior">Поведінка вночі</string>
+    <string name="settings_night_scope_note">Стосується лише сповіщень по громаді. Термінові сигнали «Загроза в радіусі» залишаються активними для безпеки.</string>
     <string name="night_behavior_full_silence">Повна тиша (без звуку, вібрації та екрана)</string>
     <string name="night_behavior_soft_pulse">Тільки ультра-м’який імпульс (без звуку)</string>
     <string name="night_behavior_filter_all_clear">Фільтр відбоїв (не турбувати при відбої вночі)</string>
@@ -241,9 +244,6 @@
     <string name="day_sat">Сб</string>
     <string name="day_sun">Нд</string>
 
-    <string name="settings_radar_section">Радар та дистанція</string>
-    <string name="settings_warning_radius">Радіус попередження: %1$d км</string>
-    <string name="settings_radar_nearby_alerts">Підсвічувати цілі в радіусі попередження</string>
     <string name="settings_kb_title">Довідник повітряних цілей</string>
     <string name="settings_kb_subtitle">Усі іконки цілей, їхній опис та поради з безпеки</string>
 
@@ -260,7 +260,7 @@
     <string name="diag_location_title">Дозвіл на геолокацію</string>
     <string name="diag_bg_location_title">Фоновий доступ до геолокації</string>
 
-    <string name="settings_about_section">Джерела даних та атрибуція</string>
+    <string name="settings_about_section">Довідник та джерела даних</string>
     <string name="about_ukraine_alarm">Тривоги: NEPTUN API (або UkraineAlarm API v3 з ключем)</string>
     <string name="about_neptun">Шар повітряних цілей: Радар OSINT NEPTUN</string>
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>

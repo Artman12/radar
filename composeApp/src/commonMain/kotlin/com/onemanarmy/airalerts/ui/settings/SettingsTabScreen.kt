@@ -47,7 +47,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightlightRound
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
@@ -134,10 +133,9 @@ import com.onemanarmy.airalerts.resources.settings_night_end
 import com.onemanarmy.airalerts.resources.settings_night_interval
 import com.onemanarmy.airalerts.resources.settings_night_mode_enable
 import com.onemanarmy.airalerts.resources.settings_night_mode_section
+import com.onemanarmy.airalerts.resources.settings_night_scope_note
 import com.onemanarmy.airalerts.resources.settings_night_start
 import com.onemanarmy.airalerts.resources.settings_notifications_section
-import com.onemanarmy.airalerts.resources.settings_radar_nearby_alerts
-import com.onemanarmy.airalerts.resources.settings_radar_section
 import com.onemanarmy.airalerts.resources.settings_sound_preset
 import com.onemanarmy.airalerts.resources.settings_threat_radius_desc
 import com.onemanarmy.airalerts.resources.settings_threat_radius_enable
@@ -147,7 +145,6 @@ import com.onemanarmy.airalerts.resources.settings_threat_sound_pattern
 import com.onemanarmy.airalerts.resources.settings_threat_sound_volume
 import com.onemanarmy.airalerts.resources.settings_threat_vibration_pattern
 import com.onemanarmy.airalerts.resources.settings_vibration_preset
-import com.onemanarmy.airalerts.resources.settings_warning_radius
 import com.onemanarmy.airalerts.resources.status_granted
 import com.onemanarmy.airalerts.resources.status_not_granted
 import com.onemanarmy.airalerts.resources.test_notification_body
@@ -372,8 +369,8 @@ fun SettingsTabScreen(
                                     Slider(
                                         value = settings.threatNotificationRadiusKm.toFloat(),
                                         onValueChange = { viewModel.setThreatNotificationRadiusKm(it.roundToInt()) },
-                                        valueRange = 0f..10f,
-                                        steps = 9
+                                        valueRange = 0f..50f,
+                                        steps = 49
                                     )
                                 }
 
@@ -490,6 +487,12 @@ fun SettingsTabScreen(
                     )
 
                     Text(
+                        text = stringResource(Res.string.settings_night_scope_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
                         text = stringResource(Res.string.settings_night_interval),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
@@ -599,99 +602,7 @@ fun SettingsTabScreen(
             }
         }
 
-        // Section 3: Radar & Proximity Distance
-        item {
-            SettingsSectionCard(
-                icon = Icons.Default.Radar,
-                title = stringResource(Res.string.settings_radar_section)
-            ) {
-                Text(
-                    text = stringResource(Res.string.settings_warning_radius, settings.warningRadiusKm),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Slider(
-                    value = settings.warningRadiusKm.toFloat(),
-                    onValueChange = { viewModel.setWarningRadiusKm(it.roundToInt()) },
-                    valueRange = 10f..100f,
-                    steps = 8
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = stringResource(Res.string.settings_radar_nearby_alerts),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f).padding(end = 12.dp)
-                    )
-                    Switch(
-                        checked = settings.radarNearbyAlertsEnabled,
-                        onCheckedChange = viewModel::setRadarNearbyAlertsEnabled
-                    )
-                }
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { isKnowledgeBaseOpen = true },
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.settings_kb_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(Res.string.settings_kb_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
-        // Section 4: Background Diagnostics Checklist
+        // Section 3: Background Diagnostics Checklist
         item {
             SettingsSectionCard(
                 icon = Icons.Default.HealthAndSafety,
@@ -754,12 +665,69 @@ fun SettingsTabScreen(
             }
         }
 
-        // Section 5: Data Sources & Attribution
+        // Section 4: Reference & Data Sources
         item {
             SettingsSectionCard(
                 icon = Icons.Default.Info,
                 title = stringResource(Res.string.settings_about_section)
             ) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { isKnowledgeBaseOpen = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.settings_kb_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(Res.string.settings_kb_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+
                 Text(stringResource(Res.string.about_ukraine_alarm), style = MaterialTheme.typography.bodyMedium)
                 Row(
                     modifier = Modifier

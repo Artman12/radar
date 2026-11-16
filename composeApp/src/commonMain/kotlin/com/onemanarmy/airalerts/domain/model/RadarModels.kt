@@ -33,30 +33,56 @@ enum class ThreatType {
 
         fun resolveFromApi(
             rawType: String?,
+            subtype: String? = null,
             title: String? = null,
             explanation: String? = null,
             speedKmh: Double? = null
         ): ThreatType {
             val baseType = fromApiValue(rawType)
-            if (baseType != UAV) return baseType
+            val normalizedSubtype = subtype?.lowercase()?.trim()
 
-            val combinedText = buildString {
-                if (!title.isNullOrBlank()) append(title.lowercase()).append(' ')
-                if (!explanation.isNullOrBlank()) append(explanation.lowercase())
+            if (baseType == UAV) {
+                val isJetSubtype = normalizedSubtype in JET_SHAHED_SUBTYPES
+                if (isJetSubtype) return JET_SHAHED
+
+                val combinedText = buildString {
+                    if (!title.isNullOrBlank()) append(title.lowercase()).append(' ')
+                    if (!explanation.isNullOrBlank()) append(explanation.lowercase())
+                }
+                val isJetShahedByText = combinedText.contains("реактив") ||
+                    combinedText.contains("турбореакт") ||
+                    combinedText.contains("238") ||
+                    combinedText.contains("герань-3") ||
+                    combinedText.contains("geran-3") ||
+                    combinedText.contains("geran 3") ||
+                    combinedText.contains("jet shahed") ||
+                    combinedText.contains("jet uav") ||
+                    combinedText.contains("turbojet")
+                val isJetShahedBySpeed = speedKmh != null && speedKmh >= 260.0
+
+                return if (isJetShahedByText || isJetShahedBySpeed) JET_SHAHED else UAV
             }
-            val isJetShahedByText = combinedText.contains("реактив") ||
-                combinedText.contains("турбореакт") ||
-                combinedText.contains("238") ||
-                combinedText.contains("герань-3") ||
-                combinedText.contains("geran-3") ||
-                combinedText.contains("geran 3") ||
-                combinedText.contains("jet shahed") ||
-                combinedText.contains("jet uav") ||
-                combinedText.contains("turbojet")
-            val isJetShahedBySpeed = speedKmh != null && speedKmh >= 260.0
 
-            return if (isJetShahedByText || isJetShahedBySpeed) JET_SHAHED else UAV
+            return baseType
         }
+
+        private val JET_SHAHED_SUBTYPES = setOf(
+            "jet",
+            "jet_shahed",
+            "shahed_jet",
+            "shahed-jet",
+            "shahed238",
+            "shahed_238",
+            "shahed-238",
+            "jet_uav",
+            "uav_jet",
+            "reactive",
+            "reactive_shahed",
+            "reactive_uav",
+            "geran3",
+            "geran_3",
+            "geran-3"
+        )
     }
 }
 

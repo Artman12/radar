@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.onemanarmy.airalerts.data.local.AppPreferencesRepository
 import com.onemanarmy.airalerts.data.remote.NeptunRadarApi
+import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.AppSettings
 import com.onemanarmy.airalerts.domain.model.NightModeBehavior
 import com.onemanarmy.airalerts.domain.model.NotificationSoundPreset
@@ -117,7 +118,11 @@ class SettingsViewModel(
                 } else {
                     current.nightActiveDaysIso + isoDay
                 }
-                current.copy(nightActiveDaysIso = updated)
+                if (updated.isNotEmpty()) {
+                    current.copy(nightActiveDaysIso = updated)
+                } else {
+                    current
+                }
             }
         }
     }
@@ -125,18 +130,6 @@ class SettingsViewModel(
     fun selectNightBehavior(behavior: NightModeBehavior) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(nightModeBehavior = behavior) }
-        }
-    }
-
-    fun setWarningRadiusKm(radiusKm: Int) {
-        viewModelScope.launch {
-            prefsRepo.updateSettings { it.copy(warningRadiusKm = radiusKm.coerceIn(10, 100)) }
-        }
-    }
-
-    fun setRadarNearbyAlertsEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            prefsRepo.updateSettings { it.copy(radarNearbyAlertsEnabled = enabled) }
         }
     }
 
@@ -157,7 +150,9 @@ class SettingsViewModel(
 
     fun setThreatNotificationRadiusKm(radiusKm: Int) {
         viewModelScope.launch {
-            prefsRepo.updateSettings { it.copy(threatNotificationRadiusKm = radiusKm.coerceIn(0, 10)) }
+            prefsRepo.updateSettings {
+                it.copy(threatNotificationRadiusKm = radiusKm.coerceIn(0, ThreatRadiusEvaluator.MAX_RADIUS_KM))
+            }
         }
     }
 

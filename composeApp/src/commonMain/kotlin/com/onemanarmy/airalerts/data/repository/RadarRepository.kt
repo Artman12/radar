@@ -16,7 +16,7 @@ class RadarRepository(
 
     suspend fun fetchThreatsWithProximity(
         trackedPoints: List<SavedPoint>,
-        warningRadiusKm: Int
+        warningRadiusKm: Double
     ): Result<List<ThreatWithProximity>> {
         return neptunRadarApi.fetchThreats().map { threats ->
             enrichProximity(threats, trackedPoints, warningRadiusKm)
@@ -26,7 +26,7 @@ class RadarRepository(
     fun enrichProximity(
         threats: List<AirThreat>,
         trackedPoints: List<SavedPoint>,
-        warningRadiusKm: Int
+        warningRadiusKm: Double
     ): List<ThreatWithProximity> {
         if (threats.isEmpty()) return emptyList()
         return threats.map { threat ->

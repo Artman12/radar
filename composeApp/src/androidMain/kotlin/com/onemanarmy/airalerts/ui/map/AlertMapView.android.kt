@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
 import com.onemanarmy.airalerts.domain.logic.GeoUtils
+import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AlertLevel
 import com.onemanarmy.airalerts.domain.model.PointStatus
@@ -325,7 +326,8 @@ actual fun AlertMapView(
                 view.overlays.add(maskOverlay)
 
                 if (!isCrosshairPickerMode) {
-                    if (showThreatsLayer && highlightNearbyThreats && warningRadiusKm > 0) {
+                    if (showThreatsLayer && highlightNearbyThreats) {
+                        val effectiveRadiusKm = ThreatRadiusEvaluator.effectiveRadiusKm(warningRadiusKm)
                         val radiusCenters = buildList {
                             trackedPoints.forEach { status ->
                                 val hasInside = threats.any {
@@ -341,7 +343,7 @@ actual fun AlertMapView(
                                             gpsCoordinates.second,
                                             it.threat.latitude,
                                             it.threat.longitude
-                                        ) <= warningRadiusKm
+                                        ) <= effectiveRadiusKm
                                 }
                                 add(Triple(gpsCoordinates.first, gpsCoordinates.second, hasInside))
                             }
@@ -351,7 +353,7 @@ actual fun AlertMapView(
                             val circle = Polygon(view).apply {
                                 points = Polygon.pointsAsCircle(
                                     GeoPoint(lat, lon),
-                                    warningRadiusKm * 1000.0
+                                    effectiveRadiusKm * 1000.0
                                 )
                                 if (hasInside) {
                                     fillPaint.color = Color.argb(30, 239, 68, 68)

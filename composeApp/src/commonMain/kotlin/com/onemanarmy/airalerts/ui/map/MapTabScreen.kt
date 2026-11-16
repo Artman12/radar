@@ -79,6 +79,7 @@ import com.onemanarmy.airalerts.resources.map_center_gps
 import com.onemanarmy.airalerts.resources.map_disclaimer_link
 import com.onemanarmy.airalerts.resources.map_disclaimer_prefix
 import com.onemanarmy.airalerts.resources.map_nearby_threat_banner
+import com.onemanarmy.airalerts.resources.map_nearby_threat_banner_zero
 import com.onemanarmy.airalerts.resources.map_toggle_radar_off
 import com.onemanarmy.airalerts.resources.map_toggle_radar_on
 import com.onemanarmy.airalerts.resources.region_nearby_targets_count
@@ -174,8 +175,8 @@ fun MapTabScreen(
                 regionThreats = uiState.regionThreats,
                 selectedRegionId = uiState.selectedRegion?.polygon?.id,
                 showThreatsLayer = uiState.settings.radarLayerEnabled,
-                warningRadiusKm = uiState.settings.warningRadiusKm,
-                highlightNearbyThreats = uiState.settings.radarNearbyAlertsEnabled,
+                warningRadiusKm = uiState.settings.threatNotificationRadiusKm,
+                highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
                 gpsCoordinates = gpsPair,
                 isCrosshairPickerMode = false,
                 onPointClicked = viewModel::onPointClicked,
@@ -226,12 +227,20 @@ fun MapTabScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = stringResource(
-                                    Res.string.map_nearby_threat_banner,
-                                    uiState.settings.warningRadiusKm,
-                                    pointName,
-                                    distKm
-                                ),
+                                text = if (uiState.settings.threatNotificationRadiusKm <= 0) {
+                                    stringResource(
+                                        Res.string.map_nearby_threat_banner_zero,
+                                        pointName,
+                                        distKm
+                                    )
+                                } else {
+                                    stringResource(
+                                        Res.string.map_nearby_threat_banner,
+                                        uiState.settings.threatNotificationRadiusKm,
+                                        pointName,
+                                        distKm
+                                    )
+                                },
                                 color = AlertColors.WarningOnContainerDark,
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
@@ -448,8 +457,8 @@ fun MapTabScreen(
     uiState.selectedThreatDetails?.let { threat ->
         ThreatDetailsBottomSheet(
             item = threat,
-            warningRadiusKm = uiState.settings.warningRadiusKm,
-            highlightNearbyThreats = uiState.settings.radarNearbyAlertsEnabled,
+            warningRadiusKm = uiState.settings.threatNotificationRadiusKm,
+            highlightNearbyThreats = uiState.settings.threatRadiusNotificationEnabled,
             onOpenKnowledgeBase = {
                 viewModel.dismissDetailsSheets()
                 isKnowledgeBaseOpen = true

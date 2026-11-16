@@ -132,4 +132,28 @@ class ThreatRadiusEvaluatorTest {
         assertTrue(result.notifications.isEmpty())
         assertFalse(result.updatedStates["home"]?.isThreatInRadius ?: true)
     }
+
+    @Test
+    fun supportsExtended50KmRadiusAndClampsAboveMax() {
+        // ~45 km north of Kyiv center
+        val threat45Km = threatAt("t_45km", 50.855, 30.5234)
+        // ~56 km north of Kyiv center
+        val threat56Km = threatAt("t_56km", 50.955, 30.5234)
+
+        val at50Km = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 50
+        )
+        val res50 = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat45Km), emptyMap(), at50Km)
+        assertEquals(1, res50.notifications.size)
+        assertEquals("t_45km", res50.notifications.first().threat.id)
+
+        // Values above MAX_RADIUS_KM (50) must clamp to 50 km
+        val aboveMax = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 75
+        )
+        val resClamped = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat56Km), emptyMap(), aboveMax)
+        assertTrue(resClamped.notifications.isEmpty())
+    }
 }

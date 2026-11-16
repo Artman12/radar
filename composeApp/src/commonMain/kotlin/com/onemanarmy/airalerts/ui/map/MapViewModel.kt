@@ -7,6 +7,7 @@ import com.onemanarmy.airalerts.data.local.UkraineBoundaryRepository
 import com.onemanarmy.airalerts.data.repository.AlertMonitoringRepository
 import com.onemanarmy.airalerts.data.repository.RadarRepository
 import com.onemanarmy.airalerts.domain.logic.RegionThreatEvaluator
+import com.onemanarmy.airalerts.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.airalerts.domain.model.ActiveAlertInfo
 import com.onemanarmy.airalerts.domain.model.AirThreat
 import com.onemanarmy.airalerts.domain.model.AppSettings
@@ -102,7 +103,11 @@ class MapViewModel(
             emptyList()
         } else {
             val points = buildProximityPoints(statuses, settings)
-            radarRepo.enrichProximity(rawThreats, points, settings.warningRadiusKm)
+            radarRepo.enrichProximity(
+                rawThreats,
+                points,
+                ThreatRadiusEvaluator.effectiveRadiusKm(settings.threatNotificationRadiusKm)
+            )
         }
     }.flowOn(Dispatchers.Default)
 
@@ -134,7 +139,7 @@ class MapViewModel(
         mapDomainFlow
     ) { local, threats, domain ->
         val safeIndex = if (domain.statuses.isEmpty()) 0 else local.selectedPointIndex.coerceIn(0, domain.statuses.lastIndex)
-        val nearby = if (domain.settings.radarLayerEnabled && domain.settings.radarNearbyAlertsEnabled) {
+        val nearby = if (domain.settings.radarLayerEnabled && domain.settings.threatRadiusNotificationEnabled) {
             threats
                 .filter { it.isWithinWarningRadius }
                 .minByOrNull { it.distanceKm ?: Double.MAX_VALUE }
