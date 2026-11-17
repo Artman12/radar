@@ -288,11 +288,20 @@
     <string name="settings_night_start">Початок</string>
     <string name="settings_night_end">Кінець</string>
     <string name="settings_night_days">Дні тижня</string>
-    <string name="settings_night_behavior">Поведінка вночі</string>
-    <string name="settings_night_scope_note">Стосується лише сповіщень по громаді. Термінові сигнали «Загроза в радіусі» залишаються активними для безпеки.</string>
-    <string name="night_behavior_full_silence">Повна тиша (без звуку, вібрації та екрана)</string>
-    <string name="night_behavior_soft_pulse">Тільки ультра-м’який імпульс (без звуку)</string>
-    <string name="night_behavior_filter_all_clear">Фільтр відбоїв (не турбувати при відбої вночі)</string>
+    <string name="settings_night_hromada_behavior">Сповіщення по громаді вночі</string>
+    <string name="night_behavior_normal">Звук і вібрація (звичайний режим)</string>
+    <string name="night_behavior_soft_pulse">Лише вібрація (м’який імпульс, без звуку)</string>
+    <string name="night_behavior_full_silence">Повна тиша (без звуку та вібрації)</string>
+    <string name="night_behavior_filter_all_clear">Фільтр відбоїв (сповіщати лише про тривогу)</string>
+    <string name="night_behavior_disabled">Вимкнено (без сповіщень у тихі години)</string>
+    <string name="settings_night_threat_behavior">Загроза в радіусі вночі</string>
+    <string name="threat_night_behavior_sound_and_vibro">Звук і вібрація (нічна гучність)</string>
+    <string name="threat_night_behavior_vibro_only">Лише вібрація (без звуку)</string>
+    <string name="threat_night_behavior_silent_banner">Повна тиша (без звуку та вібрації)</string>
+    <string name="threat_night_behavior_disabled">Вимкнено (без сповіщень у тихі години)</string>
+    <string name="settings_night_threat_volume">Гучність вночі: %1$d%</string>
+    <string name="settings_night_threat_sound_off_hint">Звук сигналу зараз вимкнено в налаштуваннях «Загроза в радіусі»</string>
+    <string name="settings_night_threat_disabled_hint">Спочатку увімкніть сповіщення «Загроза в радіусі» вище, щоб налаштувати поведінку вночі</string>
 
     <string name="day_mon">Пн</string>
     <string name="day_tue">Вт</string>

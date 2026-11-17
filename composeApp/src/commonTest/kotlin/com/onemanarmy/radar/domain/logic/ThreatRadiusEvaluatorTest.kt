@@ -4,7 +4,10 @@ import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.PointAlertState
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
+import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatType
+import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -171,5 +174,85 @@ class ThreatRadiusEvaluatorTest {
         // 68 is closer to 75 (diff 7) than 60 (diff 8)
         assertEquals(75, ThreatRadiusEvaluator.radiusKmForStopIndex(ThreatRadiusEvaluator.nearestRadiusStopIndex(68)))
         assertEquals(20, ThreatRadiusEvaluator.nearestRadiusStopIndex(150))
+    }
+
+    @Test
+    fun nightModeSoundAndVibrationUsesNightVolumeDuringQuietHours() {
+        val settings = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 10,
+            threatVibrationPattern = ThreatVibrationPattern.RAPID_BURST,
+            threatSoundPattern = ThreatSoundPattern.SIREN_PULSE,
+            threatSoundVolumePercent = 90,
+            threatNightModeBehavior = ThreatNightModeBehavior.SOUND_AND_VIBRATION,
+            threatNightSoundVolumePercent = 25
+        )
+        val threat = threatAt("t_night_vol", 50.4701, 30.5234)
+
+        val dayResult = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), emptyMap(), settings, isQuietHours = false)
+        assertEquals(1, dayResult.notifications.size)
+        assertEquals(90, dayResult.notifications.first().soundVolumePercent)
+        assertEquals(ThreatSoundPattern.SIREN_PULSE, dayResult.notifications.first().soundPattern)
+        assertEquals(ThreatVibrationPattern.RAPID_BURST, dayResult.notifications.first().vibrationPattern)
+
+        val nightResult = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), emptyMap(), settings, isQuietHours = true)
+        assertEquals(1, nightResult.notifications.size)
+        assertEquals(25, nightResult.notifications.first().soundVolumePercent)
+        assertEquals(ThreatSoundPattern.SIREN_PULSE, nightResult.notifications.first().soundPattern)
+        assertEquals(ThreatVibrationPattern.RAPID_BURST, nightResult.notifications.first().vibrationPattern)
+    }
+
+    @Test
+    fun nightModeVibrationOnlyMutesSoundAndFallsBackWhenDayVibroIsOff() {
+        val threat = threatAt("t_vibro", 50.4701, 30.5234)
+        val settingsWithPattern = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 10,
+            threatVibrationPattern = ThreatVibrationPattern.SOS_URGENT,
+            threatSoundPattern = ThreatSoundPattern.ALARM_BEEP,
+            threatNightModeBehavior = ThreatNightModeBehavior.VIBRATION_ONLY
+        )
+        val res1 = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), emptyMap(), settingsWithPattern, isQuietHours = true)
+        assertEquals(1, res1.notifications.size)
+        assertEquals(ThreatVibrationPattern.SOS_URGENT, res1.notifications.first().vibrationPattern)
+        assertEquals(ThreatSoundPattern.OFF, res1.notifications.first().soundPattern)
+        assertEquals(0, res1.notifications.first().soundVolumePercent)
+
+        val settingsWithVibroOff = settingsWithPattern.copy(threatVibrationPattern = ThreatVibrationPattern.OFF)
+        val res2 = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), emptyMap(), settingsWithVibroOff, isQuietHours = true)
+        assertEquals(1, res2.notifications.size)
+        assertEquals(ThreatVibrationPattern.QUAD_HARD, res2.notifications.first().vibrationPattern)
+        assertEquals(ThreatSoundPattern.OFF, res2.notifications.first().soundPattern)
+    }
+
+    @Test
+    fun nightModeSilentBannerDisablesSoundAndVibration() {
+        val threat = threatAt("t_silent", 50.4701, 30.5234)
+        val settings = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 10,
+            threatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
+            threatSoundPattern = ThreatSoundPattern.BUZZER,
+            threatNightModeBehavior = ThreatNightModeBehavior.SILENT_BANNER
+        )
+        val res = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), emptyMap(), settings, isQuietHours = true)
+        assertEquals(1, res.notifications.size)
+        assertEquals(ThreatVibrationPattern.OFF, res.notifications.first().vibrationPattern)
+        assertEquals(ThreatSoundPattern.OFF, res.notifications.first().soundPattern)
+        assertEquals(0, res.notifications.first().soundVolumePercent)
+    }
+
+    @Test
+    fun nightModeDisabledSuppressesThreatNotificationsAndResetsState() {
+        val threat = threatAt("t_disabled", 50.4701, 30.5234)
+        val prev = mapOf("home" to PointAlertState("home", false, "", 0L, isThreatInRadius = true))
+        val settings = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 10,
+            threatNightModeBehavior = ThreatNightModeBehavior.DISABLED
+        )
+        val res = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), prev, settings, isQuietHours = true)
+        assertTrue(res.notifications.isEmpty())
+        assertFalse(res.updatedStates["home"]?.isThreatInRadius ?: true)
     }
 }

@@ -259,13 +259,16 @@ class AndroidPlatformNotifier(
         if (!hasPostNotificationPermission()) return
         ensureThreatRadiusChannel()
 
+        val isSilentBanner = vibrationPattern == ThreatVibrationPattern.OFF &&
+            (soundPattern == ThreatSoundPattern.OFF || soundVolumePercent <= 0)
         val builder = NotificationCompat.Builder(context, THREAT_RADIUS_CHANNEL_ID)
             .setSmallIcon(com.onemanarmy.radar.shared.R.drawable.ic_notification_siren)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(if (isSilentBanner) NotificationCompat.PRIORITY_DEFAULT else NotificationCompat.PRIORITY_MAX)
+            .setSilent(isSilentBanner)
             .setColor(0xFFEF4444.toInt())
             .setColorized(true)
             .setSound(null)

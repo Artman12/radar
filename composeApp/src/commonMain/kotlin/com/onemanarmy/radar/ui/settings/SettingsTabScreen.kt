@@ -97,6 +97,7 @@ import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatDataSource
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import com.onemanarmy.radar.domain.model.VibrationPreset
@@ -137,14 +138,17 @@ import com.onemanarmy.radar.resources.settings_hromada_notif_enable
 import com.onemanarmy.radar.resources.settings_kb_subtitle
 import com.onemanarmy.radar.resources.settings_kb_title
 import com.onemanarmy.radar.resources.settings_map_section
-import com.onemanarmy.radar.resources.settings_night_behavior
 import com.onemanarmy.radar.resources.settings_night_days
 import com.onemanarmy.radar.resources.settings_night_end
+import com.onemanarmy.radar.resources.settings_night_hromada_behavior
 import com.onemanarmy.radar.resources.settings_night_interval
 import com.onemanarmy.radar.resources.settings_night_mode_enable
 import com.onemanarmy.radar.resources.settings_night_mode_section
-import com.onemanarmy.radar.resources.settings_night_scope_note
 import com.onemanarmy.radar.resources.settings_night_start
+import com.onemanarmy.radar.resources.settings_night_threat_behavior
+import com.onemanarmy.radar.resources.settings_night_threat_disabled_hint
+import com.onemanarmy.radar.resources.settings_night_threat_sound_off_hint
+import com.onemanarmy.radar.resources.settings_night_threat_volume
 import com.onemanarmy.radar.resources.settings_notifications_section
 import com.onemanarmy.radar.resources.settings_occupied_layer_desc
 import com.onemanarmy.radar.resources.settings_occupied_layer_title
@@ -173,6 +177,7 @@ import com.onemanarmy.radar.resources.test_threat_notification_title
 import com.onemanarmy.radar.ui.common.nightBehaviorLabel
 import com.onemanarmy.radar.ui.common.soundPresetShortLabel
 import com.onemanarmy.radar.ui.common.threatDataSourceLabel
+import com.onemanarmy.radar.ui.common.threatNightBehaviorLabel
 import com.onemanarmy.radar.ui.common.threatSoundPatternLabel
 import com.onemanarmy.radar.ui.common.threatVibrationPatternLabel
 import com.onemanarmy.radar.ui.common.vibrationPresetShortLabel
@@ -606,12 +611,6 @@ fun SettingsTabScreen(
                     )
 
                     Text(
-                        text = stringResource(Res.string.settings_night_scope_note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Text(
                         text = stringResource(Res.string.settings_night_interval),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
@@ -697,7 +696,7 @@ fun SettingsTabScreen(
                     )
 
                     Text(
-                        text = stringResource(Res.string.settings_night_behavior),
+                        text = stringResource(Res.string.settings_night_hromada_behavior),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -716,6 +715,140 @@ fun SettingsTabScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(nightBehaviorLabel(behavior), style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+
+                    val isThreatRadiusEnabled = settings.threatRadiusNotificationEnabled
+                    Text(
+                        text = stringResource(Res.string.settings_night_threat_behavior),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isThreatRadiusEnabled) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        }
+                    )
+                    if (!isThreatRadiusEnabled) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = stringResource(Res.string.settings_night_threat_disabled_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    ThreatNightModeBehavior.entries.forEach { behavior ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(enabled = isThreatRadiusEnabled) {
+                                    viewModel.selectThreatNightBehavior(behavior)
+                                }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = settings.threatNightModeBehavior == behavior,
+                                onClick = { viewModel.selectThreatNightBehavior(behavior) },
+                                enabled = isThreatRadiusEnabled
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = threatNightBehaviorLabel(behavior),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isThreatRadiusEnabled) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                }
+                            )
+                        }
+
+                        if (behavior == ThreatNightModeBehavior.SOUND_AND_VIBRATION) {
+                            AnimatedVisibility(
+                                visible = settings.threatNightModeBehavior == ThreatNightModeBehavior.SOUND_AND_VIBRATION,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val isThreatSoundActive = settings.threatSoundPattern != ThreatSoundPattern.OFF
+                                val isNightVolumeEnabled = isThreatRadiusEnabled && isThreatSoundActive
+                                Column(
+                                    modifier = Modifier.padding(start = 40.dp, top = 2.dp, bottom = 6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = if (isNightVolumeEnabled) {
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                            }
+                                        )
+                                        Text(
+                                            text = stringResource(
+                                                Res.string.settings_night_threat_volume,
+                                                settings.threatNightSoundVolumePercent
+                                            ),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (isNightVolumeEnabled) {
+                                                MaterialTheme.colorScheme.onSurface
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            }
+                                        )
+                                    }
+                                    Slider(
+                                        value = settings.threatNightSoundVolumePercent.toFloat(),
+                                        onValueChange = { viewModel.setThreatNightSoundVolumePercent(it.roundToInt()) },
+                                        onValueChangeFinished = {
+                                            if (isNightVolumeEnabled) {
+                                                viewModel.previewNightThreatSoundVolume()
+                                            }
+                                        },
+                                        enabled = isNightVolumeEnabled,
+                                        valueRange = 0f..100f
+                                    )
+                                    if (isThreatRadiusEnabled && !isThreatSoundActive) {
+                                        Text(
+                                            text = stringResource(Res.string.settings_night_threat_sound_off_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

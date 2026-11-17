@@ -12,6 +12,7 @@ import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatDataSource
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import com.onemanarmy.radar.domain.model.VibrationPreset
@@ -134,6 +135,26 @@ class SettingsViewModel(
     fun selectNightBehavior(behavior: NightModeBehavior) {
         viewModelScope.launch {
             prefsRepo.updateSettings { it.copy(nightModeBehavior = behavior) }
+        }
+    }
+
+    fun selectThreatNightBehavior(behavior: ThreatNightModeBehavior) {
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatNightModeBehavior = behavior) }
+        }
+    }
+
+    fun setThreatNightSoundVolumePercent(volumePercent: Int) {
+        val clamped = volumePercent.coerceIn(0, 100)
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(threatNightSoundVolumePercent = clamped) }
+        }
+    }
+
+    fun previewNightThreatSoundVolume() {
+        viewModelScope.launch {
+            val current = prefsRepo.settingsFlow.first()
+            notifier.previewThreatSound(current.threatSoundPattern, current.threatNightSoundVolumePercent)
         }
     }
 

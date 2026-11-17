@@ -288,11 +288,20 @@
     <string name="settings_night_start">Start</string>
     <string name="settings_night_end">End</string>
     <string name="settings_night_days">Active Days</string>
-    <string name="settings_night_behavior">Behavior During Quiet Hours</string>
-    <string name="settings_night_scope_note">Applies to Hromada alerts only. Urgent Threat in Radius alarms remain active for safety.</string>
-    <string name="night_behavior_full_silence">Complete silence (no sound, vibration, or wake)</string>
-    <string name="night_behavior_soft_pulse">Ultra-soft pulse only (no sound)</string>
+    <string name="settings_night_hromada_behavior">Hromada alerts during Quiet Hours</string>
+    <string name="night_behavior_normal">Sound &amp; vibration (normal)</string>
+    <string name="night_behavior_soft_pulse">Vibration only (soft pulse, no sound)</string>
+    <string name="night_behavior_full_silence">Complete silence (no sound or vibration)</string>
     <string name="night_behavior_filter_all_clear">Filter all-clears (notify only on new alerts)</string>
+    <string name="night_behavior_disabled">Disabled (no alerts during Quiet Hours)</string>
+    <string name="settings_night_threat_behavior">Threat in Radius during Quiet Hours</string>
+    <string name="threat_night_behavior_sound_and_vibro">Sound &amp; vibration (night volume)</string>
+    <string name="threat_night_behavior_vibro_only">Vibration only (no sound)</string>
+    <string name="threat_night_behavior_silent_banner">Complete silence (no sound or vibration)</string>
+    <string name="threat_night_behavior_disabled">Disabled (no alerts during Quiet Hours)</string>
+    <string name="settings_night_threat_volume">Night alarm volume: %1$d%</string>
+    <string name="settings_night_threat_sound_off_hint">Alarm sound is currently Off in Threat in Radius settings</string>
+    <string name="settings_night_threat_disabled_hint">Enable Threat in Radius notifications above first to configure Quiet Hours behavior</string>
 
     <string name="day_mon">Mon</string>
     <string name="day_tue">Tue</string>

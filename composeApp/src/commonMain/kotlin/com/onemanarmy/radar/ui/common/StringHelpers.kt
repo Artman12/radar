@@ -5,6 +5,7 @@ import com.onemanarmy.radar.domain.model.AlertType
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatDataSource
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatType
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
@@ -16,9 +17,15 @@ import com.onemanarmy.radar.resources.alert_type_chemical
 import com.onemanarmy.radar.resources.alert_type_nuclear
 import com.onemanarmy.radar.resources.alert_type_unknown
 import com.onemanarmy.radar.resources.alert_type_urban_fights
+import com.onemanarmy.radar.resources.night_behavior_disabled
 import com.onemanarmy.radar.resources.night_behavior_filter_all_clear
 import com.onemanarmy.radar.resources.night_behavior_full_silence
+import com.onemanarmy.radar.resources.night_behavior_normal
 import com.onemanarmy.radar.resources.night_behavior_soft_pulse
+import com.onemanarmy.radar.resources.threat_night_behavior_disabled
+import com.onemanarmy.radar.resources.threat_night_behavior_silent_banner
+import com.onemanarmy.radar.resources.threat_night_behavior_sound_and_vibro
+import com.onemanarmy.radar.resources.threat_night_behavior_vibro_only
 import com.onemanarmy.radar.resources.sound_default
 import com.onemanarmy.radar.resources.sound_short_default
 import com.onemanarmy.radar.resources.sound_short_silent
@@ -102,9 +109,19 @@ fun threatSoundPatternLabel(pattern: ThreatSoundPattern): String = when (pattern
 
 @Composable
 fun nightBehaviorLabel(behavior: NightModeBehavior): String = when (behavior) {
+    NightModeBehavior.NORMAL -> stringResource(Res.string.night_behavior_normal)
     NightModeBehavior.FULL_SILENCE -> stringResource(Res.string.night_behavior_full_silence)
     NightModeBehavior.ULTRA_SOFT_PULSE_ONLY -> stringResource(Res.string.night_behavior_soft_pulse)
     NightModeBehavior.FILTER_ALL_CLEAR -> stringResource(Res.string.night_behavior_filter_all_clear)
+    NightModeBehavior.DISABLED -> stringResource(Res.string.night_behavior_disabled)
+}
+
+@Composable
+fun threatNightBehaviorLabel(behavior: ThreatNightModeBehavior): String = when (behavior) {
+    ThreatNightModeBehavior.SOUND_AND_VIBRATION -> stringResource(Res.string.threat_night_behavior_sound_and_vibro)
+    ThreatNightModeBehavior.VIBRATION_ONLY -> stringResource(Res.string.threat_night_behavior_vibro_only)
+    ThreatNightModeBehavior.SILENT_BANNER -> stringResource(Res.string.threat_night_behavior_silent_banner)
+    ThreatNightModeBehavior.DISABLED -> stringResource(Res.string.threat_night_behavior_disabled)
 }
 
 @Composable

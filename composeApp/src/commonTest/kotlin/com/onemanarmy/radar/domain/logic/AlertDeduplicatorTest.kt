@@ -127,6 +127,70 @@ class AlertDeduplicatorTest {
     }
 
     @Test
+    fun normalNightBehaviorIgnoresQuietHoursForHromadaAlerts() {
+        val settings = AppSettings(nightModeBehavior = NightModeBehavior.NORMAL)
+        val started = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = null,
+            settings = settings,
+            isQuietHours = true,
+            nowEpochMs = 1000L
+        )
+        val startDecision = assertIs<NotificationDecision.AlertStarted>(started.decision)
+        assertFalse(startDecision.silent)
+        assertFalse(startDecision.softPulseOnly)
+
+        val cleared = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = emptyList(),
+            previousState = started.updatedState,
+            settings = settings,
+            isQuietHours = true,
+            nowEpochMs = 2000L
+        )
+        val clearDecision = assertIs<NotificationDecision.AllClear>(cleared.decision)
+        assertFalse(clearDecision.silent)
+        assertFalse(clearDecision.softPulseOnly)
+    }
+
+    @Test
+    fun disabledNightBehaviorSuppressesHromadaNotificationsDuringQuietHours() {
+        val settings = AppSettings(nightModeBehavior = NightModeBehavior.DISABLED)
+        val startedAtNight = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = null,
+            settings = settings,
+            isQuietHours = true,
+            nowEpochMs = 1000L
+        )
+        assertEquals(NotificationDecision.None, startedAtNight.decision)
+        assertTrue(startedAtNight.updatedState.isAlertActive)
+
+        val clearedAtNight = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = emptyList(),
+            previousState = startedAtNight.updatedState,
+            settings = settings,
+            isQuietHours = true,
+            nowEpochMs = 2000L
+        )
+        assertEquals(NotificationDecision.None, clearedAtNight.decision)
+        assertFalse(clearedAtNight.updatedState.isAlertActive)
+
+        val startedDuringDay = AlertDeduplicator.evaluateTransition(
+            point = homePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = clearedAtNight.updatedState,
+            settings = settings,
+            isQuietHours = false,
+            nowEpochMs = 3000L
+        )
+        assertIs<NotificationDecision.AlertStarted>(startedDuringDay.decision)
+    }
+
+    @Test
     fun mutedPointNeverEmitsNotifications() {
         val mutedPoint = homePoint.copy(notifyEnabled = false)
         val result = AlertDeduplicator.evaluateTransition(

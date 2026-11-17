@@ -17,6 +17,7 @@ import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.PointStatus
 import com.onemanarmy.radar.domain.model.ResolvedLocation
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatType
 import com.onemanarmy.radar.platform.GeocodedAddress
 import com.onemanarmy.radar.platform.PlatformGeocoder
@@ -486,6 +487,16 @@ class AlertMonitoringRepository(
     ) {
         val settings = prefsRepo.settingsFlow.first()
         if (!settings.threatRadiusNotificationEnabled) return
+        if (settings.threatNightModeBehavior == ThreatNightModeBehavior.DISABLED &&
+            QuietHoursEvaluator.isInQuietHours(settings)
+        ) {
+            evaluateThreatRadiusThreats(
+                threats = emptyList(),
+                dispatchNotifications = false,
+                gpsDisplayName = gpsDisplayName
+            )
+            return
+        }
         val savedPoints = prefsRepo.savedPointsFlow.first()
         val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
         if (trackedPoints.none { it.notifyEnabled }) return
@@ -499,9 +510,8 @@ class AlertMonitoringRepository(
     }
 
     /**
-     * Evaluates an already-fetched list of threats against the 0..10 km threat-in-radius setting
-     * and dispatches an aggressive buzzer + 4-pulse vibration notification only when the first
-     * threat enters a point's radius.
+     * Evaluates an already-fetched list of threats against the 0..100 km threat-in-radius setting
+     * and dispatches a notification only when the first threat enters a point's radius.
      */
     suspend fun evaluateThreatRadiusThreats(
         threats: List<AirThreat>,
@@ -510,6 +520,7 @@ class AlertMonitoringRepository(
     ) {
         threatRadiusMutex.withLock {
             val settings = prefsRepo.settingsFlow.first()
+            val isQuietHours = QuietHoursEvaluator.isInQuietHours(settings, Clock.System.now())
             val savedPoints = prefsRepo.savedPointsFlow.first()
             val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
             var pendingNotifications: List<com.onemanarmy.radar.domain.logic.ThreatRadiusNotification> = emptyList()
@@ -519,7 +530,8 @@ class AlertMonitoringRepository(
                     trackedPoints = trackedPoints,
                     threats = threats,
                     previousStates = currentStates,
-                    settings = settings
+                    settings = settings,
+                    isQuietHours = isQuietHours
                 )
                 pendingNotifications = result.notifications
                 result.updatedStates.mapValues { (pointId, state) ->
@@ -541,9 +553,9 @@ class AlertMonitoringRepository(
                         notificationId = notifId,
                         title = getString(Res.string.notif_threat_radius_title, item.point.name),
                         body = getString(Res.string.notif_threat_radius_body, threatLabel, distanceRounded),
-                        vibrationPattern = settings.threatVibrationPattern,
-                        soundPattern = settings.threatSoundPattern,
-                        soundVolumePercent = settings.threatSoundVolumePercent
+                        vibrationPattern = item.vibrationPattern,
+                        soundPattern = item.soundPattern,
+                        soundVolumePercent = item.soundVolumePercent
                     )
                 }
             }

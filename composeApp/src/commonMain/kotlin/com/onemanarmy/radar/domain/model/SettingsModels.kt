@@ -47,13 +47,26 @@ enum class ThreatSoundPattern {
 }
 
 /**
- * Notification delivery rule when current local time falls inside Night Mode ("Quiet Hours").
+ * Hromada alert delivery rule when current local time falls inside Night Mode ("Quiet Hours").
  */
 @Serializable
 enum class NightModeBehavior {
-    FULL_SILENCE,
+    NORMAL,
     ULTRA_SOFT_PULSE_ONLY,
-    FILTER_ALL_CLEAR
+    FULL_SILENCE,
+    FILTER_ALL_CLEAR,
+    DISABLED
+}
+
+/**
+ * Threat-in-Radius delivery rule when current local time falls inside Night Mode ("Quiet Hours").
+ */
+@Serializable
+enum class ThreatNightModeBehavior {
+    SOUND_AND_VIBRATION,
+    VIBRATION_ONLY,
+    SILENT_BANNER,
+    DISABLED
 }
 
 /**
@@ -96,6 +109,8 @@ data class AppSettings(
     val threatVibrationPattern: ThreatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
     val threatSoundPattern: ThreatSoundPattern = ThreatSoundPattern.ALARM_BEEP,
     val threatSoundVolumePercent: Int = 85,
+    val threatNightModeBehavior: ThreatNightModeBehavior = ThreatNightModeBehavior.SOUND_AND_VIBRATION,
+    val threatNightSoundVolumePercent: Int = 85,
     val lastActionIndex: Long = 0L,
     val lastKnownAlertCheckEpochMs: Long = 0L,
     val lastApiError: String? = null

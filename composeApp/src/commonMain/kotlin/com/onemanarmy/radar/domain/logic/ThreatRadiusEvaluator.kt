@@ -4,12 +4,18 @@ import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.PointAlertState
 import com.onemanarmy.radar.domain.model.SavedPoint
+import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
+import com.onemanarmy.radar.domain.model.ThreatSoundPattern
+import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import kotlin.math.abs
 
 data class ThreatRadiusNotification(
     val point: SavedPoint,
     val threat: AirThreat,
-    val distanceKm: Double
+    val distanceKm: Double,
+    val vibrationPattern: ThreatVibrationPattern = ThreatVibrationPattern.QUAD_HARD,
+    val soundPattern: ThreatSoundPattern = ThreatSoundPattern.ALARM_BEEP,
+    val soundVolumePercent: Int = 85
 )
 
 data class ThreatRadiusEvaluationResult(
@@ -61,16 +67,24 @@ object ThreatRadiusEvaluator {
         trackedPoints: List<SavedPoint>,
         threats: List<AirThreat>,
         previousStates: Map<String, PointAlertState>,
-        settings: AppSettings
+        settings: AppSettings,
+        isQuietHours: Boolean = false
     ): ThreatRadiusEvaluationResult {
         val updatedStates = previousStates.toMutableMap()
         val thresholdKm = effectiveRadiusKm(settings.threatNotificationRadiusKm)
+        val isSuppressedByNightMode = isQuietHours &&
+            settings.threatNightModeBehavior == ThreatNightModeBehavior.DISABLED
+
+        val (effectiveVibration, effectiveSound, effectiveVolume) = resolveDeliveryProfile(
+            settings = settings,
+            isQuietHours = isQuietHours
+        )
 
         val candidates = mutableListOf<ThreatRadiusNotification>()
 
         for (point in trackedPoints) {
             val prev = updatedStates[point.id]
-            if (!settings.threatRadiusNotificationEnabled || !point.notifyEnabled) {
+            if (!settings.threatRadiusNotificationEnabled || isSuppressedByNightMode || !point.notifyEnabled) {
                 if (prev != null && prev.isThreatInRadius) {
                     updatedStates[point.id] = prev.copy(isThreatInRadius = false)
                 }
@@ -108,7 +122,10 @@ object ThreatRadiusEvaluator {
                 candidates += ThreatRadiusNotification(
                     point = point,
                     threat = closestThreat,
-                    distanceKm = minDistanceKm
+                    distanceKm = minDistanceKm,
+                    vibrationPattern = effectiveVibration,
+                    soundPattern = effectiveSound,
+                    soundVolumePercent = effectiveVolume
                 )
             }
         }
@@ -124,5 +141,40 @@ object ThreatRadiusEvaluator {
             notifications = deduplicated,
             updatedStates = updatedStates
         )
+    }
+
+    private fun resolveDeliveryProfile(
+        settings: AppSettings,
+        isQuietHours: Boolean
+    ): Triple<ThreatVibrationPattern, ThreatSoundPattern, Int> {
+        if (!isQuietHours) {
+            return Triple(
+                settings.threatVibrationPattern,
+                settings.threatSoundPattern,
+                settings.threatSoundVolumePercent.coerceIn(0, 100)
+            )
+        }
+
+        return when (settings.threatNightModeBehavior) {
+            ThreatNightModeBehavior.SOUND_AND_VIBRATION -> Triple(
+                settings.threatVibrationPattern,
+                settings.threatSoundPattern,
+                settings.threatNightSoundVolumePercent.coerceIn(0, 100)
+            )
+
+            ThreatNightModeBehavior.VIBRATION_ONLY -> Triple(
+                settings.threatVibrationPattern.takeIf { it != ThreatVibrationPattern.OFF }
+                    ?: ThreatVibrationPattern.QUAD_HARD,
+                ThreatSoundPattern.OFF,
+                0
+            )
+
+            ThreatNightModeBehavior.SILENT_BANNER,
+            ThreatNightModeBehavior.DISABLED -> Triple(
+                ThreatVibrationPattern.OFF,
+                ThreatSoundPattern.OFF,
+                0
+            )
+        }
     }
 }

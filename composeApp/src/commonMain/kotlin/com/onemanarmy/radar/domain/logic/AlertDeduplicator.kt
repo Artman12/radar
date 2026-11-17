@@ -77,15 +77,17 @@ object AlertDeduplicator {
             highestLevel = currentHighestLevel
         )
 
-        if (!point.notifyEnabled || !settings.hromadaAlertNotificationsEnabled) {
+        val isSuppressedByNightMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.DISABLED
+        if (!point.notifyEnabled || !settings.hromadaAlertNotificationsEnabled || isSuppressedByNightMode) {
             return DeduplicationResult(NotificationDecision.None, updatedState)
         }
 
         val wasActive = previousState?.isAlertActive ?: false
         val previousSignature = previousState?.alertSignature.orEmpty()
 
-        val silentMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.FULL_SILENCE
-        val softPulseMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.ULTRA_SOFT_PULSE_ONLY
+        val applyQuietHours = isQuietHours && settings.nightModeBehavior != NightModeBehavior.NORMAL
+        val silentMode = applyQuietHours && settings.nightModeBehavior == NightModeBehavior.FULL_SILENCE
+        val softPulseMode = applyQuietHours && settings.nightModeBehavior == NightModeBehavior.ULTRA_SOFT_PULSE_ONLY
         val targetRegionLabel = point.hromadaName.ifBlank { point.regionName }
 
         val decision = when {
@@ -145,7 +147,7 @@ object AlertDeduplicator {
             }
 
             wasActive && !isActiveNow -> {
-                if (isQuietHours && settings.nightModeBehavior == NightModeBehavior.FILTER_ALL_CLEAR) {
+                if (applyQuietHours && settings.nightModeBehavior == NightModeBehavior.FILTER_ALL_CLEAR) {
                     NotificationDecision.None
                 } else {
                     NotificationDecision.AllClear(
