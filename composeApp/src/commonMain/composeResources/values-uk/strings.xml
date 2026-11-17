@@ -96,6 +96,10 @@
     <string name="threats_list_empty">Активних повітряних цілей на радарі немає</string>
     <string name="threats_list_distance_from">~%1$d км від «%2$s»</string>
     <string name="threats_list_speed_kmh">%1$d км/год</string>
+    <string name="threats_list_age_just_now">&lt;1 хв</string>
+    <string name="threats_list_age_minutes">%1$d хв</string>
+    <string name="threats_list_age_hours">%1$d год</string>
+    <string name="threats_list_age_hours_minutes">%1$d год %2$d хв</string>
     <string name="region_threat_clear">Активної тривоги немає</string>
     <string name="region_threat_elevated">Підвищена загроза (жовтий рівень)</string>
     <string name="region_threat_high">Повітряна тривога</string>

@@ -35,6 +35,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.radar.data.local.UkraineBoundaryRepository
+import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.logic.GeoUtils
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.radar.domain.model.ActiveAlertInfo
@@ -54,6 +55,8 @@ import com.onemanarmy.radar.ui.components.drawExplosionVector
 import com.onemanarmy.radar.ui.components.drawThreatVector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlin.math.roundToInt
 import org.koin.compose.koinInject
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -352,9 +355,17 @@ actual fun AlertMapView(
                 isDark = isDark
             )
 
+            val nowInstant = Clock.System.now()
+            val threatStaleFlags = if (showThreatsLayer) {
+                threats.map { DurationFormatter.isThreatOlderThan(it.threat.updatedAtIso, now = nowInstant) }
+            } else {
+                emptyList()
+            }
+
             val overlayKey = DynamicOverlayKey(
                 trackedPoints = trackedPoints,
                 threats = threats,
+                threatStaleFlags = threatStaleFlags,
                 explosions = explosions,
                 showThreatsLayer = showThreatsLayer,
                 showExplosionsLayer = showExplosionsLayer,
@@ -472,19 +483,23 @@ actual fun AlertMapView(
                     }
 
                     if (showThreatsLayer) {
-                        threats.forEach { item ->
+                        threats.forEachIndexed { index, item ->
                             val threat = item.threat
+                            val isStale = threatStaleFlags[index]
+                            val threatAlpha = if (isStale) STALE_THREAT_ALPHA else FRESH_THREAT_ALPHA
                             val isNearbyHighlighted = highlightNearbyThreats && item.isWithinWarningRadius
                             if (threat.trail.isNotEmpty()) {
+                                val baseTrailAlpha = if (isNearbyHighlighted) 230 else 175
+                                val trailAlpha = (baseTrailAlpha * threatAlpha).roundToInt().coerceIn(0, 255)
                                 val trailLine = Polyline(view).apply {
                                     setPoints(
                                         threat.trail.map { GeoPoint(it.latitude, it.longitude) } +
                                             GeoPoint(threat.latitude, threat.longitude)
                                     )
                                     outlinePaint.color = if (isNearbyHighlighted) {
-                                        Color.argb(230, 251, 191, 36)
+                                        Color.argb(trailAlpha, 251, 191, 36)
                                     } else {
-                                        Color.argb(175, 251, 146, 60)
+                                        Color.argb(trailAlpha, 251, 146, 60)
                                     }
                                     outlinePaint.strokeWidth = if (isNearbyHighlighted) 5.5f else 4f
                                     infoWindow = null
@@ -499,7 +514,8 @@ actual fun AlertMapView(
                                 icon = createThreatDrawable(
                                     context = context,
                                     type = threat.type,
-                                    isNearbyWarning = isNearbyHighlighted
+                                    isNearbyWarning = isNearbyHighlighted,
+                                    alpha = threatAlpha
                                 )
                                 rotation = -(threat.headingDeg?.toFloat() ?: 0f)
                                 setInfoWindow(null)
@@ -537,6 +553,7 @@ actual fun AlertMapView(
 private data class DynamicOverlayKey(
     val trackedPoints: List<PointStatus>,
     val threats: List<ThreatWithProximity>,
+    val threatStaleFlags: List<Boolean>,
     val explosions: List<ExplosionWithProximity>,
     val showThreatsLayer: Boolean,
     val showExplosionsLayer: Boolean,
@@ -1145,56 +1162,72 @@ private fun createGpsDotDrawable(context: Context): Drawable {
     return BitmapDrawable(context.resources, bitmap)
 }
 
+private const val FRESH_THREAT_ALPHA = 1.0f
+private const val STALE_THREAT_ALPHA = 0.45f
+
 private fun createThreatDrawable(
     context: Context,
     type: ThreatType,
-    isNearbyWarning: Boolean
+    isNearbyWarning: Boolean,
+    alpha: Float = FRESH_THREAT_ALPHA
 ): Drawable {
     val size = if (isNearbyWarning) 108 else 80
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-
-    if (isNearbyWarning) {
-        val half = size / 2f
-        // High-contrast beacon ring (white + crimson + amber) so nearby threats pop over both red alerts & dark tiles.
-        val outerGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(110, 239, 68, 68)
-            style = Paint.Style.FILL
-        }
-        canvas.drawCircle(half, half, 50f, outerGlow)
-
-        val whiteHaloRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.STROKE
-            strokeWidth = 7.5f
-        }
-        canvas.drawCircle(half, half, 45f, whiteHaloRing)
-
-        val redDangerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(255, 45, 45)
-            style = Paint.Style.STROKE
-            strokeWidth = 4.2f
-        }
-        canvas.drawCircle(half, half, 45f, redDangerRing)
-
-        val amberInnerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(251, 191, 36)
-            style = Paint.Style.STROKE
-            strokeWidth = 2.2f
-        }
-        canvas.drawCircle(half, half, 39f, amberInnerRing)
-
-        canvas.translate((size - 80f) / 2f, (size - 80f) / 2f)
+    val alphaInt = (alpha.coerceIn(0f, 1f) * 255).roundToInt()
+    val layerSaveCount = if (alphaInt < 255) {
+        canvas.saveLayerAlpha(0f, 0f, size.toFloat(), size.toFloat(), alphaInt)
+    } else {
+        -1
     }
 
-    // Reuse the single shared vector definition from commonMain (ThreatIcons.kt)
-    CanvasDrawScope().draw(
-        density = Density(1f),
-        layoutDirection = LayoutDirection.Ltr,
-        canvas = ComposeCanvas(canvas),
-        size = Size(80f, 80f)
-    ) {
-        drawThreatVector(type = type, isHighlighted = isNearbyWarning)
+    try {
+        if (isNearbyWarning) {
+            val half = size / 2f
+            // High-contrast beacon ring (white + crimson + amber) so nearby threats pop over both red alerts & dark tiles.
+            val outerGlow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(110, 239, 68, 68)
+                style = Paint.Style.FILL
+            }
+            canvas.drawCircle(half, half, 50f, outerGlow)
+
+            val whiteHaloRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.STROKE
+                strokeWidth = 7.5f
+            }
+            canvas.drawCircle(half, half, 45f, whiteHaloRing)
+
+            val redDangerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(255, 45, 45)
+                style = Paint.Style.STROKE
+                strokeWidth = 4.2f
+            }
+            canvas.drawCircle(half, half, 45f, redDangerRing)
+
+            val amberInnerRing = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(251, 191, 36)
+                style = Paint.Style.STROKE
+                strokeWidth = 2.2f
+            }
+            canvas.drawCircle(half, half, 39f, amberInnerRing)
+
+            canvas.translate((size - 80f) / 2f, (size - 80f) / 2f)
+        }
+
+        // Reuse the single shared vector definition from commonMain (ThreatIcons.kt)
+        CanvasDrawScope().draw(
+            density = Density(1f),
+            layoutDirection = LayoutDirection.Ltr,
+            canvas = ComposeCanvas(canvas),
+            size = Size(80f, 80f)
+        ) {
+            drawThreatVector(type = type, isHighlighted = isNearbyWarning)
+        }
+    } finally {
+        if (layerSaveCount != -1) {
+            canvas.restoreToCount(layerSaveCount)
+        }
     }
 
     return BitmapDrawable(context.resources, bitmap)

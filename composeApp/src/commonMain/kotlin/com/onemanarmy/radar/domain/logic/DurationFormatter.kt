@@ -35,10 +35,21 @@ object DurationFormatter {
         }.getOrNull()
     }
 
+    const val THREAT_STALE_THRESHOLD_MS = 5 * 60_000L
+
     fun ageMinutesSince(
         instant: Instant,
         now: Instant = Clock.System.now()
     ): Int = ((now - instant).inWholeSeconds.coerceAtLeast(0L) / 60L).toInt()
+
+    fun isThreatOlderThan(
+        updatedAtIso: String?,
+        thresholdMs: Long = THREAT_STALE_THRESHOLD_MS,
+        now: Instant = Clock.System.now()
+    ): Boolean {
+        val updated = parseInstantOrNull(updatedAtIso) ?: return false
+        return (now - updated).inWholeMilliseconds.coerceAtLeast(0L) > thresholdMs
+    }
 
     fun formatTimeOfDay(hour: Int, minute: Int): String = "${pad2(hour.toLong())}:${pad2(minute.toLong())}"
 

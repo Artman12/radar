@@ -43,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -63,6 +64,10 @@ import com.onemanarmy.radar.resources.explosions_list_empty
 import com.onemanarmy.radar.resources.explosions_list_title
 import com.onemanarmy.radar.resources.explosions_list_total
 import com.onemanarmy.radar.resources.map_next_refresh_cd
+import com.onemanarmy.radar.resources.threats_list_age_hours
+import com.onemanarmy.radar.resources.threats_list_age_hours_minutes
+import com.onemanarmy.radar.resources.threats_list_age_just_now
+import com.onemanarmy.radar.resources.threats_list_age_minutes
 import com.onemanarmy.radar.resources.threats_list_distance_from
 import com.onemanarmy.radar.resources.threats_list_empty
 import com.onemanarmy.radar.resources.threats_list_filter_all
@@ -356,6 +361,14 @@ fun AllThreatsBottomSheet(
         sortThreatsForList(filtered, highlightNearbyThreats)
     }
 
+    var nowInstant by remember { mutableStateOf(Clock.System.now()) }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(15_000.milliseconds)
+            nowInstant = Clock.System.now()
+        }
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -503,6 +516,7 @@ fun AllThreatsBottomSheet(
                         ThreatListRowCard(
                             item = item,
                             highlightNearbyThreats = highlightNearbyThreats,
+                            nowInstant = nowInstant,
                             onClick = { onThreatSelected(item) }
                         )
                     }
@@ -516,9 +530,29 @@ fun AllThreatsBottomSheet(
 private fun ThreatListRowCard(
     item: ThreatWithProximity,
     highlightNearbyThreats: Boolean,
+    nowInstant: Instant,
     onClick: () -> Unit
 ) {
     val threat = item.threat
+    val updatedInstant = remember(threat.updatedAtIso) {
+        DurationFormatter.parseInstantOrNull(threat.updatedAtIso)
+    }
+    val isStale = remember(threat.updatedAtIso, nowInstant) {
+        DurationFormatter.isThreatOlderThan(threat.updatedAtIso, now = nowInstant)
+    }
+    val ageText = updatedInstant?.let { instant ->
+        val ageMinutes = DurationFormatter.ageMinutesSince(instant, nowInstant)
+        when {
+            ageMinutes < 1 -> stringResource(Res.string.threats_list_age_just_now)
+            ageMinutes < 60 -> stringResource(Res.string.threats_list_age_minutes, ageMinutes)
+            ageMinutes % 60 == 0 -> stringResource(Res.string.threats_list_age_hours, ageMinutes / 60)
+            else -> stringResource(
+                Res.string.threats_list_age_hours_minutes,
+                ageMinutes / 60,
+                ageMinutes % 60
+            )
+        }
+    }
     val isWarningActive = highlightNearbyThreats && item.isWithinWarningRadius
     val locationText = listOf(threat.locality, threat.region)
         .filter { it.isNotBlank() }
@@ -527,6 +561,7 @@ private fun ThreatListRowCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (isStale) 0.55f else 1f)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
@@ -614,6 +649,7 @@ private fun ThreatListRowCard(
                 }
 
                 val telemetryParts = buildList {
+                    ageText?.let(::add)
                     threat.speedKmh?.let { add(stringResource(Res.string.threats_list_speed_kmh, it.roundToInt())) }
                     threat.headingDeg?.let { add("${it.roundToInt()}°") }
                 }

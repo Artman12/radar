@@ -96,6 +96,10 @@
     <string name="threats_list_empty">No active aerial targets on radar</string>
     <string name="threats_list_distance_from">~%1$d km from %2$s</string>
     <string name="threats_list_speed_kmh">%1$d km/h</string>
+    <string name="threats_list_age_just_now">&lt;1m</string>
+    <string name="threats_list_age_minutes">%1$dm</string>
+    <string name="threats_list_age_hours">%1$dh</string>
+    <string name="threats_list_age_hours_minutes">%1$dh %2$dm</string>
     <string name="region_threat_clear">No active alert</string>
     <string name="region_threat_elevated">Elevated threat (Yellow warning)</string>
     <string name="region_threat_high">Active air alert</string>

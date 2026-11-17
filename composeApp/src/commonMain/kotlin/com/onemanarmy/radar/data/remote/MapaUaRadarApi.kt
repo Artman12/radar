@@ -71,8 +71,8 @@ class MapaUaRadarApi(
         const val CURRENT_ENDPOINT = "$MAPA_UA_BASE_URL/api/v1/current"
 
         const val MAX_AGE_FAST_THREAT_SECONDS = 10 * 60L
-        const val MAX_AGE_MEDIUM_THREAT_SECONDS = 15 * 60L
-        const val MAX_AGE_SLOW_THREAT_SECONDS = 20 * 60L
+        const val MAX_AGE_MEDIUM_THREAT_SECONDS = 12 * 60L
+        const val MAX_AGE_SLOW_THREAT_SECONDS = 15 * 60L
 
         internal fun maxActiveAgeSeconds(type: ThreatType): Long = when (type) {
             ThreatType.BALLISTIC,
