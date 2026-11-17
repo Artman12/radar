@@ -9,6 +9,7 @@ import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -184,22 +185,7 @@ class AndroidGeocoder(
         maxResults: Int
     ): List<Address> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            suspendCancellableCoroutine { cont ->
-                geocoder.getFromLocation(
-                    latitude,
-                    longitude,
-                    maxResults,
-                    object : Geocoder.GeocodeListener {
-                        override fun onGeocode(addresses: MutableList<Address>) {
-                            if (cont.isActive) cont.resume(addresses)
-                        }
-
-                        override fun onError(errorMessage: String?) {
-                            if (cont.isActive) cont.resume(emptyList())
-                        }
-                    }
-                )
-            }
+            GeocoderApi33.getFromLocation(geocoder, latitude, longitude, maxResults)
         } else {
             geocoder.getFromLocation(latitude, longitude, maxResults).orEmpty()
         }
@@ -212,21 +198,7 @@ class AndroidGeocoder(
         maxResults: Int
     ): List<Address> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            suspendCancellableCoroutine { cont ->
-                geocoder.getFromLocationName(
-                    locationName,
-                    maxResults,
-                    object : Geocoder.GeocodeListener {
-                        override fun onGeocode(addresses: MutableList<Address>) {
-                            if (cont.isActive) cont.resume(addresses)
-                        }
-
-                        override fun onError(errorMessage: String?) {
-                            if (cont.isActive) cont.resume(emptyList())
-                        }
-                    }
-                )
-            }
+            GeocoderApi33.getFromLocationName(geocoder, locationName, maxResults)
         } else {
             geocoder.getFromLocationName(locationName, maxResults).orEmpty()
         }
@@ -241,6 +213,51 @@ class AndroidGeocoder(
             adminArea = adminArea,
             latitude = if (hasLatitude()) latitude else fallbackLat,
             longitude = if (hasLongitude()) longitude else fallbackLon
+        )
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+private object GeocoderApi33 {
+    suspend fun getFromLocation(
+        geocoder: Geocoder,
+        latitude: Double,
+        longitude: Double,
+        maxResults: Int
+    ): List<Address> = suspendCancellableCoroutine { cont ->
+        geocoder.getFromLocation(
+            latitude,
+            longitude,
+            maxResults,
+            object : Geocoder.GeocodeListener {
+                override fun onGeocode(addresses: MutableList<Address>) {
+                    if (cont.isActive) cont.resume(addresses)
+                }
+
+                override fun onError(errorMessage: String?) {
+                    if (cont.isActive) cont.resume(emptyList())
+                }
+            }
+        )
+    }
+
+    suspend fun getFromLocationName(
+        geocoder: Geocoder,
+        locationName: String,
+        maxResults: Int
+    ): List<Address> = suspendCancellableCoroutine { cont ->
+        geocoder.getFromLocationName(
+            locationName,
+            maxResults,
+            object : Geocoder.GeocodeListener {
+                override fun onGeocode(addresses: MutableList<Address>) {
+                    if (cont.isActive) cont.resume(addresses)
+                }
+
+                override fun onError(errorMessage: String?) {
+                    if (cont.isActive) cont.resume(emptyList())
+                }
+            }
         )
     }
 }

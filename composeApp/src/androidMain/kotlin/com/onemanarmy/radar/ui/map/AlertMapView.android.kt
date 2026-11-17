@@ -732,41 +732,21 @@ private class UkraineRegionsOverlay(
             val showHromadas = zoom >= 9.2
 
             if (!isCrosshairPickerMode && threats != null) {
-                if (showHromadas) {
-                    val hromadas = atlas.sourceBoundaries.hromadas
-                    val hromadaPaths = atlas.detailHromadaPaths
-                    val threatLevels = threats.sourceSnapshot.hromadaThreats
-                    for (i in cells.indices) {
-                        val cell = cells[i]
-                        if (cell.maxLocalX < viewMinX ||
-                            cell.minLocalX > viewMaxX ||
-                            cell.maxLocalY < viewMinY ||
-                            cell.minLocalY > viewMaxY
-                        ) {
-                            continue
-                        }
-                        for (hIdx in cell.hromadaIndices) {
-                            val h = hromadas[hIdx]
-                            if (h.maxLat < south || h.minLat > north || h.maxLon < west || h.minLon > east) {
-                                continue
-                            }
-                            val fillPaint = fillPaintForThreat(threatLevels.getOrElse(hIdx) { RegionThreatLevel.CLEAR })
-                            canvas.drawPath(hromadaPaths[hIdx], fillPaint)
-                        }
-                    }
-                } else {
-                    val raions = atlas.sourceBoundaries.raions
-                    val raionPaths = atlas.raionPaths
-                    val threatLevels = threats.sourceSnapshot.raionThreats
-                    for (i in raions.indices) {
-                        val r = raions[i]
-                        if (r.maxLat < south || r.minLat > north || r.maxLon < west || r.minLon > east) {
-                            continue
-                        }
-                        val fillPaint = fillPaintForThreat(threatLevels.getOrElse(i) { RegionThreatLevel.CLEAR })
-                        canvas.drawPath(raionPaths[i], fillPaint)
-                    }
-                }
+                drawRegionFills(
+                    targetCanvas = canvas,
+                    atlas = atlas,
+                    threats = threats,
+                    cells = cells,
+                    showHromadas = showHromadas,
+                    viewMinX = viewMinX,
+                    viewMaxX = viewMaxX,
+                    viewMinY = viewMinY,
+                    viewMaxY = viewMaxY,
+                    north = north,
+                    south = south,
+                    east = east,
+                    west = west
+                )
             }
 
             if (showHromadas) {
@@ -811,6 +791,62 @@ private class UkraineRegionsOverlay(
         }
 
         canvas.restoreToCount(saveCount)
+    }
+
+    private fun drawRegionFills(
+        targetCanvas: Canvas,
+        atlas: UkraineStaticMercatorAtlas,
+        threats: UkraineThreatAtlas,
+        cells: List<SpatialVectorCell>,
+        showHromadas: Boolean,
+        viewMinX: Float,
+        viewMaxX: Float,
+        viewMinY: Float,
+        viewMaxY: Float,
+        north: Float,
+        south: Float,
+        east: Float,
+        west: Float
+    ): Boolean {
+        var drewAny = false
+        if (showHromadas) {
+            val hromadas = atlas.sourceBoundaries.hromadas
+            val hromadaPaths = atlas.detailHromadaPaths
+            val threatLevels = threats.sourceSnapshot.hromadaThreats
+            for (i in cells.indices) {
+                val cell = cells[i]
+                if (cell.maxLocalX < viewMinX ||
+                    cell.minLocalX > viewMaxX ||
+                    cell.maxLocalY < viewMinY ||
+                    cell.minLocalY > viewMaxY
+                ) {
+                    continue
+                }
+                for (hIdx in cell.hromadaIndices) {
+                    val h = hromadas[hIdx]
+                    if (h.maxLat < south || h.minLat > north || h.maxLon < west || h.minLon > east) {
+                        continue
+                    }
+                    val fillPaint = fillPaintForThreat(threatLevels.getOrElse(hIdx) { RegionThreatLevel.CLEAR })
+                    targetCanvas.drawPath(hromadaPaths[hIdx], fillPaint)
+                    drewAny = true
+                }
+            }
+        } else {
+            val raions = atlas.sourceBoundaries.raions
+            val raionPaths = atlas.raionPaths
+            val threatLevels = threats.sourceSnapshot.raionThreats
+            for (i in raions.indices) {
+                val r = raions[i]
+                if (r.maxLat < south || r.minLat > north || r.maxLon < west || r.minLon > east) {
+                    continue
+                }
+                val fillPaint = fillPaintForThreat(threatLevels.getOrElse(i) { RegionThreatLevel.CLEAR })
+                targetCanvas.drawPath(raionPaths[i], fillPaint)
+                drewAny = true
+            }
+        }
+        return drewAny
     }
 
     private fun fillPaintForThreat(level: RegionThreatLevel): Paint = when (level) {

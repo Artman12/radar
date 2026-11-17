@@ -26,7 +26,7 @@ kotlin {
     android {
         namespace = "com.onemanarmy.radar.shared"
         compileSdk = 37
-        minSdk = 26
+        minSdk = 28
 
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
