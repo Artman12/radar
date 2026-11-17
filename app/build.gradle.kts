@@ -1,8 +1,50 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.TaskAction
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+val versionPropsFile = rootProject.layout.projectDirectory.file("version.properties")
+val versionPropsContent = providers.fileContents(versionPropsFile).asText.getOrElse("")
+val versionProps = Properties().apply {
+    if (versionPropsContent.isNotEmpty()) {
+        load(versionPropsContent.reader())
+    }
+}
+val appVersionMajor = versionProps.getProperty("VERSION_MAJOR", "1").toInt()
+val appVersionMinor = versionProps.getProperty("VERSION_MINOR", "0").toInt()
+val appVersionCode = versionProps.getProperty("VERSION_CODE", "1").toInt().coerceAtLeast(1)
+val appVersionName = "$appVersionMajor.$appVersionMinor.$appVersionCode"
+
+abstract class IncrementVersionTask : DefaultTask() {
+    @get:Internal
+    abstract val versionFile: RegularFileProperty
+
+    @TaskAction
+    fun increment() {
+        val file = versionFile.get().asFile
+        val props = Properties()
+        if (file.exists()) {
+            file.inputStream().use { props.load(it) }
+        }
+        val major = props.getProperty("VERSION_MAJOR", "1").toInt()
+        val minor = props.getProperty("VERSION_MINOR", "0").toInt()
+        val currentCode = props.getProperty("VERSION_CODE", "1").toInt().coerceAtLeast(1)
+        val nextCode = currentCode + 1
+        file.writeText(
+            "VERSION_MAJOR=$major\nVERSION_MINOR=$minor\nVERSION_CODE=$nextCode\n"
+        )
+    }
+}
+
+val incrementReleaseVersionCode = tasks.register<IncrementVersionTask>("incrementReleaseVersionCode") {
+    versionFile.set(versionPropsFile)
 }
 
 android {
@@ -13,8 +55,8 @@ android {
         applicationId = "com.onemanarmy.radar"
         minSdk = 28
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,6 +81,16 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+base {
+    archivesName.set("radar-$appVersionName")
+}
+
+tasks.matching {
+    it.name in setOf("assembleRelease", "bundleRelease", "packageRelease", "signReleaseBundle")
+}.configureEach {
+    finalizedBy(incrementReleaseVersionCode)
 }
 
 kotlin {
