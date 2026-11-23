@@ -42,7 +42,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -109,9 +112,14 @@ fun App() {
             }
 
             true -> {
-                LaunchedEffect(Unit) {
-                    serviceController.startMonitoringService()
-                    monitoringRepo.refreshRegionsIfNeeded()
+                val lifecycleOwner = LocalLifecycleOwner.current
+                LaunchedEffect(lifecycleOwner) {
+                    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        if (!serviceController.isServiceRunning.value) {
+                            serviceController.startMonitoringService()
+                        }
+                        monitoringRepo.refreshRegionsIfNeeded()
+                    }
                 }
                 MainAppScaffold()
             }

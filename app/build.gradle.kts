@@ -54,7 +54,7 @@ android {
     defaultConfig {
         applicationId = "com.onemanarmy.radar"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 37
         versionCode = appVersionCode
         versionName = appVersionName
 

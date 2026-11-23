@@ -14,6 +14,7 @@ class AndroidBackgroundServiceController(
         get() = AlertMonitoringService.isRunning
 
     override fun startMonitoringService() {
+        if (AlertMonitoringService.isRunning.value) return
         val intent = Intent(context, AlertMonitoringService::class.java)
         runCatching {
             ContextCompat.startForegroundService(context, intent)

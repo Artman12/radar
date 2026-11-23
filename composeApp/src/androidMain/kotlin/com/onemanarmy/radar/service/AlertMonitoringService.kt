@@ -1,5 +1,6 @@
 package com.onemanarmy.radar.service
 
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -14,6 +15,7 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.onemanarmy.radar.data.repository.AlertMonitoringRepository
 import com.onemanarmy.radar.domain.model.PointStatus
 import com.onemanarmy.radar.platform.AndroidPlatformNotifier
@@ -44,7 +46,9 @@ class AlertMonitoringService : Service() {
     private var pollingJob: Job? = null
     private var connectivityManager: ConnectivityManager? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    @Volatile
     private var wakeupSignal = CompletableDeferred<Unit>()
+    private var isForegroundStarted = false
 
     companion object {
         private const val FOREGROUND_NOTIFICATION_ID = 1001
@@ -57,25 +61,52 @@ class AlertMonitoringService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        _isRunning.value = true
         notifier.ensureForegroundChannel()
-        startForegroundWithType(
-            buildStatusNotification(getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring))
+        val promoted = promoteToForeground(
+            getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
         )
+        if (!promoted) {
+            _isRunning.value = false
+            stopSelf()
+            return
+        }
+        _isRunning.value = true
         registerNetworkCallback()
         startPollingLoop()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (!isForegroundStarted) {
+            notifier.ensureForegroundChannel()
+            val promoted = promoteToForeground(
+                getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
+            )
+            if (!promoted) {
+                _isRunning.value = false
+                stopSelf(startId)
+                return START_NOT_STICKY
+            }
+            _isRunning.value = true
+            registerNetworkCallback()
+        }
         if (pollingJob?.isActive != true) {
             startPollingLoop()
         }
         return START_STICKY
     }
 
+    override fun onTimeout(startId: Int) {
+        handleServiceTimeout(startId)
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        handleServiceTimeout(startId)
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        isForegroundStarted = false
         _isRunning.value = false
         unregisterNetworkCallback()
         pollingJob?.cancel()
@@ -83,15 +114,43 @@ class AlertMonitoringService : Service() {
         super.onDestroy()
     }
 
-    private fun startForegroundWithType(notification: Notification) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
+    private fun handleServiceTimeout(startId: Int) {
+        isForegroundStarted = false
+        _isRunning.value = false
+        pollingJob?.cancel()
+        unregisterNetworkCallback()
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf(startId)
+    }
+
+    private fun promoteToForeground(contentText: String): Boolean {
+        return try {
+            val notification = buildStatusNotification(contentText)
+            val foregroundServiceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                0
+            }
+            ServiceCompat.startForeground(
+                this,
                 FOREGROUND_NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                foregroundServiceType
             )
-        } else {
-            startForeground(FOREGROUND_NOTIFICATION_ID, notification)
+            isForegroundStarted = true
+            true
+        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                e is ForegroundServiceStartNotAllowedException
+            ) {
+                isForegroundStarted = false
+                false
+            } else if (e is SecurityException || e is IllegalStateException) {
+                isForegroundStarted = false
+                false
+            } else {
+                throw e
+            }
         }
     }
 
@@ -126,9 +185,10 @@ class AlertMonitoringService : Service() {
                     updateStatusNotification(getString(com.onemanarmy.radar.shared.R.string.fg_status_no_network))
                 }
 
-                wakeupSignal = CompletableDeferred()
+                val signal = CompletableDeferred<Unit>()
+                wakeupSignal = signal
                 withTimeoutOrNull(currentDelayMs) {
-                    wakeupSignal.await()
+                    signal.await()
                 }
             }
         }
@@ -146,8 +206,11 @@ class AlertMonitoringService : Service() {
     }
 
     private fun updateStatusNotification(text: String) {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(FOREGROUND_NOTIFICATION_ID, buildStatusNotification(text))
+        if (!isForegroundStarted) return
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        runCatching {
+            manager.notify(FOREGROUND_NOTIFICATION_ID, buildStatusNotification(text))
+        }
     }
 
     private fun buildStatusNotification(contentText: String): Notification {
@@ -179,6 +242,7 @@ class AlertMonitoringService : Service() {
 
     @android.annotation.SuppressLint("MissingPermission")
     private fun registerNetworkCallback() {
+        if (networkCallback != null) return
         val cm = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
         connectivityManager = cm
         val request = NetworkRequest.Builder()
@@ -191,11 +255,13 @@ class AlertMonitoringService : Service() {
         }
         networkCallback = callback
         runCatching { cm.registerNetworkCallback(request, callback) }
+            .onFailure { networkCallback = null }
     }
 
     private fun unregisterNetworkCallback() {
         val cm = connectivityManager
         val cb = networkCallback
+        networkCallback = null
         if (cm != null && cb != null) {
             runCatching { cm.unregisterNetworkCallback(cb) }
         }

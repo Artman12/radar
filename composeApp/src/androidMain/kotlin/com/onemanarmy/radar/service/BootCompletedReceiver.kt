@@ -28,10 +28,12 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val settings = prefsRepo.settingsFlow.first()
-                if (settings.isOnboardingCompleted) {
+                val settings = runCatching { prefsRepo.settingsFlow.first() }.getOrNull()
+                if (settings?.isOnboardingCompleted == true) {
                     val serviceIntent = Intent(context, AlertMonitoringService::class.java)
-                    ContextCompat.startForegroundService(context, serviceIntent)
+                    runCatching {
+                        ContextCompat.startForegroundService(context, serviceIntent)
+                    }
                 }
             } finally {
                 pendingResult.finish()
