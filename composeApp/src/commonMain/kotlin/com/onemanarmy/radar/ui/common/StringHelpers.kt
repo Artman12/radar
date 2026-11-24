@@ -2,6 +2,7 @@ package com.onemanarmy.radar.ui.common
 
 import androidx.compose.runtime.Composable
 import com.onemanarmy.radar.domain.model.AlertType
+import com.onemanarmy.radar.domain.model.AppLanguage
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatDataSource
@@ -17,6 +18,9 @@ import com.onemanarmy.radar.resources.alert_type_chemical
 import com.onemanarmy.radar.resources.alert_type_nuclear
 import com.onemanarmy.radar.resources.alert_type_unknown
 import com.onemanarmy.radar.resources.alert_type_urban_fights
+import com.onemanarmy.radar.resources.language_english
+import com.onemanarmy.radar.resources.language_system
+import com.onemanarmy.radar.resources.language_ukrainian
 import com.onemanarmy.radar.resources.night_behavior_disabled
 import com.onemanarmy.radar.resources.night_behavior_filter_all_clear
 import com.onemanarmy.radar.resources.night_behavior_full_silence
@@ -36,6 +40,8 @@ import com.onemanarmy.radar.resources.threat_sound_alarm
 import com.onemanarmy.radar.resources.threat_sound_buzzer
 import com.onemanarmy.radar.resources.threat_sound_off
 import com.onemanarmy.radar.resources.threat_sound_siren
+import com.onemanarmy.radar.resources.threat_source_both
+import com.onemanarmy.radar.resources.threat_source_both_short
 import com.onemanarmy.radar.resources.threat_source_mapa_ua
 import com.onemanarmy.radar.resources.threat_source_neptun
 import com.onemanarmy.radar.resources.threat_type_aviation
@@ -151,4 +157,19 @@ fun threatTypeLabel(type: ThreatType): String = when (type) {
 fun threatDataSourceLabel(source: ThreatDataSource): String = when (source) {
     ThreatDataSource.NEPTUN -> stringResource(Res.string.threat_source_neptun)
     ThreatDataSource.MAPA_UA -> stringResource(Res.string.threat_source_mapa_ua)
+    ThreatDataSource.BOTH -> stringResource(Res.string.threat_source_both_short)
+}
+
+@Composable
+fun threatDataSourceFullLabel(source: ThreatDataSource): String = when (source) {
+    ThreatDataSource.NEPTUN -> stringResource(Res.string.threat_source_neptun)
+    ThreatDataSource.MAPA_UA -> stringResource(Res.string.threat_source_mapa_ua)
+    ThreatDataSource.BOTH -> stringResource(Res.string.threat_source_both)
+}
+
+@Composable
+fun appLanguageLabel(language: AppLanguage): String = when (language) {
+    AppLanguage.SYSTEM -> stringResource(Res.string.language_system)
+    AppLanguage.UKRAINIAN -> stringResource(Res.string.language_ukrainian)
+    AppLanguage.ENGLISH -> stringResource(Res.string.language_english)
 }

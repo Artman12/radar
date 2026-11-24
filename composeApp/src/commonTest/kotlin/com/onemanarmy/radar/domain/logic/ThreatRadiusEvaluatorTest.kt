@@ -8,6 +8,9 @@ import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatType
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -254,5 +257,50 @@ class ThreatRadiusEvaluatorTest {
         val res = ThreatRadiusEvaluator.evaluate(listOf(kyivHome), listOf(threat), prev, settings, isQuietHours = true)
         assertTrue(res.notifications.isEmpty())
         assertFalse(res.updatedStates["home"]?.isThreatInRadius ?: true)
+    }
+
+    @Test
+    fun outsidePointScheduleSuppressesRadiusNotificationAndClearsState() {
+        val kyivZone = TimeZone.of("Europe/Kyiv")
+        val workPoint = kyivHome.copy(
+            id = "work",
+            name = "Work",
+            scheduleEnabled = true,
+            scheduleStartHour = 9,
+            scheduleStartMinute = 0,
+            scheduleEndHour = 18,
+            scheduleEndMinute = 0,
+            scheduleActiveDaysIso = setOf(1, 2, 3, 4, 5)
+        )
+        val settings = AppSettings(
+            threatRadiusNotificationEnabled = true,
+            threatNotificationRadiusKm = 10
+        )
+        val threat = threatAt("t_sched", 50.4701, 30.5234)
+        val prev = mapOf("work" to PointAlertState("work", false, "", 0L, isThreatInRadius = true))
+
+        val evening = LocalDateTime(2026, 11, 16, 20, 0).toInstant(kyivZone)
+        val outsideResult = ThreatRadiusEvaluator.evaluate(
+            trackedPoints = listOf(workPoint),
+            threats = listOf(threat),
+            previousStates = prev,
+            settings = settings,
+            instant = evening,
+            timeZone = kyivZone
+        )
+        assertTrue(outsideResult.notifications.isEmpty())
+        assertFalse(outsideResult.updatedStates["work"]?.isThreatInRadius ?: true)
+
+        val noon = LocalDateTime(2026, 11, 16, 12, 0).toInstant(kyivZone)
+        val insideResult = ThreatRadiusEvaluator.evaluate(
+            trackedPoints = listOf(workPoint),
+            threats = listOf(threat),
+            previousStates = outsideResult.updatedStates,
+            settings = settings,
+            instant = noon,
+            timeZone = kyivZone
+        )
+        assertEquals(1, insideResult.notifications.size)
+        assertTrue(insideResult.updatedStates["work"]?.isThreatInRadius == true)
     }
 }

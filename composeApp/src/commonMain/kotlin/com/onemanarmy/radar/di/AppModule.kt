@@ -60,5 +60,5 @@ val commonModule = module {
     viewModel { OnboardingViewModel(get(), get(), get(), get(), get()) }
     viewModel { MapViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { PointsViewModel(get(), get(), get()) }
-    viewModel { SettingsViewModel(get(), get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get(), get(), get()) }
 }

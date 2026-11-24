@@ -29,6 +29,7 @@ import com.onemanarmy.radar.resources.notif_alert_started_title
 import com.onemanarmy.radar.resources.notif_all_clear_body
 import com.onemanarmy.radar.resources.notif_all_clear_title
 import com.onemanarmy.radar.resources.notif_hromada_suffix
+import com.onemanarmy.radar.resources.notif_my_location
 import com.onemanarmy.radar.resources.notif_threat_radius_body
 import com.onemanarmy.radar.resources.notif_threat_radius_title
 import com.onemanarmy.radar.resources.notif_yellow_alert_started_body
@@ -94,7 +95,8 @@ class AlertMonitoringRepository(
         prefsRepo.lastActiveAlertsFlow,
         boundaryRepo.boundariesFlow
     ) { settings, savedPoints, cachedRegions, activeAlerts, _ ->
-        val allPoints = buildTrackedPoints(settings, savedPoints).map { enrichPointWithHromada(it) }
+        val gpsLabel = getString(Res.string.notif_my_location)
+        val allPoints = buildTrackedPoints(settings, savedPoints, gpsLabel).map { enrichPointWithHromada(it) }
         allPoints.map { point ->
             val matchingAlerts = activeAlerts.filter { alert ->
                 RegionMatcher.isPointAffectedByAlert(
@@ -253,6 +255,7 @@ class AlertMonitoringRepository(
         boundaryRepo.loadIfNeeded()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
         val currentSettings = prefsRepo.settingsFlow.first()
+        val myLocationLabel = getString(Res.string.notif_my_location)
 
         // Seed GPS location immediately with fast offline oblast/hromada match when no location is saved yet.
         if (currentSettings.gpsLatitude == null || currentSettings.gpsPointRegionName.isNullOrBlank()) {
@@ -260,7 +263,7 @@ class AlertMonitoringRepository(
                 latitude = coords.latitude,
                 longitude = coords.longitude,
                 address = null,
-                fallbackLabel = "My Location",
+                fallbackLabel = myLocationLabel,
                 cachedRegions = cachedRegions
             )
             prefsRepo.updateSettings {
@@ -273,7 +276,7 @@ class AlertMonitoringRepository(
             }
         }
 
-        val resolved = resolveLocationForCoordinates(coords.latitude, coords.longitude, "My Location")
+        val resolved = resolveLocationForCoordinates(coords.latitude, coords.longitude, myLocationLabel)
         prefsRepo.updateSettings {
             it.copy(
                 gpsLatitude = resolved.latitude,
@@ -295,7 +298,7 @@ class AlertMonitoringRepository(
     suspend fun pollAlertsOnce(
         forceFullFetch: Boolean = false,
         dispatchNotifications: Boolean = true,
-        gpsDisplayName: String = "My Location"
+        gpsDisplayName: String? = null
     ): PollResult {
         if (!forceFullFetch && !dispatchNotifications) {
             val age = Clock.System.now().toEpochMilliseconds() - lastSuccessfulPollMs
@@ -327,8 +330,10 @@ class AlertMonitoringRepository(
     private suspend fun pollAlertsOnceInternal(
         forceFullFetch: Boolean,
         dispatchNotifications: Boolean,
-        gpsDisplayName: String
+        gpsDisplayName: String?
     ): PollResult {
+        val resolvedGpsName = gpsDisplayName?.takeIf { it.isNotBlank() }
+            ?: getString(Res.string.notif_my_location)
         boundaryRepo.loadIfNeeded()
         val now = Clock.System.now()
         val nowMs = now.toEpochMilliseconds()
@@ -384,7 +389,7 @@ class AlertMonitoringRepository(
         val updatedSettings = prefsRepo.settingsFlow.first()
         val savedPoints = prefsRepo.savedPointsFlow.first()
         val cachedRegions = prefsRepo.cachedRegionsFlow.first()
-        val trackedPoints = buildTrackedPoints(updatedSettings, savedPoints, gpsDisplayName)
+        val trackedPoints = buildTrackedPoints(updatedSettings, savedPoints, resolvedGpsName)
             .map { enrichPointWithHromada(it) }
         val isQuietHours = QuietHoursEvaluator.isInQuietHours(updatedSettings, now)
         val decisions = mutableListOf<NotificationDecision>()
@@ -483,29 +488,31 @@ class AlertMonitoringRepository(
      */
     suspend fun pollThreatRadiusIfEnabled(
         dispatchNotifications: Boolean = true,
-        gpsDisplayName: String = "My Location"
+        gpsDisplayName: String? = null
     ) {
         val settings = prefsRepo.settingsFlow.first()
         if (!settings.threatRadiusNotificationEnabled) return
+        val resolvedGpsName = gpsDisplayName?.takeIf { it.isNotBlank() }
+            ?: getString(Res.string.notif_my_location)
         if (settings.threatNightModeBehavior == ThreatNightModeBehavior.DISABLED &&
             QuietHoursEvaluator.isInQuietHours(settings)
         ) {
             evaluateThreatRadiusThreats(
                 threats = emptyList(),
                 dispatchNotifications = false,
-                gpsDisplayName = gpsDisplayName
+                gpsDisplayName = resolvedGpsName
             )
             return
         }
         val savedPoints = prefsRepo.savedPointsFlow.first()
-        val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
+        val trackedPoints = buildTrackedPoints(settings, savedPoints, resolvedGpsName)
         if (trackedPoints.none { it.notifyEnabled }) return
 
         val threats = radarRepo.fetchRawThreats(settings.threatDataSource).getOrNull() ?: return
         evaluateThreatRadiusThreats(
             threats = threats,
             dispatchNotifications = dispatchNotifications,
-            gpsDisplayName = gpsDisplayName
+            gpsDisplayName = resolvedGpsName
         )
     }
 
@@ -516,13 +523,15 @@ class AlertMonitoringRepository(
     suspend fun evaluateThreatRadiusThreats(
         threats: List<AirThreat>,
         dispatchNotifications: Boolean = true,
-        gpsDisplayName: String = "My Location"
+        gpsDisplayName: String? = null
     ) {
         threatRadiusMutex.withLock {
+            val resolvedGpsName = gpsDisplayName?.takeIf { it.isNotBlank() }
+                ?: getString(Res.string.notif_my_location)
             val settings = prefsRepo.settingsFlow.first()
             val isQuietHours = QuietHoursEvaluator.isInQuietHours(settings, Clock.System.now())
             val savedPoints = prefsRepo.savedPointsFlow.first()
-            val trackedPoints = buildTrackedPoints(settings, savedPoints, gpsDisplayName)
+            val trackedPoints = buildTrackedPoints(settings, savedPoints, resolvedGpsName)
             var pendingNotifications: List<com.onemanarmy.radar.domain.logic.ThreatRadiusNotification> = emptyList()
 
             prefsRepo.updateAlertStates { currentStates ->

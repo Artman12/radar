@@ -1,6 +1,7 @@
 package com.onemanarmy.radar.data.remote
 
 import com.onemanarmy.radar.domain.model.AirThreat
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatTrailPoint
 import com.onemanarmy.radar.domain.model.ThreatType
 import io.ktor.client.HttpClient
@@ -151,7 +152,8 @@ class MapaUaRadarApi(
                             timestampIso = tIso
                         )
                     },
-                    presumptiveCourse = false
+                    presumptiveCourse = false,
+                    source = ThreatDataSource.MAPA_UA
                 )
             }
         }

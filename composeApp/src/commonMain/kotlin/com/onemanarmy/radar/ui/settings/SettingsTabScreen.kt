@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,6 +47,7 @@ import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightlightRound
@@ -52,8 +55,6 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,9 +71,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -94,6 +92,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
+import com.onemanarmy.radar.domain.model.AppLanguage
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatDataSource
@@ -108,8 +107,6 @@ import com.onemanarmy.radar.resources.about_mapa_ua
 import com.onemanarmy.radar.resources.about_neptun
 import com.onemanarmy.radar.resources.about_nextalert
 import com.onemanarmy.radar.resources.about_ukraine_alarm
-import com.onemanarmy.radar.resources.btn_cancel
-import com.onemanarmy.radar.resources.btn_save
 import com.onemanarmy.radar.resources.btn_test_short
 import com.onemanarmy.radar.resources.day_fri
 import com.onemanarmy.radar.resources.day_mon
@@ -137,6 +134,9 @@ import com.onemanarmy.radar.resources.settings_hromada_notif_desc
 import com.onemanarmy.radar.resources.settings_hromada_notif_enable
 import com.onemanarmy.radar.resources.settings_kb_subtitle
 import com.onemanarmy.radar.resources.settings_kb_title
+import com.onemanarmy.radar.resources.settings_language_desc
+import com.onemanarmy.radar.resources.settings_language_section
+import com.onemanarmy.radar.resources.settings_language_title
 import com.onemanarmy.radar.resources.settings_map_section
 import com.onemanarmy.radar.resources.settings_night_days
 import com.onemanarmy.radar.resources.settings_night_end
@@ -174,6 +174,7 @@ import com.onemanarmy.radar.resources.test_notification_body
 import com.onemanarmy.radar.resources.test_notification_title
 import com.onemanarmy.radar.resources.test_threat_notification_body
 import com.onemanarmy.radar.resources.test_threat_notification_title
+import com.onemanarmy.radar.ui.common.appLanguageLabel
 import com.onemanarmy.radar.ui.common.nightBehaviorLabel
 import com.onemanarmy.radar.ui.common.soundPresetShortLabel
 import com.onemanarmy.radar.ui.common.threatDataSourceLabel
@@ -182,6 +183,7 @@ import com.onemanarmy.radar.ui.common.threatSoundPatternLabel
 import com.onemanarmy.radar.ui.common.threatVibrationPatternLabel
 import com.onemanarmy.radar.ui.common.vibrationPresetShortLabel
 import com.onemanarmy.radar.ui.components.ThreatKnowledgeBaseSheet
+import com.onemanarmy.radar.ui.components.TimePickerDialogWrapper
 import com.onemanarmy.radar.ui.theme.AlertColors
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -190,7 +192,8 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsTabScreen(
-    viewModel: SettingsViewModel = koinViewModel()
+    viewModel: SettingsViewModel = koinViewModel(),
+    listState: LazyListState = rememberLazyListState()
 ) {
     val settings by viewModel.settingsState.collectAsStateWithLifecycle()
     val diagnostics by viewModel.diagnosticsState.collectAsStateWithLifecycle()
@@ -219,10 +222,43 @@ fun SettingsTabScreen(
     val testThreatBody = stringResource(Res.string.test_threat_notification_body)
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Section 0: App Language
+        item {
+            SettingsSectionCard(
+                icon = Icons.Default.Language,
+                title = stringResource(Res.string.settings_language_section)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(Res.string.settings_language_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(Res.string.settings_language_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IosSegmentedControl(
+                        items = AppLanguage.entries,
+                        selectedItem = settings.appLanguage,
+                        onItemSelected = viewModel::selectAppLanguage,
+                        labelProvider = { appLanguageLabel(it) }
+                    )
+                }
+            }
+        }
+
         // Section 1: Notifications (Segmented Card Group)
         item {
             Column(
@@ -1289,37 +1325,6 @@ private fun DiagnosticRow(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TimePickerDialogWrapper(
-    initialHour: Int,
-    initialMinute: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int, Int) -> Unit
-) {
-    val state = rememberTimePickerState(
-        initialHour = initialHour,
-        initialMinute = initialMinute,
-        is24Hour = true
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            Button(onClick = { onConfirm(state.hour, state.minute) }) {
-                Text(stringResource(Res.string.btn_save))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.btn_cancel))
-            }
-        },
-        text = {
-            TimePicker(state = state)
-        }
-    )
 }
 
 @Composable

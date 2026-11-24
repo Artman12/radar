@@ -3,17 +3,21 @@ package com.onemanarmy.radar.data.repository
 import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.domain.logic.GeoUtils
+import com.onemanarmy.radar.domain.logic.PointScheduleEvaluator
 import com.onemanarmy.radar.domain.model.AirThreat
 import com.onemanarmy.radar.domain.model.SavedPoint
 import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatWithProximity
-
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
 
 /**
- * Fetches OSINT aerial threats from the selected radar source (NEPTUN or MAPA.UA)
+ * Fetches OSINT aerial threats from the selected radar source (NEPTUN, MAPA.UA, or BOTH)
  * and computes proximity against user's tracked points.
  *
  * Enforces per-source request coalescing and a short-TTL response/failure cache so rapid UI
@@ -37,11 +41,31 @@ class RadarRepository(
         var lastSuccessfulThreats: List<AirThreat>? = null
     )
 
-    private val statesBySource = ThreatDataSource.entries.associateWith { SourceState() }
+    private val statesBySource = listOf(
+        ThreatDataSource.NEPTUN,
+        ThreatDataSource.MAPA_UA
+    ).associateWith { SourceState() }
 
     suspend fun fetchRawThreats(
         source: ThreatDataSource = ThreatDataSource.NEPTUN
     ): Result<List<AirThreat>> {
+        if (source == ThreatDataSource.BOTH) {
+            return coroutineScope {
+                val neptunDeferred = async { fetchRawThreats(ThreatDataSource.NEPTUN) }
+                val mapaDeferred = async { fetchRawThreats(ThreatDataSource.MAPA_UA) }
+                val neptunResult = neptunDeferred.await()
+                val mapaResult = mapaDeferred.await()
+                when {
+                    neptunResult.isSuccess && mapaResult.isSuccess -> {
+                        Result.success(neptunResult.getOrThrow() + mapaResult.getOrThrow())
+                    }
+                    neptunResult.isSuccess -> neptunResult
+                    mapaResult.isSuccess -> mapaResult
+                    else -> neptunResult
+                }
+            }
+        }
+
         val state = statesBySource.getValue(source)
         return state.mutex.withLock {
             val now = nowEpochMs()
@@ -65,6 +89,7 @@ class RadarRepository(
             val freshResult = when (source) {
                 ThreatDataSource.NEPTUN -> neptunRadarApi.fetchThreats()
                 ThreatDataSource.MAPA_UA -> mapaUaRadarApi.fetchThreats()
+                ThreatDataSource.BOTH -> error("Handled above")
             }
             val completedAt = nowEpochMs()
             state.lastAttemptAtMs = completedAt
@@ -90,12 +115,15 @@ class RadarRepository(
     fun enrichProximity(
         threats: List<AirThreat>,
         trackedPoints: List<SavedPoint>,
-        warningRadiusKm: Double
+        warningRadiusKm: Double,
+        instant: Instant = Clock.System.now(),
+        timeZone: TimeZone = TimeZone.currentSystemDefault()
     ): List<ThreatWithProximity> {
         if (threats.isEmpty()) return emptyList()
         return threats.map { threat ->
             var nearestPoint: SavedPoint? = null
             var minDistance = Double.MAX_VALUE
+            var isActivePointWithinRadius = false
             for (point in trackedPoints) {
                 val distance = GeoUtils.haversineDistanceKm(
                     point.latitude,
@@ -107,6 +135,13 @@ class RadarRepository(
                     minDistance = distance
                     nearestPoint = point
                 }
+                if (
+                    distance <= warningRadiusKm &&
+                    point.notifyEnabled &&
+                    PointScheduleEvaluator.isMonitoringActive(point, instant, timeZone)
+                ) {
+                    isActivePointWithinRadius = true
+                }
             }
 
             val resolvedDistance = if (nearestPoint != null) minDistance else null
@@ -115,7 +150,7 @@ class RadarRepository(
                 nearestPointId = nearestPoint?.id,
                 nearestPointName = nearestPoint?.name,
                 distanceKm = resolvedDistance,
-                isWithinWarningRadius = resolvedDistance != null && resolvedDistance <= warningRadiusKm
+                isWithinWarningRadius = isActivePointWithinRadius
             )
         }
     }

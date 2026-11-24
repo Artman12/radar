@@ -7,6 +7,8 @@ import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.PointAlertState
 import com.onemanarmy.radar.domain.model.SavedPoint
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
 
 /**
  * Output of deduplication evaluation for a tracked point.
@@ -48,7 +50,8 @@ object AlertDeduplicator {
         previousState: PointAlertState?,
         settings: AppSettings,
         isQuietHours: Boolean,
-        nowEpochMs: Long
+        nowEpochMs: Long,
+        timeZone: TimeZone = TimeZone.currentSystemDefault()
     ): DeduplicationResult {
         val isActiveNow = activeAlerts.isNotEmpty()
         val currentHighestLevel = when {
@@ -77,8 +80,18 @@ object AlertDeduplicator {
             highestLevel = currentHighestLevel
         )
 
+        val isWithinPointSchedule = PointScheduleEvaluator.isMonitoringActive(
+            point = point,
+            instant = Instant.fromEpochMilliseconds(nowEpochMs),
+            timeZone = timeZone
+        )
         val isSuppressedByNightMode = isQuietHours && settings.nightModeBehavior == NightModeBehavior.DISABLED
-        if (!point.notifyEnabled || !settings.hromadaAlertNotificationsEnabled || isSuppressedByNightMode) {
+        if (
+            !point.notifyEnabled ||
+            !isWithinPointSchedule ||
+            !settings.hromadaAlertNotificationsEnabled ||
+            isSuppressedByNightMode
+        ) {
             return DeduplicationResult(NotificationDecision.None, updatedState)
         }
 

@@ -3,6 +3,7 @@ package com.onemanarmy.radar.platform
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.onemanarmy.radar.domain.model.AlertLevel
+import com.onemanarmy.radar.domain.model.AppLanguage
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
@@ -130,4 +131,11 @@ interface SystemDiagnosticsProvider {
  */
 interface PlatformDataStoreFactory {
     fun createPreferencesDataStore(): DataStore<Preferences>
+}
+
+/**
+ * Applies the selected in-app language to the platform locale configuration.
+ */
+interface PlatformLocaleController {
+    fun applyLanguage(language: AppLanguage)
 }

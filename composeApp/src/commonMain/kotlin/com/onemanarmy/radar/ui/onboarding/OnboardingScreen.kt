@@ -129,6 +129,7 @@ import com.onemanarmy.radar.resources.perm_battery_desc
 import com.onemanarmy.radar.resources.perm_battery_title
 import com.onemanarmy.radar.resources.perm_notifications_desc
 import com.onemanarmy.radar.resources.perm_notifications_title
+import com.onemanarmy.radar.resources.points_gps_ew_warning
 import com.onemanarmy.radar.resources.points_gps_subtitle_detecting
 import com.onemanarmy.radar.resources.status_granted
 import com.onemanarmy.radar.resources.status_not_granted
@@ -918,6 +919,34 @@ private fun LocationStep(
                 selected = uiState.gpsEnabled,
                 onClick = onSelectGps
             )
+
+            if (uiState.gpsEnabled) {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = AlertColors.WarningAmberContainerDark.copy(alpha = 0.72f)
+                    ),
+                    border = BorderStroke(1.dp, AlertColors.WarningAmber.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = AlertColors.WarningAmber,
+                            modifier = Modifier.size(18.dp).padding(top = 1.dp)
+                        )
+                        Text(
+                            text = stringResource(Res.string.points_gps_ew_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AlertColors.WarningOnContainerDark
+                        )
+                    }
+                }
+            }
 
             LocationOptionCard(
                 icon = Icons.Default.Map,

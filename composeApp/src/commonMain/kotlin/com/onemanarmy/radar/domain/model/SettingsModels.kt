@@ -75,7 +75,33 @@ enum class ThreatNightModeBehavior {
 @Serializable
 enum class ThreatDataSource {
     NEPTUN,
-    MAPA_UA
+    MAPA_UA,
+    BOTH
+}
+
+/**
+ * In-app display and notification language override.
+ */
+@Serializable
+enum class AppLanguage(val tag: String) {
+    SYSTEM("system"),
+    UKRAINIAN("uk"),
+    ENGLISH("en");
+
+    companion object {
+        fun fromTag(tag: String?): AppLanguage {
+            val normalized = tag?.trim()?.lowercase()
+            if (normalized == SYSTEM.tag) return SYSTEM
+            val primarySubtag = normalized
+                ?.substringBefore('-')
+                ?.substringBefore('_')
+            return when (primarySubtag) {
+                UKRAINIAN.tag -> UKRAINIAN
+                ENGLISH.tag -> ENGLISH
+                else -> UKRAINIAN
+            }
+        }
+    }
 }
 
 /**
@@ -84,6 +110,7 @@ enum class ThreatDataSource {
 @Serializable
 data class AppSettings(
     val isOnboardingCompleted: Boolean = false,
+    val appLanguage: AppLanguage = AppLanguage.UKRAINIAN,
     val gpsTrackingEnabled: Boolean = false,
     val gpsPointRegionId: String? = null,
     val gpsPointRegionName: String? = null,

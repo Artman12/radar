@@ -2,6 +2,7 @@ package com.onemanarmy.radar.data.remote
 
 import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.model.AirThreat
+import com.onemanarmy.radar.domain.model.ThreatDataSource
 import com.onemanarmy.radar.domain.model.ThreatTrailPoint
 import com.onemanarmy.radar.domain.model.ThreatType
 import io.ktor.client.HttpClient
@@ -123,7 +124,8 @@ class NeptunRadarApi(
                         val tLon = tp.lon ?: return@mapNotNull null
                         ThreatTrailPoint(tLat, tLon, tp.t)
                     },
-                    presumptiveCourse = dto.presumptiveCourse
+                    presumptiveCourse = dto.presumptiveCourse,
+                    source = ThreatDataSource.NEPTUN
                 )
             }
         }

@@ -76,6 +76,7 @@ import com.onemanarmy.radar.resources.threats_list_title
 import com.onemanarmy.radar.resources.threats_list_total
 import com.onemanarmy.radar.resources.threats_summary_loading
 import com.onemanarmy.radar.resources.threats_summary_none
+import com.onemanarmy.radar.ui.common.threatDataSourceFullLabel
 import com.onemanarmy.radar.ui.common.threatDataSourceLabel
 import com.onemanarmy.radar.ui.common.threatTypeLabel
 import com.onemanarmy.radar.ui.theme.AlertColors
@@ -160,6 +161,7 @@ fun ActiveThreatsSummaryPill(
     val sourceAccentColor = when (source) {
         ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary
         ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary
+        ThreatDataSource.BOTH -> MaterialTheme.colorScheme.secondary
     }
 
     Surface(
@@ -171,6 +173,7 @@ fun ActiveThreatsSummaryPill(
             color = when {
                 hasAnyNearby -> AlertColors.AlertRed.copy(alpha = 0.75f)
                 source == ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
+                source == ThreatDataSource.BOTH -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f)
                 else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
             }
         ),
@@ -199,7 +202,7 @@ fun ActiveThreatsSummaryPill(
                         .background(sourceAccentColor)
                 )
                 Text(
-                    text = threatDataSourceLabel(source),
+                    text = threatDataSourceFullLabel(source),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         lineHeight = 12.sp
@@ -635,6 +638,27 @@ private fun ThreatListRowCard(
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                             )
                         }
+                    }
+                    val originColor = if (threat.source == ThreatDataSource.MAPA_UA) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = originColor.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, originColor.copy(alpha = 0.45f))
+                    ) {
+                        Text(
+                            text = threatDataSourceLabel(threat.source),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp
+                            ),
+                            fontWeight = FontWeight.SemiBold,
+                            color = originColor,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                        )
                     }
                 }
 

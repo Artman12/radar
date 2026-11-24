@@ -64,9 +64,11 @@
     <string name="status_point_subtitle">%1$s (%2$s)</string>
     <string name="map_radar_mode_off">Air threats: Off (tap for NEPTUN)</string>
     <string name="map_radar_mode_neptun">Air threats: NEPTUN (tap for MAPA.UA)</string>
-    <string name="map_radar_mode_mapa">Air threats: MAPA.UA (tap to hide)</string>
+    <string name="map_radar_mode_mapa">Air threats: MAPA.UA (tap for all sources)</string>
+    <string name="map_radar_mode_both">Air threats: All sources (tap to hide)</string>
     <string name="map_radar_fab_neptun">NEP</string>
     <string name="map_radar_fab_mapa">MAPA</string>
+    <string name="map_radar_fab_both">ALL</string>
     <string name="map_toggle_occupied_on">Hide occupied territories</string>
     <string name="map_toggle_occupied_off">Show occupied territories</string>
     <string name="map_center_gps">Center on my location</string>
@@ -114,9 +116,28 @@
     <string name="points_gps_subtitle_enabled">Region: %1$s</string>
     <string name="points_gps_subtitle_detecting">Detecting location…</string>
     <string name="points_gps_subtitle_disabled">Automatic GPS tracking is off</string>
+    <string name="points_gps_ew_warning">GPS location may sometimes be inaccurate due to radio-electronic warfare (EW). Consider adding a manual point.</string>
     <string name="points_saved_header">Saved Locations</string>
     <string name="points_empty_hint">No saved points yet. Add Home, Work, or Family locations to monitor them simultaneously.</string>
     <string name="points_notify_switch">Notify for this point</string>
+    <string name="points_schedule_title">Monitoring hours</string>
+    <string name="points_schedule_24_7">Always (24/7)</string>
+    <string name="points_schedule_mode_custom">By schedule</string>
+    <string name="points_schedule_24_7_desc">Official alerts and proximity warnings stay active around the clock every day.</string>
+    <string name="points_schedule_active">Active</string>
+    <string name="points_schedule_paused">Paused</string>
+    <string name="points_schedule_outside_badge">Outside schedule</string>
+    <string name="points_schedule_configure">Change schedule</string>
+    <string name="points_schedule_sheet_title">Monitoring Hours — %1$s</string>
+    <string name="points_schedule_sheet_desc">Choose 24/7 monitoring or restrict alerts and proximity warnings to specific hours and days (useful for Home/Work when EW disrupts GPS).</string>
+    <string name="points_schedule_presets">Quick Presets</string>
+    <string name="points_schedule_preset_work">Work (09:00–18:00, Mon–Fri)</string>
+    <string name="points_schedule_preset_home">Home (18:00–09:00, Daily)</string>
+    <string name="points_schedule_interval">Time Window</string>
+    <string name="points_schedule_days">Active Days</string>
+    <string name="points_schedule_days_daily">Daily</string>
+    <string name="points_schedule_days_weekdays">Mon–Fri</string>
+    <string name="points_schedule_days_weekends">Sat–Sun</string>
     <string name="points_action_rename">Rename</string>
     <string name="points_action_reposition">Move on map</string>
     <string name="points_action_delete">Delete</string>
@@ -155,6 +176,7 @@
     <string name="threat_details_approx_note">OSINT radar data is approximate and updated only while the Map tab is open.</string>
     <string name="threat_details_inside_radius">Inside %1$d km threat radius</string>
     <string name="threat_details_inside_radius_zero">Inside 500 m threat radius</string>
+    <string name="threat_details_source">Data source</string>
     <string name="threat_details_open_kb">About threat types &amp; icons</string>
 
     <!-- Explosion Details BottomSheet -->
@@ -257,8 +279,8 @@
     <string name="sound_short_soft_chime">Soft</string>
     <string name="sound_short_default">Default</string>
     <string name="btn_test_short">Test</string>
-    <string name="test_notification_title">🔴 Alert ACTIVE — Test</string>
-    <string name="test_notification_body">Alert is active in your hromada.</string>
+    <string name="test_notification_title">🔴 Red level — Test</string>
+    <string name="test_notification_body">Alert: your hromada</string>
 
     <string name="settings_threat_radius_enable">Threat in radius</string>
     <string name="settings_threat_radius_desc">Highlights nearby threats on the map and alerts when one enters</string>
@@ -279,7 +301,7 @@
     <string name="threat_sound_siren">Siren</string>
     <string name="threat_sound_alarm">Alarm</string>
     <string name="settings_threat_sound_volume">Volume: %1$d%</string>
-    <string name="test_threat_notification_title">⚠️ THREAT IN RADIUS — Test</string>
+    <string name="test_threat_notification_title">⚠️⚠️ THREAT IN RADIUS — Test</string>
     <string name="test_threat_notification_body">Attack UAV (Shahed-136) (~2 km away) — seek cover!</string>
 
     <string name="settings_night_mode_section">Night Mode (Quiet Hours)</string>
@@ -314,11 +336,20 @@
     <string name="settings_kb_title">Threat Knowledge Base</string>
     <string name="settings_kb_subtitle">View all target icons, characteristics &amp; safety actions</string>
 
+    <string name="settings_language_section">Language</string>
+    <string name="settings_language_title">App language</string>
+    <string name="settings_language_desc">Applies immediately; System follows device or App Info language</string>
+    <string name="language_system">System</string>
+    <string name="language_ukrainian">Українська</string>
+    <string name="language_english">English</string>
+
     <string name="settings_map_section">Map Display</string>
     <string name="settings_threat_source_title">Aerial threats source</string>
     <string name="settings_threat_source_desc">Choose which OSINT radar feed supplies live aerial targets</string>
     <string name="threat_source_neptun">NEPTUN</string>
     <string name="threat_source_mapa_ua">MAPA.UA</string>
+    <string name="threat_source_both_short">All sources</string>
+    <string name="threat_source_both">All sources</string>
     <string name="settings_occupied_layer_title">Occupied territories</string>
     <string name="settings_occupied_layer_desc">Show DeepState occupied zones overlay on the map</string>
     <string name="settings_explosions_layer_title">Explosions layer</string>
@@ -346,12 +377,12 @@
     <string name="about_disclaimer">Target positions are approximate. Built for autonomous offline-resilient monitoring.</string>
 
     <!-- Background Notification Strings -->
-    <string name="notif_alert_started_title">🔴 Alert ACTIVE — %1$s</string>
-    <string name="notif_alert_started_body">Alert is active in %1$s</string>
-    <string name="notif_yellow_alert_started_title">🟡 Elevated Threat — %1$s</string>
-    <string name="notif_yellow_alert_started_body">Elevated threat (yellow level) in %1$s</string>
-    <string name="notif_all_clear_title">🟢 Alert OFF — %1$s</string>
-    <string name="notif_all_clear_body">Alert is off in %1$s</string>
+    <string name="notif_alert_started_title">🔴 Red level — %1$s</string>
+    <string name="notif_alert_started_body">Alert: %1$s</string>
+    <string name="notif_yellow_alert_started_title">🟡 Yellow level — %1$s</string>
+    <string name="notif_yellow_alert_started_body">Alert: %1$s</string>
+    <string name="notif_all_clear_title">🟢 ALL CLEAR — %1$s</string>
+    <string name="notif_all_clear_body">Alert: %1$s</string>
     <string name="notif_hromada_suffix">%1$s hromada</string>
     <string name="notif_threat_radius_title">⚠️⚠️ THREAT IN RADIUS — %1$s</string>
     <string name="notif_threat_radius_body">%1$s (~%2$d km away) — seek cover!</string>

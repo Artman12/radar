@@ -18,6 +18,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.onemanarmy.radar.data.repository.AlertMonitoringRepository
 import com.onemanarmy.radar.domain.model.PointStatus
+import com.onemanarmy.radar.platform.AndroidLocaleHelper
 import com.onemanarmy.radar.platform.AndroidPlatformNotifier
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -59,11 +63,22 @@ class AlertMonitoringService : Service() {
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
     }
 
+    @Volatile
+    private var latestStatuses: List<PointStatus> = emptyList()
+
+    override fun attachBaseContext(newBase: Context) {
+        val language = AndroidLocaleHelper.getSavedLanguage(newBase)
+        AndroidLocaleHelper.applyDefaultLocale(newBase, language)
+        super.attachBaseContext(AndroidLocaleHelper.wrapContext(newBase, language))
+    }
+
+    private fun localizedContext(): Context = AndroidLocaleHelper.wrapContext(this)
+
     override fun onCreate() {
         super.onCreate()
         notifier.ensureForegroundChannel()
         val promoted = promoteToForeground(
-            getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
+            localizedContext().getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
         )
         if (!promoted) {
             _isRunning.value = false
@@ -72,6 +87,7 @@ class AlertMonitoringService : Service() {
         }
         _isRunning.value = true
         registerNetworkCallback()
+        observeLanguageChanges()
         startPollingLoop()
     }
 
@@ -79,7 +95,7 @@ class AlertMonitoringService : Service() {
         if (!isForegroundStarted) {
             notifier.ensureForegroundChannel()
             val promoted = promoteToForeground(
-                getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
+                localizedContext().getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
             )
             if (!promoted) {
                 _isRunning.value = false
@@ -154,6 +170,20 @@ class AlertMonitoringService : Service() {
         }
     }
 
+    private fun observeLanguageChanges() {
+        serviceScope.launch {
+            monitoringRepo.settingsFlow
+                .map { it.appLanguage }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { language ->
+                    AndroidLocaleHelper.saveLanguage(this@AlertMonitoringService, language)
+                    AndroidLocaleHelper.applyDefaultLocale(this@AlertMonitoringService, language)
+                    updateStatusNotification(formatCompactStatus(latestStatuses))
+                }
+        }
+    }
+
     private fun startPollingLoop() {
         pollingJob?.cancel()
         pollingJob = serviceScope.launch {
@@ -161,7 +191,7 @@ class AlertMonitoringService : Service() {
             var currentDelayMs = BASE_POLL_INTERVAL_MS
 
             while (isActive) {
-                val gpsLabel = getString(com.onemanarmy.radar.shared.R.string.notif_my_location)
+                val gpsLabel = localizedContext().getString(com.onemanarmy.radar.shared.R.string.notif_my_location)
                 val result = runCatching {
                     monitoringRepo.pollAlertsOnce(
                         forceFullFetch = false,
@@ -179,10 +209,13 @@ class AlertMonitoringService : Service() {
 
                 if (result != null && result.success) {
                     currentDelayMs = BASE_POLL_INTERVAL_MS
+                    latestStatuses = result.trackedStatuses
                     updateStatusNotification(formatCompactStatus(result.trackedStatuses))
                 } else {
                     currentDelayMs = (currentDelayMs * 2).coerceAtMost(MAX_BACKOFF_MS)
-                    updateStatusNotification(getString(com.onemanarmy.radar.shared.R.string.fg_status_no_network))
+                    updateStatusNotification(
+                        localizedContext().getString(com.onemanarmy.radar.shared.R.string.fg_status_no_network)
+                    )
                 }
 
                 val signal = CompletableDeferred<Unit>()
@@ -195,13 +228,14 @@ class AlertMonitoringService : Service() {
     }
 
     private fun formatCompactStatus(statuses: List<PointStatus>): String {
-        if (statuses.isEmpty()) return getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
+        val ctx = localizedContext()
+        if (statuses.isEmpty()) return ctx.getString(com.onemanarmy.radar.shared.R.string.fg_status_monitoring)
         val activeAlertPoint = statuses.firstOrNull { it.isAlertActive }
         return if (activeAlertPoint != null) {
-            getString(com.onemanarmy.radar.shared.R.string.fg_status_active_alert, activeAlertPoint.point.name)
+            ctx.getString(com.onemanarmy.radar.shared.R.string.fg_status_active_alert, activeAlertPoint.point.name)
         } else {
             val primary = statuses.first()
-            getString(com.onemanarmy.radar.shared.R.string.fg_status_active_clear, primary.point.name)
+            ctx.getString(com.onemanarmy.radar.shared.R.string.fg_status_active_clear, primary.point.name)
         }
     }
 

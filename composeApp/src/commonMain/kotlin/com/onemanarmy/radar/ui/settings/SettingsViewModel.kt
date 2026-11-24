@@ -8,6 +8,7 @@ import com.onemanarmy.radar.data.remote.MapaUaRadarApi
 import com.onemanarmy.radar.data.remote.NeptunRadarApi
 import com.onemanarmy.radar.data.remote.NextAlertExplosionsApi
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
+import com.onemanarmy.radar.domain.model.AppLanguage
 import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.NotificationSoundPreset
@@ -17,6 +18,7 @@ import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
 import com.onemanarmy.radar.domain.model.VibrationPreset
 import com.onemanarmy.radar.platform.BackgroundServiceController
+import com.onemanarmy.radar.platform.PlatformLocaleController
 import com.onemanarmy.radar.platform.PlatformNotifier
 import com.onemanarmy.radar.platform.SystemDiagnosticsProvider
 import com.onemanarmy.radar.platform.SystemDiagnosticsState
@@ -30,7 +32,8 @@ class SettingsViewModel(
     private val prefsRepo: AppPreferencesRepository,
     private val notifier: PlatformNotifier,
     private val serviceController: BackgroundServiceController,
-    private val diagnosticsProvider: SystemDiagnosticsProvider
+    private val diagnosticsProvider: SystemDiagnosticsProvider,
+    private val localeController: PlatformLocaleController
 ) : ViewModel() {
 
     val settingsState: StateFlow<AppSettings> = prefsRepo.settingsFlow
@@ -38,6 +41,13 @@ class SettingsViewModel(
 
     val diagnosticsState: StateFlow<SystemDiagnosticsState> = diagnosticsProvider.diagnosticsState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SystemDiagnosticsState())
+
+    fun selectAppLanguage(language: AppLanguage) {
+        localeController.applyLanguage(language)
+        viewModelScope.launch {
+            prefsRepo.updateSettings { it.copy(appLanguage = language) }
+        }
+    }
 
     fun refreshDiagnostics() {
         diagnosticsProvider.refreshDiagnostics()

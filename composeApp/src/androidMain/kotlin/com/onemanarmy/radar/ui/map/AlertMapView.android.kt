@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.onemanarmy.radar.data.local.UkraineBoundaryRepository
 import com.onemanarmy.radar.domain.logic.DurationFormatter
 import com.onemanarmy.radar.domain.logic.GeoUtils
+import com.onemanarmy.radar.domain.logic.PointScheduleEvaluator
 import com.onemanarmy.radar.domain.logic.ThreatRadiusEvaluator
 import com.onemanarmy.radar.domain.model.ActiveAlertInfo
 import com.onemanarmy.radar.domain.model.AlertLevel
@@ -361,9 +362,13 @@ actual fun AlertMapView(
             } else {
                 emptyList()
             }
+            val activeScheduleFlags = trackedPoints.map {
+                it.point.notifyEnabled && PointScheduleEvaluator.isMonitoringActive(it.point, nowInstant)
+            }
 
             val overlayKey = DynamicOverlayKey(
                 trackedPoints = trackedPoints,
+                activeScheduleFlags = activeScheduleFlags,
                 threats = threats,
                 threatStaleFlags = threatStaleFlags,
                 explosions = explosions,
@@ -389,11 +394,13 @@ actual fun AlertMapView(
                     if (showThreatsLayer && highlightNearbyThreats) {
                         val effectiveRadiusKm = ThreatRadiusEvaluator.effectiveRadiusKm(warningRadiusKm)
                         val radiusCenters = buildList {
-                            trackedPoints.forEach { status ->
-                                val hasInside = threats.any {
-                                    it.isWithinWarningRadius && it.nearestPointId == status.point.id
+                            trackedPoints.forEachIndexed { index, status ->
+                                if (activeScheduleFlags[index]) {
+                                    val hasInside = threats.any {
+                                        it.isWithinWarningRadius && it.nearestPointId == status.point.id
+                                    }
+                                    add(Triple(status.point.latitude, status.point.longitude, hasInside))
                                 }
-                                add(Triple(status.point.latitude, status.point.longitude, hasInside))
                             }
                             if (gpsCoordinates != null && trackedPoints.none { it.point.isGpsAnchor }) {
                                 val hasInside = threats.any {
@@ -552,6 +559,7 @@ actual fun AlertMapView(
 
 private data class DynamicOverlayKey(
     val trackedPoints: List<PointStatus>,
+    val activeScheduleFlags: List<Boolean>,
     val threats: List<ThreatWithProximity>,
     val threatStaleFlags: List<Boolean>,
     val explosions: List<ExplosionWithProximity>,

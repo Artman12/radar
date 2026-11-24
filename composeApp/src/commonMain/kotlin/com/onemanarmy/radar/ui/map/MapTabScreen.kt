@@ -90,8 +90,10 @@ import com.onemanarmy.radar.resources.map_disclaimer_nextalert_link
 import com.onemanarmy.radar.resources.map_disclaimer_prefix
 import com.onemanarmy.radar.resources.map_nearby_threat_banner
 import com.onemanarmy.radar.resources.map_nearby_threat_banner_zero
+import com.onemanarmy.radar.resources.map_radar_fab_both
 import com.onemanarmy.radar.resources.map_radar_fab_mapa
 import com.onemanarmy.radar.resources.map_radar_fab_neptun
+import com.onemanarmy.radar.resources.map_radar_mode_both
 import com.onemanarmy.radar.resources.map_radar_mode_mapa
 import com.onemanarmy.radar.resources.map_radar_mode_neptun
 import com.onemanarmy.radar.resources.map_radar_mode_off
@@ -425,7 +427,7 @@ fun MapTabScreen(
                     color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Row(
+                    FlowRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
@@ -433,7 +435,7 @@ fun MapTabScreen(
                                 vertical = if (isCompactLandscape) 4.dp else 6.dp
                             ),
                         horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(
                             text = stringResource(Res.string.map_disclaimer_prefix),
@@ -442,22 +444,63 @@ fun MapTabScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        val isMapaUa = uiState.settings.threatDataSource == ThreatDataSource.MAPA_UA
-                        Text(
-                            text = stringResource(
-                                if (isMapaUa) Res.string.map_disclaimer_mapa_ua_link else Res.string.map_disclaimer_link
-                            ),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                textDecoration = TextDecoration.Underline,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable {
-                                viewModel.openExternalUrl(
-                                    if (isMapaUa) MapaUaRadarApi.MAPA_UA_BASE_URL else NeptunRadarApi.NEPTUN_BASE_URL
+                        when (uiState.settings.threatDataSource) {
+                            ThreatDataSource.NEPTUN -> {
+                                Text(
+                                    text = stringResource(Res.string.map_disclaimer_link),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        viewModel.openExternalUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+                                    }
                                 )
                             }
-                        )
+                            ThreatDataSource.MAPA_UA -> {
+                                Text(
+                                    text = stringResource(Res.string.map_disclaimer_mapa_ua_link),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        viewModel.openExternalUrl(MapaUaRadarApi.MAPA_UA_BASE_URL)
+                                    }
+                                )
+                            }
+                            ThreatDataSource.BOTH -> {
+                                Text(
+                                    text = stringResource(Res.string.map_disclaimer_link),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        viewModel.openExternalUrl(NeptunRadarApi.NEPTUN_BASE_URL)
+                                    }
+                                )
+                                Text(
+                                    text = " / ",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = stringResource(Res.string.map_disclaimer_mapa_ua_link),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable {
+                                        viewModel.openExternalUrl(MapaUaRadarApi.MAPA_UA_BASE_URL)
+                                    }
+                                )
+                            }
+                        }
                         Text(
                             text = " • ",
                             style = MaterialTheme.typography.labelSmall,
@@ -674,22 +717,26 @@ private fun RadarLayerToggleButton(
     val containerColor = when {
         !enabled -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f)
         source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f)
-        else -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.96f)
+        source == ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.96f)
+        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.96f)
     }
     val contentColor = when {
         !enabled -> MaterialTheme.colorScheme.onSurfaceVariant
         source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary
-        else -> MaterialTheme.colorScheme.tertiary
+        source == ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.secondary
     }
     val borderColor = when {
         !enabled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
         source == ThreatDataSource.NEPTUN -> MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
-        else -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.65f)
+        source == ThreatDataSource.MAPA_UA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.65f)
+        else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.65f)
     }
     val description = when {
         !enabled -> stringResource(Res.string.map_radar_mode_off)
         source == ThreatDataSource.NEPTUN -> stringResource(Res.string.map_radar_mode_neptun)
-        else -> stringResource(Res.string.map_radar_mode_mapa)
+        source == ThreatDataSource.MAPA_UA -> stringResource(Res.string.map_radar_mode_mapa)
+        else -> stringResource(Res.string.map_radar_mode_both)
     }
 
     val buttonSize = if (compact) 38.dp else 42.dp
@@ -711,10 +758,10 @@ private fun RadarLayerToggleButton(
                 )
             } else {
                 val badgeText = stringResource(
-                    if (source == ThreatDataSource.NEPTUN) {
-                        Res.string.map_radar_fab_neptun
-                    } else {
-                        Res.string.map_radar_fab_mapa
+                    when (source) {
+                        ThreatDataSource.NEPTUN -> Res.string.map_radar_fab_neptun
+                        ThreatDataSource.MAPA_UA -> Res.string.map_radar_fab_mapa
+                        ThreatDataSource.BOTH -> Res.string.map_radar_fab_both
                     }
                 )
                 Column(

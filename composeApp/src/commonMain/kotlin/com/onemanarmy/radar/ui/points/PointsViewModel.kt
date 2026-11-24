@@ -31,6 +31,7 @@ data class PointsUiState(
     val isAddSheetOpen: Boolean = false,
     val renamingPoint: SavedPoint? = null,
     val repositioningPoint: SavedPoint? = null,
+    val editingSchedulePoint: SavedPoint? = null,
     val searchQuery: String = "",
     val searchResults: List<GeocodedAddress> = emptyList(),
     val isSearching: Boolean = false
@@ -105,6 +106,39 @@ class PointsViewModel(
     fun togglePointNotification(point: SavedPoint, enabled: Boolean) {
         viewModelScope.launch {
             prefsRepo.saveOrUpdatePoint(point.copy(notifyEnabled = enabled))
+        }
+    }
+
+    fun openScheduleEditor(point: SavedPoint) {
+        _local.update { it.copy(editingSchedulePoint = point) }
+    }
+
+    fun dismissScheduleEditor() {
+        _local.update { it.copy(editingSchedulePoint = null) }
+    }
+
+    fun savePointSchedule(
+        point: SavedPoint,
+        scheduleEnabled: Boolean,
+        startHour: Int,
+        startMinute: Int,
+        endHour: Int,
+        endMinute: Int,
+        activeDaysIso: Set<Int>
+    ) {
+        viewModelScope.launch {
+            val safeDays = activeDaysIso.ifEmpty { point.scheduleActiveDaysIso.ifEmpty { setOf(1, 2, 3, 4, 5) } }
+            prefsRepo.saveOrUpdatePoint(
+                point.copy(
+                    scheduleEnabled = scheduleEnabled,
+                    scheduleStartHour = startHour,
+                    scheduleStartMinute = startMinute,
+                    scheduleEndHour = endHour,
+                    scheduleEndMinute = endMinute,
+                    scheduleActiveDaysIso = safeDays
+                )
+            )
+            _local.update { it.copy(editingSchedulePoint = null) }
         }
     }
 

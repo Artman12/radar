@@ -7,6 +7,9 @@ import com.onemanarmy.radar.domain.model.SavedPoint
 import com.onemanarmy.radar.domain.model.ThreatNightModeBehavior
 import com.onemanarmy.radar.domain.model.ThreatSoundPattern
 import com.onemanarmy.radar.domain.model.ThreatVibrationPattern
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
 import kotlin.math.abs
 
 data class ThreatRadiusNotification(
@@ -68,7 +71,9 @@ object ThreatRadiusEvaluator {
         threats: List<AirThreat>,
         previousStates: Map<String, PointAlertState>,
         settings: AppSettings,
-        isQuietHours: Boolean = false
+        isQuietHours: Boolean = false,
+        instant: Instant = Clock.System.now(),
+        timeZone: TimeZone = TimeZone.currentSystemDefault()
     ): ThreatRadiusEvaluationResult {
         val updatedStates = previousStates.toMutableMap()
         val thresholdKm = effectiveRadiusKm(settings.threatNotificationRadiusKm)
@@ -84,7 +89,17 @@ object ThreatRadiusEvaluator {
 
         for (point in trackedPoints) {
             val prev = updatedStates[point.id]
-            if (!settings.threatRadiusNotificationEnabled || isSuppressedByNightMode || !point.notifyEnabled) {
+            val isWithinPointSchedule = PointScheduleEvaluator.isMonitoringActive(
+                point = point,
+                instant = instant,
+                timeZone = timeZone
+            )
+            if (
+                !settings.threatRadiusNotificationEnabled ||
+                isSuppressedByNightMode ||
+                !point.notifyEnabled ||
+                !isWithinPointSchedule
+            ) {
                 if (prev != null && prev.isThreatInRadius) {
                     updatedStates[point.id] = prev.copy(isThreatInRadius = false)
                 }

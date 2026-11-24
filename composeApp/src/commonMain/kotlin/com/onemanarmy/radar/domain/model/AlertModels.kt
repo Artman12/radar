@@ -104,7 +104,13 @@ data class SavedPoint(
     val isGpsAnchor: Boolean = false,
     val districtName: String = "",
     val oblastName: String = "",
-    val hromadaName: String = ""
+    val hromadaName: String = "",
+    val scheduleEnabled: Boolean = false,
+    val scheduleStartHour: Int = 9,
+    val scheduleStartMinute: Int = 0,
+    val scheduleEndHour: Int = 18,
+    val scheduleEndMinute: Int = 0,
+    val scheduleActiveDaysIso: Set<Int> = setOf(1, 2, 3, 4, 5)
 )
 
 /**

@@ -125,7 +125,8 @@ data class AirThreat(
     val explanation: String = "",
     val updatedAtIso: String = "",
     val trail: List<ThreatTrailPoint> = emptyList(),
-    val presumptiveCourse: Boolean = false
+    val presumptiveCourse: Boolean = false,
+    val source: ThreatDataSource = ThreatDataSource.NEPTUN
 )
 
 /**

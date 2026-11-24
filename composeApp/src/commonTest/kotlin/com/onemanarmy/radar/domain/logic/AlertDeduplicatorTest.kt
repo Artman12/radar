@@ -7,6 +7,9 @@ import com.onemanarmy.radar.domain.model.AppSettings
 import com.onemanarmy.radar.domain.model.NightModeBehavior
 import com.onemanarmy.radar.domain.model.PointAlertState
 import com.onemanarmy.radar.domain.model.SavedPoint
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -317,5 +320,59 @@ class AlertDeduplicatorTest {
         val redDecision = assertIs<NotificationDecision.AlertStarted>(escalated.decision)
         assertEquals(AlertLevel.RED, redDecision.alertLevel)
         assertEquals(AlertLevel.RED, escalated.updatedState.highestLevel)
+    }
+
+    @Test
+    fun outsidePointScheduleSuppressesNotificationsButTracksState() {
+        val kyivZone = TimeZone.of("Europe/Kyiv")
+        // 2026-11-16 is Monday (ISO day 1)
+        val officePoint = homePoint.copy(
+            id = "office",
+            name = "Office",
+            scheduleEnabled = true,
+            scheduleStartHour = 9,
+            scheduleStartMinute = 0,
+            scheduleEndHour = 18,
+            scheduleEndMinute = 0,
+            scheduleActiveDaysIso = setOf(1, 2, 3, 4, 5)
+        )
+
+        val outsideEpochMs = LocalDateTime(2026, 11, 16, 20, 0).toInstant(kyivZone).toEpochMilliseconds()
+        val insideEpochMs = LocalDateTime(2026, 11, 16, 12, 0).toInstant(kyivZone).toEpochMilliseconds()
+
+        val startedOutside = AlertDeduplicator.evaluateTransition(
+            point = officePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = null,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = outsideEpochMs,
+            timeZone = kyivZone
+        )
+        assertEquals(NotificationDecision.None, startedOutside.decision)
+        assertTrue(startedOutside.updatedState.isAlertActive)
+
+        val clearedOutside = AlertDeduplicator.evaluateTransition(
+            point = officePoint,
+            activeAlerts = emptyList(),
+            previousState = startedOutside.updatedState,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = outsideEpochMs + 60_000L,
+            timeZone = kyivZone
+        )
+        assertEquals(NotificationDecision.None, clearedOutside.decision)
+        assertFalse(clearedOutside.updatedState.isAlertActive)
+
+        val startedInside = AlertDeduplicator.evaluateTransition(
+            point = officePoint,
+            activeAlerts = listOf(airAlert),
+            previousState = clearedOutside.updatedState,
+            settings = AppSettings(),
+            isQuietHours = false,
+            nowEpochMs = insideEpochMs,
+            timeZone = kyivZone
+        )
+        assertIs<NotificationDecision.AlertStarted>(startedInside.decision)
     }
 }

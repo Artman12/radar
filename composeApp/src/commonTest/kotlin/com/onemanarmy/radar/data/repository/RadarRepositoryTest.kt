@@ -17,6 +17,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -251,5 +254,162 @@ class RadarRepositoryTest {
         val thirdAttempt = repoWithCooldown.fetchRawThreats(ThreatDataSource.NEPTUN)
         assertTrue(thirdAttempt.isFailure)
         assertTrue(neptunAttempts > attemptsAfterFirstFetch)
+    }
+
+    @Test
+    fun fetchRawThreats_bothCombinesNeptunAndMapaUaAndPreservesSources() = runTest {
+        val neptunClient = HttpClient(
+            MockEngine {
+                respond(
+                    content = """
+                        {
+                          "threats": [
+                            { "id": "neptun_1", "type": "uav", "title": "Neptun UAV", "lat": 50.45, "lon": 30.52 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val mapaClient = HttpClient(
+            MockEngine {
+                respond(
+                    content = """
+                        {
+                          "objects": [
+                            { "id": 99, "kind": "missile_cruise", "title": "Mapa Missile", "status": "active", "lat": 49.0, "lon": 32.0 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val combinedRepo = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(neptunClient),
+            mapaUaRadarApi = MapaUaRadarApi(mapaClient)
+        )
+
+        val threats = combinedRepo.fetchRawThreats(ThreatDataSource.BOTH).getOrThrow()
+        assertEquals(2, threats.size)
+        val neptunThreat = threats.first { it.id == "neptun_1" }
+        val mapaThreat = threats.first { it.id == "mapa_99" }
+        assertEquals(ThreatDataSource.NEPTUN, neptunThreat.source)
+        assertEquals(ThreatDataSource.MAPA_UA, mapaThreat.source)
+    }
+
+    @Test
+    fun fetchRawThreats_bothSurvivesSingleSourceFailure() = runTest {
+        val failingNeptunClient = HttpClient(
+            MockEngine {
+                respond(content = "Server error", status = HttpStatusCode.InternalServerError)
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+        val okMapaClient = HttpClient(
+            MockEngine {
+                respond(
+                    content = """
+                        {
+                          "objects": [
+                            { "id": 42, "kind": "uav", "title": "Mapa UAV", "status": "active", "lat": 49.5, "lon": 31.5 }
+                          ]
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val partialRepo = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(failingNeptunClient),
+            mapaUaRadarApi = MapaUaRadarApi(okMapaClient)
+        )
+
+        val result = partialRepo.fetchRawThreats(ThreatDataSource.BOTH)
+        assertTrue(result.isSuccess)
+        val threats = result.getOrThrow()
+        assertEquals(1, threats.size)
+        assertEquals(ThreatDataSource.MAPA_UA, threats.first().source)
+    }
+
+    @Test
+    fun fetchRawThreats_bothFailsWhenBothSourcesFail() = runTest {
+        val failingClient = HttpClient(
+            MockEngine {
+                respond(content = "Error", status = HttpStatusCode.InternalServerError)
+            }
+        ) {
+            install(ContentNegotiation) { json(HttpClientFactory.sharedJson) }
+        }
+
+        val failingRepo = RadarRepository(
+            neptunRadarApi = NeptunRadarApi(failingClient),
+            mapaUaRadarApi = MapaUaRadarApi(failingClient)
+        )
+
+        val result = failingRepo.fetchRawThreats(ThreatDataSource.BOTH)
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun enrichProximity_excludesPointsOutsideScheduleFromWarningRadius() {
+        val kyivZone = TimeZone.of("Europe/Kyiv")
+        val inactivePoint = SavedPoint(
+            id = "p_office",
+            name = "Office",
+            latitude = 50.4501,
+            longitude = 30.5234,
+            regionId = "31",
+            regionName = "м. Київ",
+            scheduleEnabled = true,
+            scheduleStartHour = 9,
+            scheduleStartMinute = 0,
+            scheduleEndHour = 18,
+            scheduleEndMinute = 0,
+            scheduleActiveDaysIso = setOf(1, 2, 3, 4, 5)
+        )
+        val nearThreat = AirThreat(
+            id = "near_sched",
+            type = ThreatType.UAV,
+            title = "Shahed",
+            region = "м. Київ",
+            locality = "Київ",
+            latitude = 50.47,
+            longitude = 30.52
+        )
+
+        val evening = LocalDateTime(2026, 11, 16, 21, 0).toInstant(kyivZone)
+        val outside = repo.enrichProximity(
+            threats = listOf(nearThreat),
+            trackedPoints = listOf(inactivePoint),
+            warningRadiusKm = 30.0,
+            instant = evening,
+            timeZone = kyivZone
+        )
+        assertFalse(outside.first().isWithinWarningRadius)
+
+        val noon = LocalDateTime(2026, 11, 16, 12, 0).toInstant(kyivZone)
+        val inside = repo.enrichProximity(
+            threats = listOf(nearThreat),
+            trackedPoints = listOf(inactivePoint),
+            warningRadiusKm = 30.0,
+            instant = noon,
+            timeZone = kyivZone
+        )
+        assertTrue(inside.first().isWithinWarningRadius)
     }
 }

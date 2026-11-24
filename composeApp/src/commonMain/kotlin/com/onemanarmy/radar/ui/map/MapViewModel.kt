@@ -456,7 +456,7 @@ class MapViewModel(
     }
 
     /**
-     * Cycles the map radar FAB through: Off -> NEPTUN -> MAPA.UA -> Off.
+     * Cycles the map radar FAB through: Off -> NEPTUN -> MAPA.UA -> NEPTUN + MAPA.UA -> Off.
      * Rapid back-and-forth switches are allowed and backed by [RadarRepository]'s 10s per-source cache.
      */
     fun cycleThreatRadarMode() {
@@ -470,6 +470,10 @@ class MapViewModel(
                     settings.threatDataSource == ThreatDataSource.NEPTUN -> settings.copy(
                         radarLayerEnabled = true,
                         threatDataSource = ThreatDataSource.MAPA_UA
+                    )
+                    settings.threatDataSource == ThreatDataSource.MAPA_UA -> settings.copy(
+                        radarLayerEnabled = true,
+                        threatDataSource = ThreatDataSource.BOTH
                     )
                     else -> settings.copy(
                         radarLayerEnabled = false

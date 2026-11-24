@@ -64,9 +64,11 @@
     <string name="status_point_subtitle">%1$s (%2$s)</string>
     <string name="map_radar_mode_off">Повітряні цілі: Вимк (торкніться для NEPTUN)</string>
     <string name="map_radar_mode_neptun">Повітряні цілі: NEPTUN (торкніться для MAPA.UA)</string>
-    <string name="map_radar_mode_mapa">Повітряні цілі: MAPA.UA (торкніться, щоб приховати)</string>
+    <string name="map_radar_mode_mapa">Повітряні цілі: MAPA.UA (торкніться для всіх джерел)</string>
+    <string name="map_radar_mode_both">Повітряні цілі: Всі джерела (торкніться, щоб приховати)</string>
     <string name="map_radar_fab_neptun">NEP</string>
     <string name="map_radar_fab_mapa">MAPA</string>
+    <string name="map_radar_fab_both">ВСІ</string>
     <string name="map_toggle_occupied_on">Приховати окуповані території</string>
     <string name="map_toggle_occupied_off">Показати окуповані території</string>
     <string name="map_center_gps">Центрувати на моїй геопозиції</string>
@@ -114,9 +116,28 @@
     <string name="points_gps_subtitle_enabled">Регіон: %1$s</string>
     <string name="points_gps_subtitle_detecting">Визначення геопозиції…</string>
     <string name="points_gps_subtitle_disabled">Автоматичне відстеження GPS вимкнено</string>
+    <string name="points_gps_ew_warning">Геолокація може бути неточною через роботу засобів РЕБ. Радимо додати точку вручну.</string>
     <string name="points_saved_header">Збережені локації</string>
     <string name="points_empty_hint">Збережених точок ще немає. Додайте «Дім», «Робота» або «Батьки» для одночасного моніторингу.</string>
     <string name="points_notify_switch">Сповіщати для цієї точки</string>
+    <string name="points_schedule_title">Час моніторингу</string>
+    <string name="points_schedule_24_7">Завжди (24/7)</string>
+    <string name="points_schedule_mode_custom">За розкладом</string>
+    <string name="points_schedule_24_7_desc">Сповіщення про тривоги та цілі в радіусі працюють цілодобово щодня.</string>
+    <string name="points_schedule_active">Активний</string>
+    <string name="points_schedule_paused">На паузі</string>
+    <string name="points_schedule_outside_badge">Поза розкладом</string>
+    <string name="points_schedule_configure">Змінити розклад</string>
+    <string name="points_schedule_sheet_title">Час моніторингу — %1$s</string>
+    <string name="points_schedule_sheet_desc">Оберіть цілодобовий моніторинг або лише у вибраний час і дні тижня (зручно для дому/роботи при збоях GPS від РЕБ).</string>
+    <string name="points_schedule_presets">Швидкі пресети</string>
+    <string name="points_schedule_preset_work">Робота (09:00–18:00, Пн–Пт)</string>
+    <string name="points_schedule_preset_home">Дім (18:00–09:00, Щодня)</string>
+    <string name="points_schedule_interval">Часове вікно</string>
+    <string name="points_schedule_days">Активні дні</string>
+    <string name="points_schedule_days_daily">Щодня</string>
+    <string name="points_schedule_days_weekdays">Пн–Пт</string>
+    <string name="points_schedule_days_weekends">Сб–Нд</string>
     <string name="points_action_rename">Перейменувати</string>
     <string name="points_action_reposition">Змінити на карті</string>
     <string name="points_action_delete">Видалити</string>
@@ -155,6 +176,7 @@
     <string name="threat_details_approx_note">Дані радара OSINT є орієнтовними та оновлюються лише при відкритій вкладці «Карта».</string>
     <string name="threat_details_inside_radius">У межах %1$d км радіуса загрози</string>
     <string name="threat_details_inside_radius_zero">У межах 500 м радіуса загрози</string>
+    <string name="threat_details_source">Джерело даних</string>
     <string name="threat_details_open_kb">Довідник типів загроз та іконок</string>
 
     <!-- Explosion Details BottomSheet -->
@@ -257,8 +279,8 @@
     <string name="sound_short_soft_chime">М’який</string>
     <string name="sound_short_default">Станд.</string>
     <string name="btn_test_short">Тест</string>
-    <string name="test_notification_title">🔴 Тривога АКТИВНА — Тест</string>
-    <string name="test_notification_body">Тривога активна у вашій громаді.</string>
+    <string name="test_notification_title">🔴 Червоний рівень — Тест</string>
+    <string name="test_notification_body">Тривога: ваша громада</string>
 
     <string name="settings_threat_radius_enable">Загроза в радіусі</string>
     <string name="settings_threat_radius_desc">Позначає цілі на карті та попереджає при вході в радіус</string>
@@ -279,7 +301,7 @@
     <string name="threat_sound_siren">Сирена</string>
     <string name="threat_sound_alarm">Тривога</string>
     <string name="settings_threat_sound_volume">Гучність: %1$d%</string>
-    <string name="test_threat_notification_title">⚠️ ЦІЛЬ У РАДІУСІ — Тест</string>
+    <string name="test_threat_notification_title">⚠️⚠️ ЦІЛЬ У РАДІУСІ — Тест</string>
     <string name="test_threat_notification_body">Ударний БпЛА (Shahed-136) (~2 км) — прямуйте в укриття!</string>
 
     <string name="settings_night_mode_section">Нічний режим («Тихі години»)</string>
@@ -314,11 +336,20 @@
     <string name="settings_kb_title">Довідник повітряних цілей</string>
     <string name="settings_kb_subtitle">Усі іконки цілей, їхній опис та поради з безпеки</string>
 
+    <string name="settings_language_section">Мова</string>
+    <string name="settings_language_title">Мова інтерфейсу</string>
+    <string name="settings_language_desc">Застосовується миттєво; «Системна» враховує мову пристрою або «Про додаток»</string>
+    <string name="language_system">Системна</string>
+    <string name="language_ukrainian">Українська</string>
+    <string name="language_english">English</string>
+
     <string name="settings_map_section">Відображення карти</string>
     <string name="settings_threat_source_title">Джерело повітряних цілей</string>
     <string name="settings_threat_source_desc">Оберіть OSINT-радар для відображення повітряних цілей</string>
     <string name="threat_source_neptun">NEPTUN</string>
     <string name="threat_source_mapa_ua">MAPA.UA</string>
+    <string name="threat_source_both_short">Всі джерела</string>
+    <string name="threat_source_both">Всі джерела</string>
     <string name="settings_occupied_layer_title">Окуповані території</string>
     <string name="settings_occupied_layer_desc">Показувати шар окупованих територій DeepState на карті</string>
     <string name="settings_explosions_layer_title">Шар вибухів</string>
@@ -346,12 +377,12 @@
     <string name="about_disclaimer">Положення цілей є орієнтовним. Автономна робота без власного сервера.</string>
 
     <!-- Background Notification Strings -->
-    <string name="notif_alert_started_title">🔴 Тривога АКТИВНА — %1$s</string>
-    <string name="notif_alert_started_body">Тривога активна: %1$s</string>
-    <string name="notif_yellow_alert_started_title">🟡 Підвищена загроза — %1$s</string>
-    <string name="notif_yellow_alert_started_body">Підвищена загроза (жовтий рівень): %1$s</string>
+    <string name="notif_alert_started_title">🔴 Червоний рівень — %1$s</string>
+    <string name="notif_alert_started_body">Тривога: %1$s</string>
+    <string name="notif_yellow_alert_started_title">🟡 Жовтий рівень — %1$s</string>
+    <string name="notif_yellow_alert_started_body">Тривога: %1$s</string>
     <string name="notif_all_clear_title">🟢 ВІДБІЙ — %1$s</string>
-    <string name="notif_all_clear_body">Тривога вимкнена: %1$s</string>
+    <string name="notif_all_clear_body">Тривога: %1$s</string>
     <string name="notif_hromada_suffix">%1$s громада</string>
     <string name="notif_threat_radius_title">⚠️⚠️ ЦІЛЬ У РАДІУСІ — %1$s</string>
     <string name="notif_threat_radius_body">%1$s (~%2$d км) — прямуйте в укриття!</string>

@@ -97,11 +97,13 @@ import com.onemanarmy.radar.resources.threat_details_heading_unknown
 import com.onemanarmy.radar.resources.threat_details_inside_radius
 import com.onemanarmy.radar.resources.threat_details_inside_radius_zero
 import com.onemanarmy.radar.resources.threat_details_open_kb
+import com.onemanarmy.radar.resources.threat_details_source
 import com.onemanarmy.radar.resources.threat_details_speed
 import com.onemanarmy.radar.resources.threat_details_type
 import com.onemanarmy.radar.resources.threat_details_uncertainty
 import com.onemanarmy.radar.resources.threat_details_updated
 import com.onemanarmy.radar.ui.common.alertTypeLabel
+import com.onemanarmy.radar.ui.common.threatDataSourceFullLabel
 import com.onemanarmy.radar.ui.common.threatTypeLabel
 import com.onemanarmy.radar.ui.theme.AlertColors
 import kotlinx.coroutines.delay
@@ -550,6 +552,12 @@ fun ThreatDetailsBottomSheet(
                             value = "$timeLabel ($ageLabel)"
                         )
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    DetailRow(
+                        label = stringResource(Res.string.threat_details_source),
+                        value = threatDataSourceFullLabel(threat.source)
+                    )
                 }
             }
 
